@@ -8,6 +8,7 @@ import { queryKeys } from "@/lib/query-keys";
 import type { ErrorResponse, OkResponse } from "@/types/api";
 
 export type GatewayMode = "official" | "custom" | "hybrid";
+export type CustomLlmMode = "relayclaw_brainclaw" | "advanced";
 
 export interface LocalGatewayBilling {
   disabled: boolean;
@@ -56,6 +57,7 @@ export interface OfficialGatewayConfig extends GatewayEndpointPreview {
 }
 
 export interface CustomGatewayConfig extends GatewayEndpointPreview {
+  llmMode: CustomLlmMode;
   adminBaseUrl: string;
   tokenName: string;
   tokenId: string;
@@ -67,6 +69,12 @@ export interface EffectiveGatewayConfig {
   baseUrl: string;
   apiKeyPreview: string;
   configured: boolean;
+}
+
+export interface EffectiveLlmConfig extends EffectiveGatewayConfig {
+  mode: string;
+  model: string;
+  brainclaw: boolean;
 }
 
 export interface NewApiDatabaseStatus {
@@ -150,7 +158,9 @@ export interface MediaRelayConfig {
 export interface ModelGatewayConfig {
   mode: GatewayMode;
   effective: EffectiveGatewayConfig;
+  llmEffective: EffectiveLlmConfig;
   official: OfficialGatewayConfig;
+  brainclaw?: GatewayEndpointPreview;
   custom: CustomGatewayConfig;
   provisioner?: ModelGatewayProvisionerConfig;
   mediaRelay?: MediaRelayConfig;
@@ -173,6 +183,11 @@ export interface OfficialMediaCatalogStatus {
 
 export interface SaveOfficialConfigInput {
   newApiApiKey: string;
+}
+
+export interface SaveBrainClawConfigInput {
+  newApiBaseUrl: string;
+  newApiApiKey?: string;
 }
 
 export interface NewApiDatabaseConfigInput {
@@ -484,12 +499,51 @@ export function useEnableCustom() {
   });
 }
 
+export function useSaveBrainClawConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveBrainClawConfigInput) =>
+      api
+        .post("api/v1/model-gateway/custom/brainclaw/config", { json: input })
+        .json<OkResponse<ModelGatewayConfig> | ErrorResponse>(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.modelGateway() });
+    },
+  });
+}
+
 export function useEnableHybrid() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
       api
         .post("api/v1/model-gateway/hybrid/enable", { throwHttpErrors: false })
+        .json<OkResponse<ModelGatewayConfig> | ErrorResponse>(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.modelGateway() });
+    },
+  });
+}
+
+export function useEnableBrainClaw() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api
+        .post("api/v1/model-gateway/custom/brainclaw/enable")
+        .json<OkResponse<ModelGatewayConfig> | ErrorResponse>(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.modelGateway() });
+    },
+  });
+}
+
+export function useSetCustomLlmMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (mode: CustomLlmMode) =>
+      api
+        .post("api/v1/model-gateway/custom/llm-mode", { json: { mode } })
         .json<OkResponse<ModelGatewayConfig> | ErrorResponse>(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.modelGateway() });
