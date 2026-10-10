@@ -5,6 +5,7 @@ __pycache__/
 .env
 .env1
 /.venv/
+/.cache/
 /.playwright-mcp
 /.nicegui
 /output
@@ -107,6 +108,3 @@ docs/superpowers/
 # git worktree 统一目录(主目录永远 main)
 /.worktrees/
 /frontend/bun.lock
-
-# 风格图墙提供本地静态资源；STYLE_GALLERY_ASSET_BASE 可覆盖为 OSS/CDN。
-/tmp/style-gallery/

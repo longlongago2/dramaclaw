@@ -1,4 +1,5 @@
 .git
+.cache/
 __pycache__/
 *.pyc
 *.pyo
@@ -20,7 +21,6 @@ rag_storage/
 *.mov
 *.avi
 *.zip
-tmp/style-gallery/
 resources/style-gallery/
 *.srt
 *.docx
