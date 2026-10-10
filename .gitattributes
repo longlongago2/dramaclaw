@@ -1,3 +1,5 @@
 # Linux container entrypoint scripts must keep Unix line endings on Windows.
 *.sh text eol=lf
 *.envsh text eol=lf
+# Codex runtime identity hashes patch bytes; CRLF checkout changes the digest.
+*.patch text eol=lf

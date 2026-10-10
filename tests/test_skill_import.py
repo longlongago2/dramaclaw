@@ -277,9 +277,9 @@ async def test_api_install_returns_conflict_without_blocking_on_busy_import(tmp_
     monkeypatch.setattr(routes, 'scope', scope)
     record = module.create_record(tmp_path, 'alice', read_source('x.md', base64.b64encode(b'Method').decode()), 'b')
     def busy_lock(file, flags):
-        assert flags & routes.fcntl.LOCK_NB, 'Blocking lock could deadlock the event loop'
-        raise BlockingIOError('busy')
-    monkeypatch.setattr(routes.fcntl, 'flock', busy_lock)
+        assert flags & routes.portalocker.LOCK_NB, 'Blocking lock could deadlock the event loop'
+        raise routes.portalocker.exceptions.AlreadyLocked('busy')
+    monkeypatch.setattr(routes.portalocker, 'lock', busy_lock)
     with pytest.raises(HTTPException) as exc:
         await routes.install('p', record['id'], routes.InstallRequest(), {'username': 'alice'})
     assert exc.value.status_code == 409

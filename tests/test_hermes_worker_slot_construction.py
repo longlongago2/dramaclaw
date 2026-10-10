@@ -18,7 +18,7 @@ import pathlib
 
 from novelvideo.chat import hermes_pool
 
-SOURCE = pathlib.Path(hermes_pool.__file__).read_text()
+SOURCE = pathlib.Path(hermes_pool.__file__).read_text(encoding="utf-8")
 
 
 def _worker_slot_constructions() -> list[ast.Call]:

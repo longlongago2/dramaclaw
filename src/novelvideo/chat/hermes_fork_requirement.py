@@ -119,6 +119,14 @@ def _worker_interpreter(cli_path) -> str | None:
     resolved = str(cli_path) if cli_path else shutil.which("hermes")
     if not resolved:
         return None
+    launcher = pathlib.Path(resolved)
+    # Windows venv console launchers are PE executables without a shebang.
+    # Probe the interpreter next to the launcher, keeping fork verification
+    # inside the worker's isolated environment rather than the API's venv.
+    if launcher.suffix.lower() == ".exe":
+        interpreter = launcher.with_name("python.exe")
+        if interpreter.is_file():
+            return str(interpreter)
     try:
         first = pathlib.Path(resolved).read_text(errors="ignore").splitlines()[0]
     except (OSError, IndexError):

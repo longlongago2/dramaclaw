@@ -538,7 +538,9 @@ def _seed_labels(project_dir: Path) -> None:
             "confidence": 0.8,
         },
     }
-    (labels_dir / "labels.jsonl").write_text(json.dumps(row, ensure_ascii=False) + "\n")
+    (labels_dir / "labels.jsonl").write_text(
+        json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def _seed_stage_files(project_dir: Path) -> None:

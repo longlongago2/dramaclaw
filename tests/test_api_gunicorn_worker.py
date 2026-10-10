@@ -10,11 +10,15 @@ from __future__ import annotations
 import asyncio
 import logging
 import socket
+import sys
 from collections.abc import AsyncIterator
 
 import anyio
 import httpx
 import pytest
+if sys.platform == "win32":
+    pytest.skip("Gunicorn workers require Unix", allow_module_level=True)
+
 from fastapi import FastAPI
 from gunicorn.config import Config as GunicornConfig
 from gunicorn.glogging import Logger as GunicornLogger

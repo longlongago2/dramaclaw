@@ -10,7 +10,8 @@
 生成提示词、工具参数、源图片和文件校验值保存在
 `resources/style-gallery/style-gallery-originals-20261010.zip` 的 `manifest.json` 中。
 
-坐标映射与雪碧图一起维护；组件在构建时导入 JSON，无需额外异步请求。
+坐标映射与雪碧图一起维护；`frontend/style-gallery-plugin.ts` 在 dev 和构建时
+通过 `virtual:style-gallery-sprites` 导入 JSON，无需额外异步请求。
 Vite 将 public 文件复制到 dist，Web Docker 镜像随之包含这些资源。
 默认无需配置图片 CDN；配置 `STYLE_GALLERY_ASSET_BASE` 时保留外部独立图片模式。
 

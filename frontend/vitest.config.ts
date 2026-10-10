@@ -2,8 +2,10 @@
 // Copyright (c) 2026 ClaymoreLab
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { styleGalleryPlugin } from "./style-gallery-plugin";
 
 export default defineConfig({
+  plugins: [styleGalleryPlugin()],
   // Mirror the compile-time `__APP_VERSION__` that `vite.config.ts` injects,
   // so code importing `@/lib/app-version` works under vitest too. In tests we
   // don't care about the real value — a stable placeholder is plenty.

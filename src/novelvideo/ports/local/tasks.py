@@ -450,7 +450,7 @@ class InMemoryCancellationStore:
             expires_at = self._keys.get(key)
             if expires_at is None:
                 return False
-            if expires_at < time.time():
+            if expires_at <= time.time():
                 self._keys.pop(key, None)
                 return False
             return True

@@ -6,6 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { execSync } from "node:child_process";
 import path from "path";
+import { styleGalleryPlugin } from "./style-gallery-plugin";
 
 // YYMMDD build-date prefix (UTC), e.g. "260420-". Prepended to every
 // version string so "what shipped when" is readable at a glance without
@@ -71,6 +72,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
+      styleGalleryPlugin(),
       TanStackRouterVite(),
       react(),
       tailwindcss(),

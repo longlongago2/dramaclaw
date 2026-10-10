@@ -166,3 +166,18 @@ def test_a_launcher_that_is_not_python_is_reported_not_mis_run(tmp_path):
     assert not installed
     assert "cannot drive" in detail
     assert "HERMES_CLI_PATH" in detail, "the message must say what to set"
+
+
+def test_windows_console_launcher_probes_worker_python(tmp_path):
+    cli = tmp_path / 'Scripts' / 'hermes.exe'
+    cli.parent.mkdir()
+    cli.write_bytes(b'MZ launcher')
+    interpreter = cli.with_name('python.exe')
+    interpreter.touch()
+    assert requirement._worker_interpreter(cli) == str(interpreter)
+
+
+def test_windows_launcher_without_interpreter_does_not_guess(tmp_path):
+    cli = tmp_path / 'hermes.exe'
+    cli.write_bytes(b'MZ launcher')
+    assert requirement._worker_interpreter(cli) is None

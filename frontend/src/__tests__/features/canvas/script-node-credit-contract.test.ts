@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const nodeSource = readFileSync(
   "src/features/canvas/nodes/ScriptNode.tsx",
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("canvas script node credit contract", () => {
   it("quotes the story-script feature even when the input has zero characters", () => {

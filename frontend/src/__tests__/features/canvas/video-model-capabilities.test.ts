@@ -1297,7 +1297,7 @@ describe("videoNoUpstreamResetMode — 素材撤空后退回文生视频", () =>
 });
 
 describe("VideoNode 接线：素材撤空 → 文生视频", () => {
-  const source = readFileSync("src/features/canvas/nodes/VideoNode.tsx", "utf8");
+  const source = readFileSync("src/features/canvas/nodes/VideoNode.tsx", "utf8").replace(/\r\n/g, "\n");
 
   it("反向复位 effect 按节点类型口径判定，不用已解析 URL 口径", () => {
     // upstreamCounts（已解析 URL）会把空态 CTA 刚铺好、还没出图的图片节点算成 0 张，

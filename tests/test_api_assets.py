@@ -2225,8 +2225,8 @@ def test_single_face_sharp_compresses_generated_ply_to_sog(tmp_path, monkeypatch
     )
     manifest = stage_manifest.load_manifest(tmp_path, "Hall")
 
-    assert result["ply_path"].endswith("/master_sharp.sog")
-    assert result["sog_path"].endswith("/master_sharp.sog")
+    assert Path(result["ply_path"]).name == "master_sharp.sog"
+    assert Path(result["sog_path"]).name == "master_sharp.sog"
     assert result["raw_ply_path"] is None
     assert (stage_manifest.stage_dir(tmp_path, "Hall") / "master_sharp.sog").exists()
     assert not (stage_manifest.stage_dir(tmp_path, "Hall") / "master_sharp.ply").exists()

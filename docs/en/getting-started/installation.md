@@ -68,6 +68,23 @@ cp .env.example .env && $EDITOR .env     # set the gateway and key
 scripts/start-ce.sh                      # install dependencies and start API + frontend
 ```
 
+For native Windows PowerShell (no Bash or Docker):
+
+```powershell
+.\scripts\start-ce.ps1
+```
+
+The launcher calls `scripts/setup-hermes.ps1` to install the project fork in the
+isolated `.cache/hermes-venv`. It starts the API with hot reload and the frontend
+at `http://localhost:5173`. Ctrl+C stops both process trees; logs are in
+`runtime/dev-*`. Use `-SkipHermes` to skip chat runtime setup, and `-SkipInstall`
+when dependencies are already installed. These switches do not change the chat
+backend configuration. Start the independent model gateway separately.
+If execution policy blocks scripts, use
+`powershell -ExecutionPolicy Bypass -File .\scripts\start-ce.ps1`; this changes
+policy only for that process.
+
+
 Docker images and direct `novelvideo api` invocations default to Codex. Images include the
 credential-safe patched Codex App Server runtime; direct source invocations need a valid `CODEX_BIN`.
 `scripts/start-ce.sh` installs Hermes in an isolated environment for source development and selects

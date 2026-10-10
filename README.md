@@ -334,6 +334,21 @@ scripts/start-ce.sh   # installs dependencies, then starts the API and bundled f
 
 For frontend development with hot reload: `cd frontend && pnpm install && pnpm dev`.
 
+On Windows PowerShell, use the native launcher (no Bash or Docker required):
+
+```powershell
+.\scripts\start-ce.ps1
+```
+
+It installs the isolated Hermes fork through `scripts/setup-hermes.ps1`, starts the
+API with hot reload and the frontend at `http://localhost:5173`, and stops both
+process trees on exit. Logs are under `runtime/dev-*`. Use `-SkipHermes` to skip
+chat runtime setup, or `-SkipInstall` when dependencies are already installed.
+The independent model gateway is started separately. If script execution is
+restricted, run `powershell -ExecutionPolicy Bypass -File .\scripts\start-ce.ps1`
+(the override applies only to that process).
+
+
 The local launcher installs Hermes in an isolated environment and explicitly uses it as the
 safe source-checkout chat runtime. Source-built Docker images ship the patched Codex App
 Server runtime and default to Codex. The pinned 2.0.4 release image uses Hermes. To run the API command directly, configure a supported chat backend

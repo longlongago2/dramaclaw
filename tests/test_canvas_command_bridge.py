@@ -3,7 +3,23 @@
 
 import sqlite3
 
+import portalocker
+import pytest
+
 from novelvideo.freezone import canvas_command_bridge
+
+
+def test_bridge_key_lock_excludes_other_writers_and_releases_after_error(tmp_path):
+    lock_path = tmp_path / "bridge-a.lock"
+    with pytest.raises(RuntimeError, match="operation failed"):
+        with canvas_command_bridge._key_lock("bridge-a", bridge_dir=tmp_path):
+            with lock_path.open("a+") as contender:
+                with pytest.raises(portalocker.exceptions.LockException):
+                    portalocker.lock(contender, portalocker.LOCK_EX | portalocker.LOCK_NB)
+            raise RuntimeError("operation failed")
+    with lock_path.open("a+") as contender:
+        portalocker.lock(contender, portalocker.LOCK_EX | portalocker.LOCK_NB)
+        portalocker.unlock(contender)
 
 
 def test_repeated_canvas_commands_receive_unique_bridge_keys(monkeypatch):

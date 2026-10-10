@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ImageOff } from 'lucide-react';
 
 import { resolveStyleAssetUrl } from '@/features/canvas/nodes/styleAssetUrl';
-import spriteManifest from '../../../../public/style-gallery/styleSprites.json';
+import spriteManifest from 'virtual:style-gallery-sprites';
 
 interface StyleSprite {
   file: string;

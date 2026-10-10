@@ -19,3 +19,8 @@ interface ImportMeta {
 
 declare const __APP_VERSION__: string;
 declare const __BUILD_ID__: string;
+
+declare module "virtual:style-gallery-sprites" {
+  const manifest: typeof import("../public/style-gallery/styleSprites.json").default;
+  export default manifest;
+}

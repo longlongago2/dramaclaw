@@ -68,6 +68,21 @@ cp .env.example .env && $EDITOR .env     # 填网关与 Key
 scripts/start-ce.sh                      # 安装依赖并启动 API 与前端
 ```
 
+Windows PowerShell 原生启动（不需要 Bash 或 Docker）：
+
+```powershell
+.\scripts\start-ce.ps1
+```
+
+启动器调用 `scripts/setup-hermes.ps1`，将项目 Hermes fork 安装到独立的
+`.cache/hermes-venv` 环境；API 开启热重载，前端访问 `http://localhost:5173`。
+按 Ctrl+C 清理 API 和前端的子进程，日志保存到 `runtime/dev-*`。
+仅调试 API/前端、不使用聊天时可加 `-SkipHermes`；已安装依赖可加 `-SkipInstall`。
+这两个选项只跳过安装，不更改聊天后端配置。独立网关需另外启动。
+如果执行策略阻止脚本，可用
+`powershell -ExecutionPolicy Bypass -File .\scripts\start-ce.ps1`，只对本次进程生效。
+
+
 Docker 镜像和直接运行 `novelvideo api` 默认使用 Codex；镜像内置经过凭据安全修补的
 Codex App Server Runtime，源码直接运行时需配置有效的 `CODEX_BIN`。
 `scripts/start-ce.sh` 则为源码开发把 Hermes 安装到隔离环境，并在未显式配置聊天后端时

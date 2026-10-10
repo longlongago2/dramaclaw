@@ -737,7 +737,7 @@ def test_local_bootstrap_bad_signing_config_registers_zero_ports(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_in_memory_cancellation_store_ttl_and_cross_thread_visibility():
+async def test_in_memory_cancellation_store_ttl_and_cross_thread_visibility(monkeypatch):
     store = InMemoryCancellationStore()
     fields = {
         "project_id": "proj_t6",
@@ -759,6 +759,7 @@ async def test_in_memory_cancellation_store_ttl_and_cross_thread_visibility():
         is True
     )
 
+    monkeypatch.setattr("novelvideo.ports.local.tasks.time.time", lambda: 1234.0)
     await store.request_cancel(**{**fields, "task_id": "expired"}, ttl_seconds=0)
     assert await store.is_cancel_requested(**{**fields, "task_id": "expired"}) is False
 
