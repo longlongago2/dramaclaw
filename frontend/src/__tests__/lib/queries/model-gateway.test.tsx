@@ -26,10 +26,74 @@ import {
   useCheckOfficialMediaCatalog,
   useOfficialMediaCatalogWatcher,
   useSaveProviderChannels,
+  useDiscoverProviderModels,
+  useLocalGatewayBilling,
+  useSaveLocalGatewayBilling,
 } from "@/lib/queries/model-gateway";
 import { queryKeys } from "@/lib/query-keys";
 
 const server = setupServer();
+
+describe("local gateway billing", () => {
+  it("reads and saves the effective switch state", async () => {
+    let disabled = false;
+    const url = "http://localhost:3000/api/v1/model-gateway/custom/newapi/billing";
+    server.use(
+      http.get(url, () => HttpResponse.json({ ok: true, data: { disabled, group: "default" } })),
+      http.post(url, async ({ request }) => {
+        expect(await request.json()).toEqual({ disabled: true });
+        disabled = true;
+        return HttpResponse.json({ ok: true, data: { disabled, group: "default" } });
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => ({
+      query: useLocalGatewayBilling(true),
+      save: useSaveLocalGatewayBilling(),
+    }), { wrapper: wrapper(queryClient) });
+    await waitFor(() => expect(result.current.query.data?.data.disabled).toBe(false));
+    await act(async () => { await result.current.save.mutateAsync(true); });
+    await waitFor(() => expect(result.current.query.data?.data.disabled).toBe(true));
+  });
+
+  it("keeps the switch state after a failed save", async () => {
+    const url = "http://localhost:3000/api/v1/model-gateway/custom/newapi/billing";
+    server.use(
+      http.get(url, () => HttpResponse.json({ ok: true, data: { disabled: false, group: "default" } })),
+      http.post(url, () => HttpResponse.json({ ok: false, error: { message: "gateway unavailable" } }, { status: 502 })),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => ({
+      query: useLocalGatewayBilling(true),
+      save: useSaveLocalGatewayBilling(),
+    }), { wrapper: wrapper(queryClient) });
+    await waitFor(() => expect(result.current.query.data?.data.disabled).toBe(false));
+    await act(async () => {
+      expect((await result.current.save.mutateAsync(true)).ok).toBe(false);
+    });
+    expect(result.current.query.data?.data.disabled).toBe(false);
+  });
+});
+
+describe("mrtoken model discovery", () => {
+  it("posts credentials to the backend and preserves an empty model list", async () => {
+    server.use(http.post(
+      "http://localhost:3000/api/v1/model-gateway/custom/newapi/provider-channel/models",
+      async ({ request }) => {
+        expect(await request.json()).toEqual({ provider: "mrtoken", upstreamKey: "test-platform-key" });
+        return HttpResponse.json({ ok: true, data: { models: [] } });
+      },
+    ));
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useDiscoverProviderModels(), { wrapper: wrapper(queryClient) });
+    await act(async () => {
+      const response = await result.current.mutateAsync({ provider: "mrtoken", upstreamKey: "test-platform-key" });
+      expect(response).toEqual({ ok: true, data: { models: [] } });
+    });
+    act(() => result.current.reset());
+    await waitFor(() => expect(queryClient.getMutationCache().getAll()).toHaveLength(0));
+  });
+});
 
 beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());

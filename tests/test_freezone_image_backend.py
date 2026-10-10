@@ -3545,11 +3545,12 @@ def test_image_style_templates_are_short_drama_styles() -> None:
 
 
 def test_image_style_templates_have_assets_and_prompts() -> None:
-    # 图片已迁 OSS(STYLE_GALLERY_ASSET_BASE),不随仓库发布,所以 CI 里这个目录
-    # 不存在,只能校验路径形状。本地跑过 scripts/build_style_gallery.py 的人目录
-    # 才在,那时顺带校验清单与图片对得上 —— 加风格时漏转图片就在这里拦下。
+    # 本地图片随 Web 发布,封面与四张人物示例都必须映射到真实的雪碧图。
     gallery_root = Path(__file__).resolve().parents[1] / "frontend" / "public" / "style-gallery"
-    check_files_exist = gallery_root.is_dir()
+    assert gallery_root.is_dir()
+    sprites = json.loads(
+        (gallery_root / "styleSprites.json").read_text(encoding="utf-8")
+    )["sprites"]
 
     for item in freezone_routes._get_freezone_image_style_templates():
         assert item["label"], item["id"]
@@ -3575,8 +3576,10 @@ def test_image_style_templates_have_assets_and_prompts() -> None:
         assert len(item["samples"]) == 4, item["id"]
         for rel in [item["cover"], *item["samples"]]:
             assert not rel.startswith("/"), rel
-            if check_files_exist:
-                assert (gallery_root / rel).is_file(), rel
+            sprite = sprites[rel]
+            assert (gallery_root / sprite["file"]).is_file(), rel
+            assert 0 <= sprite["x"] <= sprite["sheetWidth"] - sprite["width"], rel
+            assert 0 <= sprite["y"] <= sprite["sheetHeight"] - sprite["height"], rel
 
 
 @pytest.mark.asyncio

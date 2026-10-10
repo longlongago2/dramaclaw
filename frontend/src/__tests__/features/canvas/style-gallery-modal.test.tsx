@@ -49,10 +49,8 @@ describe("StyleGalleryModal", () => {
 
     expect(screen.getByText("黄金时代")).toBeInTheDocument();
     expect(screen.getByText("武侠江湖")).toBeInTheDocument();
-    expect(screen.getByAltText("黄金时代")).toHaveAttribute(
-      "src",
-      "/style-gallery/golden_age/cover.webp",
-    );
+    expect(screen.getByRole("img", { name: "黄金时代" }).querySelector("image")?.getAttribute("href"))
+      .toMatch(/^\/style-gallery\/covers(?:-[a-f0-9]+)?\.webp$/);
   });
 
   it("prefixes covers with the configured asset base", () => {
@@ -83,7 +81,7 @@ describe("StyleGalleryModal", () => {
       />,
     );
 
-    const cover = screen.getByAltText("黄金时代");
+    const cover = screen.getByRole("img", { name: "黄金时代" });
     const card = cover.closest("button")?.parentElement;
     expect(cover).toHaveClass("origin-top", "group-hover:scale-[1.02]");
     expect(card).toHaveClass("transition-[border-color,box-shadow]");
@@ -108,7 +106,7 @@ describe("StyleGalleryModal", () => {
 
     // 一张封面判断不了这套风格怎么处理不同人物,所以点卡片是「先看看」而不是「就它了」。
     expect(onSelect).not.toHaveBeenCalled();
-    expect(screen.getByAltText("黄金时代 示例 1")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "黄金时代 示例 1" })).toBeInTheDocument();
   });
 
   it("the always-visible 使用 button selects without a detour", async () => {
@@ -180,14 +178,10 @@ describe("StyleGalleryModal", () => {
 
     await user.click(screen.getByRole("button", { name: "查看黄金时代详情" }));
 
-    expect(screen.getByAltText("黄金时代 示例 1")).toHaveAttribute(
-      "src",
-      "/style-gallery/golden_age/female.webp",
-    );
-    expect(screen.getByAltText("黄金时代 示例 4")).toHaveAttribute(
-      "src",
-      "/style-gallery/golden_age/elder.webp",
-    );
+    const first = screen.getByRole("img", { name: "黄金时代 示例 1" }).querySelector("image");
+    const fourth = screen.getByRole("img", { name: "黄金时代 示例 4" }).querySelector("image");
+    expect(first?.getAttribute("href")).toMatch(/^\/style-gallery\/golden_age(?:-[a-f0-9]+)?\.webp$/);
+    expect(fourth).toHaveAttribute("href", first?.getAttribute("href"));
     expect(
       screen.getByText(/黄金时代的提示词第一行/),
     ).toHaveTextContent("黄金时代的提示词第二行");

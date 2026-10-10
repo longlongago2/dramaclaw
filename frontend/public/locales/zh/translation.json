@@ -7083,6 +7083,11 @@
         "mediaCatalogCheckFailed": "检查官方媒体模型列表失败，请稍后重试。"
       },
       "custom": {
+        "noBilling": "本地网关不计费",
+        "noBillingDescription": "开启后，本地网关默认分组的调用不预扣、不扣除本地额度；关闭时恢复原计费设置。供应商仍正常收费，官方渠道计费不受影响。",
+        "billingSaved": "本地网关计费设置已保存",
+        "billingLoadFailed": "无法读取本地网关计费设置",
+        "billingRetry": "重试",
         "description": "CE 使用本机 SQLite NewAPI。DramaClaw 会自动连接数据库、创建运行令牌并启用本地渠道。",
         "init": "初始化本地 NewAPI",
         "repair": "检测并修复",
@@ -7145,6 +7150,10 @@
         }
       },
       "featureModels": {
+        "discoverModels": "获取可用模型",
+        "mrtokenHint": "使用平台 API Key。保存渠道前会通过 GET /v1/models 验证可用模型；请将返回的原始模型 ID 填入模型映射。MrToken 模型列表包含文本、视觉、图片、视频和音乐/翻唱模型，未发现 Embedding 模型。音频能力不代表 TTS。视频、音乐、3D 及 Qwen input 格式图片的专用协议尚未适配。SDK 地址为 https://api.mrtoken.cn/v1，渠道地址为 https://api.mrtoken.cn。",
+        "discoveredModelCount": "可用模型：{{count}}",
+        "noDiscoveredModels": "当前 Key 没有可用模型，不会补充默认模型。",
         "title": "业务模型映射",
         "description": "为文本理解、内容生成和视觉理解功能指定上游模型；未设置则使用后端默认。",
         "channelsTitle": "供应商渠道",

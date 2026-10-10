@@ -6987,6 +6987,11 @@
         "mediaCatalogCheckFailed": "Không kiểm tra được danh mục model media chính thức. Hãy thử lại sau."
       },
       "custom": {
+        "noBilling": "Tắt tính phí cổng cục bộ",
+        "noBillingDescription": "Không giữ trước hoặc trừ hạn mức cục bộ cho nhóm mặc định của cổng cục bộ. Tắt tùy chọn này sẽ khôi phục cài đặt tính phí ban đầu. Nhà cung cấp vẫn tính phí sử dụng; kênh chính thức không bị ảnh hưởng.",
+        "billingSaved": "Đã lưu cài đặt tính phí cổng cục bộ",
+        "billingLoadFailed": "Không thể đọc cài đặt tính phí cổng cục bộ",
+        "billingRetry": "Thử lại",
         "description": "CE dùng một NewAPI cục bộ chạy trên SQLite. DramaClaw sẽ tự kết nối cơ sở dữ liệu, tạo runtime token và bật kênh cục bộ.",
         "init": "Khởi tạo Local NewAPI",
         "repair": "Kiểm tra & sửa",
@@ -7049,6 +7054,10 @@
         }
       },
       "featureModels": {
+        "discoverModels": "Lấy mô hình khả dụng",
+        "mrtokenHint": "Dùng API Key của nền tảng. Khi lưu kênh, GET /v1/models được kiểm tra trước; dùng ID trả về trong ánh xạ. Danh mục MrToken có chat, vision, ảnh, video và nhạc/cover; chưa thấy mô hình embedding. Audio không đồng nghĩa với TTS. Chưa tích hợp giao thức riêng cho video, nhạc, 3D và ảnh định dạng input Qwen. SDK: https://api.mrtoken.cn/v1; kênh: https://api.mrtoken.cn.",
+        "discoveredModelCount": "Mô hình khả dụng: {{count}}",
+        "noDiscoveredModels": "Key này không có mô hình khả dụng. Không thêm mô hình mặc định.",
         "title": "Ánh xạ model theo nghiệp vụ",
         "description": "Gán model từ nhà cung cấp cho các tính năng hiểu văn bản, tạo nội dung và hiểu hình ảnh. Tính năng chưa gán sẽ dùng mặc định của backend.",
         "channelsTitle": "Kênh nhà cung cấp",

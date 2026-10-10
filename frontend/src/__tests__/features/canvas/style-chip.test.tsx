@@ -66,10 +66,8 @@ describe("StyleThumbnail", () => {
       />,
     );
 
-    expect(screen.getByAltText("黄金时代")).toHaveAttribute(
-      "src",
-      "/style-gallery/golden_age/cover.webp",
-    );
+    expect(screen.getByRole("img", { name: "黄金时代" }).querySelector("image")?.getAttribute("href"))
+      .toMatch(/^\/style-gallery\/covers(?:-[a-f0-9]+)?\.webp$/);
     // hover 才可见，但文案本身要在 DOM 里
     expect(screen.getByText("黄金时代")).toBeInTheDocument();
   });

@@ -57,11 +57,14 @@ import {
   useSaveOfficialMediaCatalogPreferences,
   useCheckOfficialMediaCatalog,
   useNewApiChannelTypes,
+  useDiscoverProviderModels,
   useEnableOfficial,
   useEnableCustom,
   useEnableHybrid,
   useSaveOfficialConfig,
   useInitCustomNewApi,
+  useLocalGatewayBilling,
+  useSaveLocalGatewayBilling,
   useSaveCustomChannel,
   useSaveCustomChannelsBatch,
   useSaveEmbeddingModel,
@@ -926,6 +929,68 @@ function OfficialGatewayPanel({
   );
 }
 
+function LocalGatewayBillingPanel() {
+  const { t } = useTranslation();
+  const billingQuery = useLocalGatewayBilling(true);
+  const saveBilling = useSaveLocalGatewayBilling();
+  const [error, setError] = useState("");
+  const disabled = billingQuery.data?.ok === true && billingQuery.data.data.disabled;
+
+  const handleToggle = async () => {
+    setError("");
+    try {
+      const response = await saveBilling.mutateAsync(!disabled);
+      if (!response.ok) {
+        setError(getResponseErrorMessage(response, t("settings.modelConfig.requestFailed")));
+        return;
+      }
+      toast.success(t("settings.modelConfig.custom.billingSaved"));
+    } catch (cause) {
+      setError(await getRequestErrorMessage(cause, t("settings.modelConfig.requestFailed")));
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-border/70 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium">{t("settings.modelConfig.custom.noBilling")}</p>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+            {t("settings.modelConfig.custom.noBillingDescription")}
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-label={t("settings.modelConfig.custom.noBilling")}
+          aria-checked={Boolean(disabled)}
+          aria-busy={saveBilling.isPending}
+          disabled={!billingQuery.data?.ok || billingQuery.isFetching || saveBilling.isPending}
+          onClick={() => void handleToggle()}
+          className={cn(
+            "relative h-5 w-9 shrink-0 rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+            disabled ? "border-primary bg-primary" : "border-input bg-muted",
+          )}
+        >
+          <span className={cn(
+            "absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-sm transition-transform",
+            disabled ? "translate-x-4" : "translate-x-0",
+          )} />
+        </button>
+      </div>
+      {billingQuery.isError ? (
+        <div className="mt-2 flex items-center gap-2">
+          <p role="alert" className="text-[11px] text-destructive">{t("settings.modelConfig.custom.billingLoadFailed")}</p>
+          <Button type="button" size="sm" variant="ghost" onClick={() => void billingQuery.refetch()}>
+            {t("settings.modelConfig.custom.billingRetry")}
+          </Button>
+        </div>
+      ) : null}
+      {error ? <p role="alert" className="mt-2 text-[11px] text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
 function CustomGatewayPanel({
   config,
   loading,
@@ -1074,6 +1139,8 @@ function CustomGatewayPanel({
         </p>
       </div>
 
+      {customConfigured ? <LocalGatewayBillingPanel /> : null}
+
       {!customConfigured ? (
         <div className="rounded-md border border-border/70 p-3">
           <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
@@ -1183,6 +1250,7 @@ const MEDIA_MODEL_ROWS: readonly {
   { model: "seedance-2.0-mini", kind: "video" },
   { model: "happyhorse-1.0", kind: "video" },
   { model: "index-tts-2", kind: "audio" },
+  { model: "seed-audio-1.0", kind: "audio" },
   { model: "LingShan-MU-11", kind: "audio" },
 ];
 
@@ -2482,6 +2550,7 @@ function QuickLocalNewApiSetup({
 }
 
 const FEATURE_PROVIDER_LABELS: Record<string, string> = {
+  mrtoken: "MrToken",
   openai: "OpenAI",
   midjourney: "Midjourney",
   azure: "Azure",
@@ -5168,6 +5237,8 @@ function ProviderChannelRow({
     (s) => s.clearFeatureProviderUpstreamKey,
   );
   const syncProviderChannel = useSyncProviderChannel();
+  const discoverModels = useDiscoverProviderModels();
+  const [discoveredModels, setDiscoveredModels] = useState<string[] | null>(null);
   const clearComfyUIConfig = useClearComfyUIConfig();
   const [revealed, setRevealed] = useState(false);
   const upstreamKeyValue = channel?.upstreamKey ?? "";
@@ -5176,6 +5247,38 @@ function ProviderChannelRow({
     : "";
   const upstreamPlaceholder = savedKeyPreview || "sk-...";
   const isComfyUI = provider === "comfyui";
+  useEffect(() => {
+    setDiscoveredModels(null);
+  }, [upstreamKeyValue, channel?.baseUrl]);
+  const handleDiscoverModels = async () => {
+    const requestedKey = upstreamKeyValue;
+    const requestedBase = channel?.baseUrl ?? "";
+    setDiscoveredModels(null);
+    try {
+      const response = await discoverModels.mutateAsync({
+        provider,
+        ...(requestedKey.trim() ? { upstreamKey: requestedKey.trim() } : {}),
+        baseUrl: requestedBase.trim(),
+      });
+      const current =
+        useSettingsStore.getState().featureModelConfig.providerChannels[provider];
+      if (
+        current?.upstreamKey !== requestedKey ||
+        current?.baseUrl !== requestedBase
+      ) return;
+      if (response.ok === true) {
+        setDiscoveredModels(response.data.models);
+      } else {
+        toast.error(
+          getResponseErrorMessage(response, t("settings.modelConfig.requestFailed")),
+        );
+      }
+    } catch {
+      toast.error(t("settings.modelConfig.requestFailed"));
+    } finally {
+      discoverModels.reset();
+    }
+  };
   const hasComfyUIConfig = isComfyUI && savedChannel?.configured === true;
   useEffect(() => {
     if (!upstreamKeyValue) setRevealed(false);
@@ -5396,6 +5499,24 @@ function ProviderChannelRow({
           />
         </div>
         <div className="flex items-center justify-end gap-1.5 sm:self-end">
+          {provider === "mrtoken" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 whitespace-nowrap text-xs"
+              onClick={() => void handleDiscoverModels()}
+              disabled={
+                discoverModels.isPending ||
+                (!upstreamKeyValue.trim() && !savedChannel?.configured)
+              }
+            >
+              {discoverModels.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : null}
+              {t("settings.modelConfig.featureModels.discoverModels")}
+            </Button>
+          ) : null}
           {!isComfyUI ? (
             <Button
               type="button"
@@ -5444,6 +5565,33 @@ function ProviderChannelRow({
           )}
         </div>
       </div>
+      {provider === "mrtoken" ? (
+        <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+          <p>{t("settings.modelConfig.featureModels.mrtokenHint")}</p>
+          {discoveredModels !== null ? (
+            <details open>
+              <summary>
+                {t("settings.modelConfig.featureModels.discoveredModelCount", {
+                  count: discoveredModels.length,
+                })}
+              </summary>
+              <div className="mt-2 max-h-40 overflow-auto rounded-md border border-border p-2 text-foreground">
+                {discoveredModels.length === 0 ? (
+                  t("settings.modelConfig.featureModels.noDiscoveredModels")
+                ) : (
+                  <ul className="space-y-1">
+                    {discoveredModels.map((id) => (
+                      <li key={id}>
+                        <code className="break-all select-text">{id}</code>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
       {isComfyUI ? (
         <ComfyUIWorkflowsEditor
           settings={channel?.settings ?? {}}

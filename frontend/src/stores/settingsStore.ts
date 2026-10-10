@@ -26,6 +26,7 @@ export type MediaStorageProvider = 'aliyun_oss' | 'cloudinary';
 export type FeatureModelProvider = string;
 
 export const FEATURE_MODEL_PROVIDERS: readonly FeatureModelProvider[] = [
+  'mrtoken',
   'openai',
   'midjourney',
   'azure',

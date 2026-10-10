@@ -213,6 +213,17 @@ def set_model_gateway_mode(mode: str) -> None:
     _write_many({"model_gateway_mode": normalize_gateway_mode(mode)})
 
 
+def get_local_billing_backup(admin_base_url: str) -> dict[str, str]:
+    key = "local_billing_backup_" + hashlib.sha256(admin_base_url.encode()).hexdigest()
+    raw = _read_all().get(key, "")
+    return json.loads(raw) if raw else {}
+
+
+def save_local_billing_backup(admin_base_url: str, values: dict[str, str]) -> None:
+    key = "local_billing_backup_" + hashlib.sha256(admin_base_url.encode()).hexdigest()
+    _write_many({key: json.dumps(values) if values else ""})
+
+
 def save_official_newapi_key(
     *,
     api_key: str,
@@ -483,12 +494,20 @@ def save_newapi_provider_channels(
             "",
         )
         base_url = str(item.get("baseUrl") or "").strip().rstrip("/")
+        if provider == "mrtoken":
+            from novelvideo.mrtoken import normalize_base_url
+
+            base_url = normalize_base_url(base_url)
         channel_type = max(
             0,
             int(item.get("type") or previous.get("type") or 0),
         )
         if provider == "comfyui" and channel_type == 0:
             channel_type = 63
+        if provider == "mrtoken":
+            if channel_type not in {0, 1}:
+                raise ValueError("MrToken requires the OpenAI-compatible channel type 1")
+            channel_type = 1
         raw_priority = item.get("priority")
         priority = int(
             previous.get("priority", 0) if raw_priority is None else raw_priority

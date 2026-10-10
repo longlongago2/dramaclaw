@@ -158,6 +158,10 @@ class OfficialGatewayBody(BaseModel):
     new_api_api_key: str = Field(alias="newApiApiKey")
 
 
+class LocalGatewayBillingBody(BaseModel):
+    disabled: bool = Field(strict=True)
+
+
 class OfficialMediaCatalogPreferencesBody(BaseModel):
     auto_update: bool = Field(alias="autoUpdate")
 
@@ -252,6 +256,12 @@ class SyncProviderChannelBody(BaseModel):
     database: NewApiDatabaseBody | None = None
     provider: str
     upstream_key: str | None = Field(default=None, alias="upstreamKey")
+    base_url: str | None = Field(default=None, alias="baseUrl")
+
+
+class DiscoverProviderModelsBody(BaseModel):
+    provider: str
+    upstream_key: str | None = Field(default=None, alias="upstreamKey", repr=False)
     base_url: str | None = Field(default=None, alias="baseUrl")
 
 
@@ -370,7 +380,7 @@ def _build_media_model_channel_specs(
                 "seedream-"
             ):
                 media_type = "image"
-            elif model in {"index-tts-2", "LingShan-MU-11"}:
+            elif model in {"index-tts-2", "LingShan-MU-11", "seed-audio-1.0"}:
                 media_type = "audio"
             else:
                 media_type = "video"
@@ -807,6 +817,15 @@ async def save_custom_newapi_provider_channels(
 ) -> dict[str, Any]:
     try:
         require_ce_gateway_management()
+        from novelvideo.mrtoken import discover_models
+
+        for channel in body.channels:
+            if channel.provider.strip().lower() == "mrtoken":
+                previous = get_newapi_provider_channel("mrtoken") or {}
+                await discover_models(
+                    channel.upstream_key or previous.get("upstreamKey", ""),
+                    channel.base_url,
+                )
         saved = save_newapi_provider_channels(
             [
                 {
@@ -946,6 +965,36 @@ async def clear_custom_newapi_comfyui() -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/custom/newapi/billing")
+async def get_custom_newapi_billing() -> dict[str, Any]:
+    from novelvideo.local_gateway_billing import get_local_gateway_billing
+
+    try:
+        require_ce_gateway_management()
+        status = await asyncio.to_thread(get_local_gateway_billing)
+    except PermissionError as exc:
+        raise _permission_error(exc) from exc
+    except Exception:
+        raise HTTPException(status_code=502, detail="failed to read local gateway billing settings") from None
+    return {"ok": True, "data": status}
+
+
+@router.post("/custom/newapi/billing")
+async def save_custom_newapi_billing(body: LocalGatewayBillingBody) -> dict[str, Any]:
+    from novelvideo.local_gateway_billing import set_local_gateway_billing
+
+    try:
+        require_ce_gateway_management()
+        status = await asyncio.to_thread(set_local_gateway_billing, disabled=body.disabled)
+    except PermissionError as exc:
+        raise _permission_error(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except Exception:
+        raise HTTPException(status_code=502, detail="failed to update local gateway billing settings; retry the operation") from None
+    return {"ok": True, "data": status}
+
+
 @router.get("/custom/newapi/channel-types")
 async def get_custom_newapi_channel_types() -> dict[str, Any]:
     try:
@@ -962,6 +1011,26 @@ async def get_custom_newapi_channel_types() -> dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"ok": True, "data": {"items": items}}
+
+
+@router.post("/custom/newapi/provider-channel/models")
+async def discover_provider_models(body: DiscoverProviderModelsBody) -> dict[str, Any]:
+    try:
+        require_ce_gateway_management()
+        if body.provider.strip().lower() != "mrtoken":
+            raise ValueError("model discovery is currently supported for MrToken")
+        from novelvideo.mrtoken import discover_models
+
+        saved = get_newapi_provider_channel("mrtoken") or {}
+        models = await discover_models(
+            body.upstream_key or saved.get("upstreamKey", ""),
+            body.base_url if body.base_url is not None else saved.get("baseUrl"),
+        )
+    except PermissionError as exc:
+        raise _permission_error(exc) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    return {"ok": True, "data": {"models": models}}
 
 
 @router.post("/custom/newapi/provider-channel/sync")
@@ -984,6 +1053,11 @@ async def sync_custom_newapi_provider_channel(
             if body.base_url is not None
             else saved_channel.get("baseUrl", "")
         )
+        if provider == "mrtoken":
+            from novelvideo.mrtoken import discover_models, normalize_base_url
+
+            base_url = normalize_base_url(base_url)
+            await discover_models(upstream_key, base_url)
         cfg = _get_provisioner_config_from_request(body.new_api_base_url, body.database)
         admin = ensure_admin_access_token(cfg)
         update_kwargs: dict[str, Any] = {

@@ -25,6 +25,7 @@ from novelvideo.model_gateway_settings import (
 )
 
 PROVIDER_PRESETS: dict[str, dict[str, Any]] = {
+    "mrtoken": {"label": "MrToken", "type": 1, "base_url": "https://api.mrtoken.cn"},
     "openai": {"label": "OpenAI", "type": 1, "base_url": "https://api.openai.com"},
     "midjourney": {
         "label": "Midjourney",
@@ -917,6 +918,12 @@ def build_channel_payload(
     model_keys = validate_model_mapping(model_mapping)
     provider_label = preset["label"] if preset else f"type-{channel_type}"
     resolved_base_url = (base_url or (preset or {}).get("base_url") or "").strip()
+    if provider_key == "mrtoken":
+        from novelvideo.mrtoken import normalize_base_url
+
+        resolved_base_url = normalize_base_url(resolved_base_url)
+        if channel_type not in {None, 1}:
+            raise ValueError("MrToken requires the OpenAI-compatible channel type 1")
     if preset:
         channel_name = f"DC-{provider_key}"
     elif provider_key:
@@ -1205,6 +1212,24 @@ def list_channel_types(
                 "supportsBaseUrlOverride": bool(raw.get("supports_base_url_override")),
             }
         )
+    # mrtoken is a platform using NewAPI's existing OpenAI adapter.
+    if "mrtoken" not in seen_providers and any(
+        item["type"] == 1 and item["status"] == 1 for item in items
+    ):
+        items.append(
+            {
+                "type": 1,
+                "provider": "mrtoken",
+                "name": "MrToken",
+                "description": "Platform API: chat, vision, images, video and music/cover audio; no embedding models listed",
+                "icon": "",
+                "defaultBaseUrl": "https://api.mrtoken.cn",
+                "status": 1,
+                "capabilities": ["text", "vision", "image", "video", "audio"],
+                "requiresBaseUrl": False,
+                "supportsBaseUrlOverride": True,
+            }
+        )
     return sorted(items, key=lambda item: (item["type"], item["provider"]))
 
 
@@ -1304,6 +1329,13 @@ def update_provider_channel_credentials(
     base_url: str | None = None,
 ) -> dict[str, Any]:
     provider_key = str(provider or "").strip().lower()
+    if provider_key == "mrtoken":
+        from novelvideo.mrtoken import normalize_base_url
+
+        if channel_type not in {None, 1}:
+            raise ValueError("MrToken requires the OpenAI-compatible channel type 1")
+        if base_url is not None:
+            base_url = normalize_base_url(base_url)
     preset = PROVIDER_PRESETS.get(provider_key)
     if not preset and channel_type is None:
         raise ValueError("unknown provider")

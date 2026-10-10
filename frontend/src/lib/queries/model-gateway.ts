@@ -9,6 +9,38 @@ import type { ErrorResponse, OkResponse } from "@/types/api";
 
 export type GatewayMode = "official" | "custom" | "hybrid";
 
+export interface LocalGatewayBilling {
+  disabled: boolean;
+  group: "default";
+}
+
+const localBillingQueryKey = [...queryKeys.modelGateway(), "local-billing"];
+
+export function useLocalGatewayBilling(enabled: boolean) {
+  return useQuery({
+    queryKey: localBillingQueryKey,
+    enabled,
+    queryFn: ({ signal }) =>
+      api.get("api/v1/model-gateway/custom/newapi/billing", { signal })
+        .json<OkResponse<LocalGatewayBilling>>(),
+  });
+}
+
+export function useSaveLocalGatewayBilling() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (disabled: boolean) =>
+      api.post("api/v1/model-gateway/custom/newapi/billing", {
+        json: { disabled },
+        throwHttpErrors: false,
+      }).json<OkResponse<LocalGatewayBilling> | ErrorResponse>(),
+    onSuccess: (response) => {
+      if (response.ok) qc.setQueryData(localBillingQueryKey, response);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: localBillingQueryKey }),
+  });
+}
+
 /** 通用的「端点预览」：服务端只回 key 预览，绝不回完整 key。 */
 export interface GatewayEndpointPreview {
   baseUrl: string;
@@ -398,6 +430,18 @@ export function useNewApiChannelTypes(enabled = true) {
         .json<OkResponse<{ items: NewApiChannelType[] }> | ErrorResponse>(),
     enabled,
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useDiscoverProviderModels() {
+  return useMutation({
+    gcTime: 0,
+    mutationFn: (input: { provider: string; upstreamKey?: string; baseUrl?: string }) =>
+      api.post("api/v1/model-gateway/custom/newapi/provider-channel/models", {
+        json: input,
+        timeout: 35_000,
+        throwHttpErrors: false,
+      }).json<OkResponse<{ models: string[] }> | ErrorResponse | FastApiErrorResponse>(),
   });
 }
 

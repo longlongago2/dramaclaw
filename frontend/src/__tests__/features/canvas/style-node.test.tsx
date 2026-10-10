@@ -105,10 +105,8 @@ describe("StyleNode", () => {
     seedCanvas({ withImageNode: true, templateId: "golden_age" });
     renderStyleNode("golden_age");
 
-    expect(screen.getByAltText("黄金时代")).toHaveAttribute(
-      "src",
-      "/style-gallery/golden_age/cover.webp",
-    );
+    expect(screen.getByRole("img", { name: "黄金时代" }).querySelector("image")?.getAttribute("href"))
+      .toMatch(/^\/style-gallery\/covers(?:-[a-f0-9]+)?\.webp$/);
     // 标题带上分类，换风格时跟着变；卡片里不再有第二处风格名。
     expect(screen.getByText("风格 · 年代 · 黄金时代")).toBeInTheDocument();
     expect(screen.queryByText("黄金时代")).not.toBeInTheDocument();

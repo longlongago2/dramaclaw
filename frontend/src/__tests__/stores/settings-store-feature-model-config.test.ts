@@ -104,6 +104,15 @@ function channelType(
 }
 
 describe("provider capability filtering", () => {
+  it("offers MrToken for image, video and audio but excludes it from embedding", () => {
+    const metadata = new Map<string, NewApiChannelType>([
+      ["mrtoken", channelType("mrtoken", ["text", "vision", "image", "video", "audio"])],
+    ]);
+    for (const capability of ["image", "video", "audio"] as const) {
+      expect(providersSupportingCapability(["mrtoken"], metadata, capability)).toEqual(["mrtoken"]);
+    }
+    expect(providersSupportingCapability(["mrtoken"], metadata, "embedding")).toEqual([]);
+  });
   const configuredProviders = ["openrouter", "volcengine", "fal_ai", "legacy"];
   const channelTypes = new Map<string, NewApiChannelType>([
     ["openrouter", channelType("openrouter", ["text", "vision"])],

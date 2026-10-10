@@ -7083,6 +7083,11 @@
         "mediaCatalogCheckFailed": "Could not check the official media model catalog. Try again later."
       },
       "custom": {
+        "noBilling": "Disable local gateway billing",
+        "noBillingDescription": "Skip local quota reservations and charges for the local gateway's default group. Turning this off restores the original billing settings. Providers still charge for usage; official channel billing is unaffected.",
+        "billingSaved": "Local gateway billing settings saved",
+        "billingLoadFailed": "Unable to read local gateway billing settings",
+        "billingRetry": "Retry",
         "description": "CE uses a local SQLite-backed NewAPI. DramaClaw connects the database, creates a runtime token, and enables the local channel automatically.",
         "init": "Initialize Local NewAPI",
         "repair": "Check & Repair",
@@ -7145,6 +7150,10 @@
         }
       },
       "featureModels": {
+        "discoverModels": "Fetch available models",
+        "mrtokenHint": "Use a platform API Key. Saving the channel checks GET /v1/models first; use the exact returned IDs in model mappings. The MrToken catalog includes text, vision, image, video and music/cover models; no embedding models were found. Audio does not imply TTS. Dedicated video, music, 3D and Qwen input-format image protocols are not yet integrated. SDK URL: https://api.mrtoken.cn/v1; channel URL: https://api.mrtoken.cn.",
+        "discoveredModelCount": "Available models: {{count}}",
+        "noDiscoveredModels": "This Key has no available models. No defaults are added.",
         "title": "Business Model Mapping",
         "description": "Assign upstream models to text understanding, content generation, and vision understanding features. Unset features use backend defaults.",
         "channelsTitle": "Provider Channels",

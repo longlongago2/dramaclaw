@@ -136,7 +136,7 @@ export function StyleGalleryModal({
 
         {detail ? (
           <div className="flex min-h-0 gap-4 overflow-hidden p-4">
-            <div className="ui-scrollbar grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto">
+            <div className="ui-scrollbar grid min-h-0 flex-1 auto-rows-max grid-cols-2 content-start gap-2 overflow-y-auto">
               {/* 同一条风格里出现两张同名示例图并非不可能（外部清单是运维自己写的），
                   用路径当 key 会撞车，索引才是这里稳定的身份。 */}
               {detail.samples.map((sample, index) => (
@@ -149,7 +149,7 @@ export function StyleGalleryModal({
                     index: index + 1,
                   })}
                   loading="lazy"
-                  className="aspect-video w-full rounded-[8px] border border-white/[0.08] object-cover"
+                  className="aspect-[3/4] w-full rounded-[8px] border border-white/[0.08] object-cover"
                 />
               ))}
             </div>

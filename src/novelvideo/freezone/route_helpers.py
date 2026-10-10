@@ -124,29 +124,20 @@ def get_freezone_image_style_manifest_version() -> str:
     return get_style_manifest_version()
 
 
-_ASSET_BASE_WARNED = False
+_ASSET_BASE_LOGGED = False
 
 
 def get_freezone_image_style_asset_base() -> str:
     """风格图片的地址前缀。
 
-    图片不随仓库发布,必须由这个环境变量指向 OSS/CDN 前缀,前端按
-    `<前缀>/<清单里的相对路径>` 拼绝对地址。留空则前端回落到同源
-    `/style-gallery/`,而那个目录默认是空的 —— 图墙会显示占位块。
+    留空时使用前端随包发布的同源 `/style-gallery/` 静态资源。
+    配置 OSS/CDN 前缀后,前端按 `<前缀>/<清单里的相对路径>` 拼绝对地址。
     """
     base = os.environ.get("STYLE_GALLERY_ASSET_BASE", "").strip()
-    # 没配就是一整墙占位块,而前端没法区分「没配」和「图挂了」。这里出一条日志,
-    # 让部署方在看到空图墙时能直接定位到是环境变量没配,而不是去查 CDN。
-    # 只在首次下发时警告一次,避免每次拉清单都刷屏。
-    global _ASSET_BASE_WARNED
-    if not base and not _ASSET_BASE_WARNED:
-        _ASSET_BASE_WARNED = True
-        logger.warning(
-            "STYLE_GALLERY_ASSET_BASE 未配置,风格图墙将只显示占位块。"
-            "请把它指向存放封面/示例图的 OSS/CDN 前缀,"
-            "并确认该域名已加进前端 CSP 的 img-src 白名单"
-            "(frontend/docker/nginx.conf.template)。"
-        )
+    global _ASSET_BASE_LOGGED
+    if not base and not _ASSET_BASE_LOGGED:
+        _ASSET_BASE_LOGGED = True
+        logger.info("风格图墙使用同源 /style-gallery/ 静态资源。")
     return base
 
 

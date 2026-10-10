@@ -140,6 +140,14 @@ def test_generic_comfyui_i2v_defaults_to_widescreen():
     assert config["ratioOptions"][0] == "16:9"
 
 
+def test_seed_audio_model_infers_audio_media_type():
+    specs, models = model_gateway._build_media_model_channel_specs({
+        "seed-audio-1.0": model_gateway.MediaModelConfigBody(provider="volcengine"),
+    })
+    assert models["seed-audio-1.0"]["mediaType"] == "audio"
+    assert specs[0].model_mapping == {"seed-audio-1.0": "seed-audio-1.0"}
+
+
 def test_comfyui_channel_update_replaces_removed_workflow_models():
     existing = {
         "id": 9,

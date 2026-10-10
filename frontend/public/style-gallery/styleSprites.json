@@ -1,0 +1,2030 @@
+{
+  "version": 1,
+  "sprites": {
+    "period_idol/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "palace_intrigue/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "wuxia/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 0,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "cn_urban/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 0,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "urban_romance/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 0,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "crime_suspense/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 216,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "korean_muted/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 216,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "nineties/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 216,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "golden_age/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 216,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "documentary_realism/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 216,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "retro_narrative/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 432,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "american_nineties/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 432,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "showa_monochrome/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 432,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "vintage_industrial/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 432,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "sixties_poster/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 432,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "hk_retro/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 648,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "retro_film/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 648,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "healing_life/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 648,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "youth_film/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 648,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "atompunk/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 648,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "neon_punk/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 864,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "hard_scifi/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 864,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "steampunk/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 864,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "biopunk/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 864,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "psychological_horror/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 864,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "cult_film/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 1080,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "modern_warfare/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 1080,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "wasteland_road/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 1080,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "western_cowboy/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 1080,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "neo_chinese/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 1080,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "high_key_absurd/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 1296,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "shanghai_animation/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 1296,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "otomo_akira/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 1296,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "stop_motion/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 1296,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "claymation/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 1296,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "chinese_ink/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 1512,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "ukiyo_e/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 1512,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "shadow_puppet/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 1512,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "egyptian_mural/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 1512,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "minimal_illustration/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 1512,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "dali_surreal/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 0,
+      "y": 1728,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "game_concept/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 384,
+      "y": 1728,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "chinese_myth/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 768,
+      "y": 1728,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "greek_myth/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1152,
+      "y": 1728,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "western_fantasy/cover.webp": {
+      "file": "covers-7edf6e537272.webp",
+      "x": 1536,
+      "y": 1728,
+      "width": 384,
+      "height": 216,
+      "sheetWidth": 1920,
+      "sheetHeight": 1944
+    },
+    "period_idol/female.webp": {
+      "file": "period_idol-d8262271b923.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "period_idol/youth.webp": {
+      "file": "period_idol-d8262271b923.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "period_idol/male.webp": {
+      "file": "period_idol-d8262271b923.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "period_idol/elder.webp": {
+      "file": "period_idol-d8262271b923.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "palace_intrigue/female.webp": {
+      "file": "palace_intrigue-b01b0a24cdba.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "palace_intrigue/youth.webp": {
+      "file": "palace_intrigue-b01b0a24cdba.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "palace_intrigue/male.webp": {
+      "file": "palace_intrigue-b01b0a24cdba.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "palace_intrigue/elder.webp": {
+      "file": "palace_intrigue-b01b0a24cdba.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wuxia/female.webp": {
+      "file": "wuxia-60a7ffb0009c.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wuxia/youth.webp": {
+      "file": "wuxia-60a7ffb0009c.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wuxia/male.webp": {
+      "file": "wuxia-60a7ffb0009c.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wuxia/elder.webp": {
+      "file": "wuxia-60a7ffb0009c.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cn_urban/female.webp": {
+      "file": "cn_urban-9d3133311ca3.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cn_urban/youth.webp": {
+      "file": "cn_urban-9d3133311ca3.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cn_urban/male.webp": {
+      "file": "cn_urban-9d3133311ca3.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cn_urban/elder.webp": {
+      "file": "cn_urban-9d3133311ca3.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "urban_romance/female.webp": {
+      "file": "urban_romance-24a1a890cb31.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "urban_romance/youth.webp": {
+      "file": "urban_romance-24a1a890cb31.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "urban_romance/male.webp": {
+      "file": "urban_romance-24a1a890cb31.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "urban_romance/elder.webp": {
+      "file": "urban_romance-24a1a890cb31.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "crime_suspense/female.webp": {
+      "file": "crime_suspense-605be8f01a75.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "crime_suspense/youth.webp": {
+      "file": "crime_suspense-605be8f01a75.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "crime_suspense/male.webp": {
+      "file": "crime_suspense-605be8f01a75.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "crime_suspense/elder.webp": {
+      "file": "crime_suspense-605be8f01a75.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "korean_muted/female.webp": {
+      "file": "korean_muted-7e6783e58574.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "korean_muted/youth.webp": {
+      "file": "korean_muted-7e6783e58574.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "korean_muted/male.webp": {
+      "file": "korean_muted-7e6783e58574.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "korean_muted/elder.webp": {
+      "file": "korean_muted-7e6783e58574.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "nineties/female.webp": {
+      "file": "nineties-22eaaaa2516a.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "nineties/youth.webp": {
+      "file": "nineties-22eaaaa2516a.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "nineties/male.webp": {
+      "file": "nineties-22eaaaa2516a.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "nineties/elder.webp": {
+      "file": "nineties-22eaaaa2516a.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "golden_age/female.webp": {
+      "file": "golden_age-aa560645b79b.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "golden_age/youth.webp": {
+      "file": "golden_age-aa560645b79b.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "golden_age/male.webp": {
+      "file": "golden_age-aa560645b79b.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "golden_age/elder.webp": {
+      "file": "golden_age-aa560645b79b.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "documentary_realism/female.webp": {
+      "file": "documentary_realism-dc88114e8664.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "documentary_realism/youth.webp": {
+      "file": "documentary_realism-dc88114e8664.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "documentary_realism/male.webp": {
+      "file": "documentary_realism-dc88114e8664.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "documentary_realism/elder.webp": {
+      "file": "documentary_realism-dc88114e8664.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_narrative/female.webp": {
+      "file": "retro_narrative-7537189e8fa5.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_narrative/youth.webp": {
+      "file": "retro_narrative-7537189e8fa5.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_narrative/male.webp": {
+      "file": "retro_narrative-7537189e8fa5.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_narrative/elder.webp": {
+      "file": "retro_narrative-7537189e8fa5.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "american_nineties/female.webp": {
+      "file": "american_nineties-72ee05204c65.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "american_nineties/youth.webp": {
+      "file": "american_nineties-72ee05204c65.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "american_nineties/male.webp": {
+      "file": "american_nineties-72ee05204c65.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "american_nineties/elder.webp": {
+      "file": "american_nineties-72ee05204c65.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "showa_monochrome/female.webp": {
+      "file": "showa_monochrome-4a553cff30b9.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "showa_monochrome/youth.webp": {
+      "file": "showa_monochrome-4a553cff30b9.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "showa_monochrome/male.webp": {
+      "file": "showa_monochrome-4a553cff30b9.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "showa_monochrome/elder.webp": {
+      "file": "showa_monochrome-4a553cff30b9.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "vintage_industrial/female.webp": {
+      "file": "vintage_industrial-d7c04080529b.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "vintage_industrial/youth.webp": {
+      "file": "vintage_industrial-d7c04080529b.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "vintage_industrial/male.webp": {
+      "file": "vintage_industrial-d7c04080529b.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "vintage_industrial/elder.webp": {
+      "file": "vintage_industrial-d7c04080529b.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "sixties_poster/female.webp": {
+      "file": "sixties_poster-555d2a662a1e.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "sixties_poster/youth.webp": {
+      "file": "sixties_poster-555d2a662a1e.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "sixties_poster/male.webp": {
+      "file": "sixties_poster-555d2a662a1e.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "sixties_poster/elder.webp": {
+      "file": "sixties_poster-555d2a662a1e.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hk_retro/female.webp": {
+      "file": "hk_retro-a32bdfcbcdef.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hk_retro/youth.webp": {
+      "file": "hk_retro-a32bdfcbcdef.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hk_retro/male.webp": {
+      "file": "hk_retro-a32bdfcbcdef.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hk_retro/elder.webp": {
+      "file": "hk_retro-a32bdfcbcdef.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_film/female.webp": {
+      "file": "retro_film-bda763738da2.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_film/youth.webp": {
+      "file": "retro_film-bda763738da2.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_film/male.webp": {
+      "file": "retro_film-bda763738da2.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "retro_film/elder.webp": {
+      "file": "retro_film-bda763738da2.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "healing_life/female.webp": {
+      "file": "healing_life-5a4049e25154.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "healing_life/youth.webp": {
+      "file": "healing_life-5a4049e25154.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "healing_life/male.webp": {
+      "file": "healing_life-5a4049e25154.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "healing_life/elder.webp": {
+      "file": "healing_life-5a4049e25154.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "youth_film/female.webp": {
+      "file": "youth_film-548c3a796dbb.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "youth_film/youth.webp": {
+      "file": "youth_film-548c3a796dbb.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "youth_film/male.webp": {
+      "file": "youth_film-548c3a796dbb.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "youth_film/elder.webp": {
+      "file": "youth_film-548c3a796dbb.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "atompunk/female.webp": {
+      "file": "atompunk-74495a505b3a.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "atompunk/youth.webp": {
+      "file": "atompunk-74495a505b3a.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "atompunk/male.webp": {
+      "file": "atompunk-74495a505b3a.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "atompunk/elder.webp": {
+      "file": "atompunk-74495a505b3a.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neon_punk/female.webp": {
+      "file": "neon_punk-2dc7e29985b9.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neon_punk/youth.webp": {
+      "file": "neon_punk-2dc7e29985b9.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neon_punk/male.webp": {
+      "file": "neon_punk-2dc7e29985b9.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neon_punk/elder.webp": {
+      "file": "neon_punk-2dc7e29985b9.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hard_scifi/female.webp": {
+      "file": "hard_scifi-f17b22fcc8d0.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hard_scifi/youth.webp": {
+      "file": "hard_scifi-f17b22fcc8d0.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hard_scifi/male.webp": {
+      "file": "hard_scifi-f17b22fcc8d0.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "hard_scifi/elder.webp": {
+      "file": "hard_scifi-f17b22fcc8d0.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "steampunk/female.webp": {
+      "file": "steampunk-926b762b132a.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "steampunk/youth.webp": {
+      "file": "steampunk-926b762b132a.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "steampunk/male.webp": {
+      "file": "steampunk-926b762b132a.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "steampunk/elder.webp": {
+      "file": "steampunk-926b762b132a.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "biopunk/female.webp": {
+      "file": "biopunk-34c0f6848098.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "biopunk/youth.webp": {
+      "file": "biopunk-34c0f6848098.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "biopunk/male.webp": {
+      "file": "biopunk-34c0f6848098.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "biopunk/elder.webp": {
+      "file": "biopunk-34c0f6848098.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "psychological_horror/female.webp": {
+      "file": "psychological_horror-fa2b5206b330.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "psychological_horror/youth.webp": {
+      "file": "psychological_horror-fa2b5206b330.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "psychological_horror/male.webp": {
+      "file": "psychological_horror-fa2b5206b330.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "psychological_horror/elder.webp": {
+      "file": "psychological_horror-fa2b5206b330.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cult_film/female.webp": {
+      "file": "cult_film-39b1291c95fb.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cult_film/youth.webp": {
+      "file": "cult_film-39b1291c95fb.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cult_film/male.webp": {
+      "file": "cult_film-39b1291c95fb.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "cult_film/elder.webp": {
+      "file": "cult_film-39b1291c95fb.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "modern_warfare/female.webp": {
+      "file": "modern_warfare-10a7467809d2.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "modern_warfare/youth.webp": {
+      "file": "modern_warfare-10a7467809d2.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "modern_warfare/male.webp": {
+      "file": "modern_warfare-10a7467809d2.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "modern_warfare/elder.webp": {
+      "file": "modern_warfare-10a7467809d2.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wasteland_road/female.webp": {
+      "file": "wasteland_road-f104d06c6f5c.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wasteland_road/youth.webp": {
+      "file": "wasteland_road-f104d06c6f5c.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wasteland_road/male.webp": {
+      "file": "wasteland_road-f104d06c6f5c.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "wasteland_road/elder.webp": {
+      "file": "wasteland_road-f104d06c6f5c.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_cowboy/female.webp": {
+      "file": "western_cowboy-3646e47e8a69.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_cowboy/youth.webp": {
+      "file": "western_cowboy-3646e47e8a69.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_cowboy/male.webp": {
+      "file": "western_cowboy-3646e47e8a69.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_cowboy/elder.webp": {
+      "file": "western_cowboy-3646e47e8a69.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neo_chinese/female.webp": {
+      "file": "neo_chinese-b4465d69d502.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neo_chinese/youth.webp": {
+      "file": "neo_chinese-b4465d69d502.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neo_chinese/male.webp": {
+      "file": "neo_chinese-b4465d69d502.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "neo_chinese/elder.webp": {
+      "file": "neo_chinese-b4465d69d502.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "high_key_absurd/female.webp": {
+      "file": "high_key_absurd-2335d412730b.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "high_key_absurd/youth.webp": {
+      "file": "high_key_absurd-2335d412730b.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "high_key_absurd/male.webp": {
+      "file": "high_key_absurd-2335d412730b.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "high_key_absurd/elder.webp": {
+      "file": "high_key_absurd-2335d412730b.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shanghai_animation/female.webp": {
+      "file": "shanghai_animation-5b0d96ee7f87.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shanghai_animation/youth.webp": {
+      "file": "shanghai_animation-5b0d96ee7f87.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shanghai_animation/male.webp": {
+      "file": "shanghai_animation-5b0d96ee7f87.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shanghai_animation/elder.webp": {
+      "file": "shanghai_animation-5b0d96ee7f87.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "otomo_akira/female.webp": {
+      "file": "otomo_akira-77659b02268c.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "otomo_akira/youth.webp": {
+      "file": "otomo_akira-77659b02268c.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "otomo_akira/male.webp": {
+      "file": "otomo_akira-77659b02268c.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "otomo_akira/elder.webp": {
+      "file": "otomo_akira-77659b02268c.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "stop_motion/female.webp": {
+      "file": "stop_motion-45b08650f6f5.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "stop_motion/youth.webp": {
+      "file": "stop_motion-45b08650f6f5.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "stop_motion/male.webp": {
+      "file": "stop_motion-45b08650f6f5.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "stop_motion/elder.webp": {
+      "file": "stop_motion-45b08650f6f5.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "claymation/female.webp": {
+      "file": "claymation-7c32fd2ca25c.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "claymation/youth.webp": {
+      "file": "claymation-7c32fd2ca25c.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "claymation/male.webp": {
+      "file": "claymation-7c32fd2ca25c.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "claymation/elder.webp": {
+      "file": "claymation-7c32fd2ca25c.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_ink/female.webp": {
+      "file": "chinese_ink-9e60cca9211b.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_ink/youth.webp": {
+      "file": "chinese_ink-9e60cca9211b.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_ink/male.webp": {
+      "file": "chinese_ink-9e60cca9211b.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_ink/elder.webp": {
+      "file": "chinese_ink-9e60cca9211b.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "ukiyo_e/female.webp": {
+      "file": "ukiyo_e-a9fe0b5692a3.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "ukiyo_e/youth.webp": {
+      "file": "ukiyo_e-a9fe0b5692a3.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "ukiyo_e/male.webp": {
+      "file": "ukiyo_e-a9fe0b5692a3.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "ukiyo_e/elder.webp": {
+      "file": "ukiyo_e-a9fe0b5692a3.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shadow_puppet/female.webp": {
+      "file": "shadow_puppet-cea6c01bf229.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shadow_puppet/youth.webp": {
+      "file": "shadow_puppet-cea6c01bf229.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shadow_puppet/male.webp": {
+      "file": "shadow_puppet-cea6c01bf229.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "shadow_puppet/elder.webp": {
+      "file": "shadow_puppet-cea6c01bf229.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "egyptian_mural/female.webp": {
+      "file": "egyptian_mural-6807b8f16e04.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "egyptian_mural/youth.webp": {
+      "file": "egyptian_mural-6807b8f16e04.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "egyptian_mural/male.webp": {
+      "file": "egyptian_mural-6807b8f16e04.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "egyptian_mural/elder.webp": {
+      "file": "egyptian_mural-6807b8f16e04.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "minimal_illustration/female.webp": {
+      "file": "minimal_illustration-1aa8ae0acfad.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "minimal_illustration/youth.webp": {
+      "file": "minimal_illustration-1aa8ae0acfad.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "minimal_illustration/male.webp": {
+      "file": "minimal_illustration-1aa8ae0acfad.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "minimal_illustration/elder.webp": {
+      "file": "minimal_illustration-1aa8ae0acfad.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "dali_surreal/female.webp": {
+      "file": "dali_surreal-0d9eb490918b.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "dali_surreal/youth.webp": {
+      "file": "dali_surreal-0d9eb490918b.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "dali_surreal/male.webp": {
+      "file": "dali_surreal-0d9eb490918b.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "dali_surreal/elder.webp": {
+      "file": "dali_surreal-0d9eb490918b.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "game_concept/female.webp": {
+      "file": "game_concept-e04b46189030.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "game_concept/youth.webp": {
+      "file": "game_concept-e04b46189030.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "game_concept/male.webp": {
+      "file": "game_concept-e04b46189030.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "game_concept/elder.webp": {
+      "file": "game_concept-e04b46189030.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_myth/female.webp": {
+      "file": "chinese_myth-3ec975f4041d.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_myth/youth.webp": {
+      "file": "chinese_myth-3ec975f4041d.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_myth/male.webp": {
+      "file": "chinese_myth-3ec975f4041d.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "chinese_myth/elder.webp": {
+      "file": "chinese_myth-3ec975f4041d.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "greek_myth/female.webp": {
+      "file": "greek_myth-b744bf1c70f7.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "greek_myth/youth.webp": {
+      "file": "greek_myth-b744bf1c70f7.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "greek_myth/male.webp": {
+      "file": "greek_myth-b744bf1c70f7.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "greek_myth/elder.webp": {
+      "file": "greek_myth-b744bf1c70f7.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_fantasy/female.webp": {
+      "file": "western_fantasy-38ce48b89cf4.webp",
+      "x": 0,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_fantasy/youth.webp": {
+      "file": "western_fantasy-38ce48b89cf4.webp",
+      "x": 384,
+      "y": 0,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_fantasy/male.webp": {
+      "file": "western_fantasy-38ce48b89cf4.webp",
+      "x": 0,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    },
+    "western_fantasy/elder.webp": {
+      "file": "western_fantasy-38ce48b89cf4.webp",
+      "x": 384,
+      "y": 512,
+      "width": 384,
+      "height": 512,
+      "sheetWidth": 768,
+      "sheetHeight": 1024
+    }
+  }
+}
