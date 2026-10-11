@@ -14,21 +14,41 @@ api_pid=""
 fe_pid=""
 
 cleanup() {
-  trap - INT TERM EXIT
-  if [ -n "$fe_pid" ] && kill -0 "$fe_pid" >/dev/null 2>&1; then
-    echo "Stopping frontend..."
-    kill "$fe_pid" >/dev/null 2>&1 || true
-  fi
-  if [ -n "$api_pid" ] && kill -0 "$api_pid" >/dev/null 2>&1; then
-    echo "Stopping API..."
-    kill "$api_pid" >/dev/null 2>&1 || true
-  fi
-  if [ -n "$fe_pid" ] || [ -n "$api_pid" ]; then
-    wait "$fe_pid" "$api_pid" 2>/dev/null || true
-  fi
+  local exit_status=$?
+  local service_pid attempt running
+  trap - EXIT
+  # Repeated Ctrl+C must not interrupt cleanup halfway through.
+  trap '' INT TERM
+  for service_pid in "$fe_pid" "$api_pid"; do
+    if [ -n "$service_pid" ]; then
+      # Signal the group even if its original leader has already exited.
+      kill -TERM -- "-$service_pid" >/dev/null 2>&1 || true
+    fi
+  done
+  # Give both groups time to shut down, then force any stubborn descendants
+  # to exit. Never wait indefinitely on a service that ignores SIGTERM.
+  for ((attempt = 0; attempt < 30; attempt++)); do
+    running=false
+    for service_pid in "$fe_pid" "$api_pid"; do
+      if [ -n "$service_pid" ] && kill -0 -- "-$service_pid" >/dev/null 2>&1; then
+        running=true
+      fi
+    done
+    if [ "$running" = false ]; then break; fi
+    sleep 0.1
+  done
+  for service_pid in "$fe_pid" "$api_pid"; do
+    if [ -n "$service_pid" ]; then
+      kill -KILL -- "-$service_pid" >/dev/null 2>&1 || true
+      wait "$service_pid" 2>/dev/null || true
+    fi
+  done
+  exit "$exit_status"
 }
 
-trap cleanup INT TERM EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap cleanup EXIT
 
 if ! command -v uv >/dev/null 2>&1; then
   echo "uv is required. Install it first: https://docs.astral.sh/uv/" >&2
@@ -139,6 +159,9 @@ fi
 
 echo "Starting SuperTale CE API at http://${api_host}:${api_port}/api/v1"
 echo "Health check: http://127.0.0.1:${api_port}/api/v1/config"
+# Bash job control puts each background service in its own process group.
+# This works on Linux and macOS without a platform-specific setsid command.
+set -m
 # Dependencies are synchronized explicitly above.  `uv run` otherwise performs
 # an implicit sync in this background process, which can download the 100+ MiB
 # Codex binary while the readiness timeout is already counting down.
@@ -165,10 +188,11 @@ echo "Starting SuperTale CE frontend at http://127.0.0.1:${frontend_port}"
 echo "Frontend API target comes from frontend/.env"
 (
   cd frontend
-  pnpm dev --host "$frontend_host" --port "$frontend_port"
+  exec pnpm dev --host "$frontend_host" --port "$frontend_port"
 ) &
 fe_pid="$!"
 
+echo "Gateway (new-api, managed separately): ${NEWAPI_ADMIN_BASE_URL:-http://127.0.0.1:3000}"
 echo "Press Ctrl+C to stop."
 
 while true; do

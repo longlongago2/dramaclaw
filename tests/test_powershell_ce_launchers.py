@@ -4,6 +4,8 @@ import os
 import shutil
 import subprocess
 import sys
+import socket
+import time
 from pathlib import Path
 
 import pytest
@@ -96,3 +98,102 @@ def test_launcher_rejects_ipv6_port_owner_before_starting_services(tmp_path):
     assert f'Frontend port {port} is unavailable' in result.stderr, result.stdout + result.stderr
     assert f'PID {os.getpid()}' in result.stderr
     assert not (tmp_path / 'runtime').exists(), 'No services should be launched on an occupied port'
+
+
+@pytest.mark.parametrize('service_count', [1, 2])
+def test_launcher_cancellation_stops_service_trees(tmp_path, service_count):
+    """Send real console Ctrl+C during startup or normal use."""
+    ports = []
+    for _ in range(service_count):
+        with socket.socket() as available:
+            available.bind(('127.0.0.1', 0))
+            ports.append(available.getsockname()[1])
+    worker = tmp_path / 'worker.py'
+    worker.write_text(
+        'import subprocess, sys, time\n'
+        'from pathlib import Path\n'
+        'child = subprocess.Popen([sys.executable, "-m", "http.server", sys.argv[1], '
+        '"--bind", "127.0.0.1"])\n'
+        'Path(sys.argv[2]).write_text(str(child.pid))\n'
+        'time.sleep(120)\n', encoding='utf-8',
+    )
+
+    def quoted(value):
+        return "'" + str(value).replace("'", "''") + "'"
+
+    launches = '\n'.join(
+        f"$processes += Start-DevProcess 'service{i}' {quoted(tmp_path)} "
+        f"{quoted(sys.executable)} @({quoted(worker)}, '{port}', {quoted(tmp_path / f'child{i}.pid')})"
+        for i, port in enumerate(ports)
+    )
+    # Execute the launcher's actual launch function and finally block without
+    # dependency installation, model setup, or the real application servers.
+    code = f"""
+$ast = [System.Management.Automation.Language.Parser]::ParseFile({quoted(ROOT / 'scripts/start-ce.ps1')}, [ref]$null, [ref]$null)
+$start = $ast.Find({{ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Start-DevProcess' }}, $false).Extent.Text
+$cleanup = @($ast.EndBlock.Statements | Where-Object {{ $_ -is [System.Management.Automation.Language.TryStatementAst] }})[-1].Finally.Extent.Text
+$body = @'
+$ErrorActionPreference = 'Stop'
+$logDir = {quoted(tmp_path)}
+$processes = @()
+Push-Location {quoted(tmp_path)}
+try {{
+{launches}
+while ($true) {{ Start-Sleep -Milliseconds 100 }}
+}} finally CLEANUP
+'@
+$body = $body.Replace('CLEANUP', $cleanup)
+& ([scriptblock]::Create($start + "`n" + $body))
+"""
+    startup = subprocess.STARTUPINFO()
+    startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startup.wShowWindow = subprocess.SW_HIDE
+    controller = subprocess.Popen(
+        [SHELL, '-NoProfile', '-Command', code], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, text=True, encoding='utf-8',
+        creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup,
+    )
+
+    def interrupt():
+        # Attach a separate sender to the fixture's hidden console. Ignore the
+        # signal in the sender so only the launcher handles the real Ctrl+C.
+        sender = (
+            'import ctypes, sys, time; k = ctypes.WinDLL("kernel32", use_last_error=True); '
+            'k.FreeConsole(); '
+            'assert k.AttachConsole(int(sys.argv[1])), ctypes.get_last_error(); '
+            'assert k.SetConsoleCtrlHandler(None, True); '
+            'assert k.GenerateConsoleCtrlEvent(0, 0), ctypes.get_last_error(); '
+            'time.sleep(0.2); k.FreeConsole()'
+        )
+        subprocess.run([sys.executable, '-c', sender, str(controller.pid)], check=True, timeout=10)
+
+    def listening(port):
+        with socket.socket() as probe:
+            probe.settimeout(0.2)
+            return probe.connect_ex(('127.0.0.1', port)) == 0
+
+    try:
+        deadline = time.monotonic() + 30
+        while not all(listening(port) for port in ports):
+            if controller.poll() is not None:
+                stdout, stderr = controller.communicate()
+                pytest.fail(stdout + stderr)
+            assert time.monotonic() < deadline, 'Fixture services did not start'
+            time.sleep(0.1)
+        interrupt()
+        stdout, stderr = controller.communicate(timeout=20)
+        # PowerShell -Command returns 1 for a user-cancelled pipeline.
+        assert controller.returncode in (0, 1), stdout + stderr
+        assert 'cleanup failed' not in stderr and 'Could not stop service' not in stderr, stderr
+        assert not any(listening(port) for port in ports), 'Cancelled launcher left a service listening'
+        for i in range(service_count):
+            child_pid = int((tmp_path / f'child{i}.pid').read_text())
+            check = subprocess.run([SHELL, '-NoProfile', '-Command', f'if (Get-Process -Id {child_pid} -ErrorAction SilentlyContinue) {{ exit 1 }}'], capture_output=True, timeout=10)
+            assert check.returncode == 0, f'Service child {child_pid} survived cancellation'
+    finally:
+        if controller.poll() is None:
+            interrupt()
+            controller.communicate(timeout=20)
+        # Clean fixture children even when testing a broken launcher.
+        for pid_file in tmp_path.glob('child*.pid'):
+            subprocess.run(['taskkill.exe', '/PID', pid_file.read_text(), '/T', '/F'], capture_output=True, timeout=10)

@@ -133,6 +133,7 @@ try {
     Write-Host 'Local development services:'
     Write-Host "  API ready: $($env:NOVELVIDEO_API_URL)"
     Write-Host "  Frontend ready: http://127.0.0.1:$frontendPort"
+    Write-Host "  Gateway (new-api, managed separately): $(Get-Setting 'NEWAPI_ADMIN_BASE_URL' 'http://127.0.0.1:3000')"
     Write-Host ''
     Write-Host 'Press Ctrl+C to stop both services.'
     while ($true) {
@@ -147,8 +148,36 @@ try {
     }
 } finally {
     foreach ($process in $processes) {
-        if (-not $process.HasExited) { & taskkill.exe /PID $process.Id /T /F 2>$null | Out-Null }
-        $process.Dispose()
+        try {
+            if (-not $process.HasExited) {
+                # Ctrl+C stops the PowerShell pipeline: invoking a native command
+                # with & ... | Out-Null here can be cancelled before it runs.
+                # Use .NET directly so cleanup also runs in a stopped pipeline.
+                $stopInfo = [Diagnostics.ProcessStartInfo]::new()
+                $stopInfo.FileName = Join-Path $env:SystemRoot 'System32/taskkill.exe'
+                $stopInfo.Arguments = "/PID $($process.Id) /T /F"
+                $stopInfo.UseShellExecute = $false
+                $stopInfo.CreateNoWindow = $true
+                $stopInfo.RedirectStandardOutput = $true
+                $stopInfo.RedirectStandardError = $true
+                $stopProcess = [Diagnostics.Process]::Start($stopInfo)
+                try {
+                    $stopOutput = $stopProcess.StandardOutput.ReadToEnd()
+                    $stopError = $stopProcess.StandardError.ReadToEnd()
+                    $stopProcess.WaitForExit()
+                    if ($stopProcess.ExitCode -ne 0 -and -not $process.HasExited) {
+                        [Console]::Error.WriteLine("Could not stop service PID $($process.Id): $stopOutput $stopError")
+                    }
+                } finally {
+                    $stopProcess.Dispose()
+                }
+            }
+        } catch {
+            # A failure for one service must not skip cleanup of the other.
+            [Console]::Error.WriteLine("Service cleanup failed for PID $($process.Id): $_")
+        } finally {
+            $process.Dispose()
+        }
     }
     Pop-Location
 }
