@@ -55,7 +55,7 @@ export interface TaskState {
   expires_at?: string | null;
 }
 
-export type StreamHealth = "connecting" | "connected" | "reconnecting" | "polling" | "failed";
+export type StreamHealth = "inactive" | "connecting" | "connected" | "reconnecting" | "polling" | "failed";
 
 export type TaskEvent =
   | { type: "task_updated"; task: TaskState; previous: TaskState | null }

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import type { StreamHealth, TaskState } from "@/task-center/types";
 
 const HEALTH_COLOR: Record<StreamHealth, string> = {
+  inactive: "text-muted-foreground",
   connecting: "text-muted-foreground",
   connected: "text-success",
   reconnecting: "text-warning",

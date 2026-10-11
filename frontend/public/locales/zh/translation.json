@@ -3338,6 +3338,7 @@
       "selectPrompt": "选择一个任务查看详情。"
     },
     "statusBar": {
+      "inactive": "未选择项目",
       "idle": "空闲",
       "connecting": "连接中…",
       "connected": "已连接",

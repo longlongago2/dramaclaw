@@ -128,7 +128,11 @@ describe("rendered-DOM reactivity — status bar", () => {
 
   it("re-renders stream health indicator when setHealth is called", () => {
     renderStatusBar();
-    // Initial health is "connecting"; both sr-only and visible label exist
+    expect(screen.getAllByText(/inactive/i).length).toBeGreaterThan(0);
+
+    act(() => {
+      useTaskCenterStore.getState().setHealth("connecting");
+    });
     expect(screen.getAllByText(/connecting/i).length).toBeGreaterThan(0);
 
     act(() => {

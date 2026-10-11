@@ -78,7 +78,27 @@ Windows PowerShell 原生启动（不需要 Bash 或 Docker）：
 `.cache/hermes-venv` 环境；API 开启热重载，前端访问 `http://localhost:5173`。
 按 Ctrl+C 清理 API 和前端的子进程，日志保存到 `runtime/dev-*`。
 仅调试 API/前端、不使用聊天时可加 `-SkipHermes`；已安装依赖可加 `-SkipInstall`。
-这两个选项只跳过安装，不更改聊天后端配置。独立网关需另外启动。
+这两个选项只跳过安装，不更改聊天后端配置。
+
+两个启动器支持网关模式参数，默认 `auto`：
+
+```powershell
+.\scripts\start-ce.ps1 -GatewayMode auto # 官方模式跳过；自定义/混合模式检查配置
+.\scripts\start-ce.ps1 -GatewayMode on   # 启动平级网关，或复用已健康运行的实例
+.\scripts\start-ce.ps1 -GatewayMode off  # 只启动 API 与前端
+```
+
+Bash 对应 `scripts/start-ce.sh --gateway-mode auto`，按需将 `auto` 换成 `on` 或 `off`。
+`auto` 只读已保存的模型模式和网关地址，不修改设置。官方模式不检查或构建平级网关；
+自定义/混合模式先检查配置地址的 `/api/status`，健康实例直接复用，退出时不会停止它。
+不可用的远程网关不会被本地源码项目替代。需要启动匹配的本机网关时，默认查找
+`<dramaclaw 的父目录>/dramaclaw-gateway`，用 Go 构建；缺少 `web/dist` 时需要 Bun。
+端口读取网关环境或它自己的 `.env` 中的 `PORT`，未配置时读取 Go 源码默认值。
+必需的项目缺失、端口配置不匹配或启动失败时会明确报错，可用 `off` 启动界面修复配置，
+不输出猜测的网关地址。默认数据库为 CE 的 `state/newapi/one-api.db`；显式配置的
+网关数据库和 Redis 设置会保留。Ctrl+C 只清理本次启动的服务进程树。
+`on` 不会改变已保存的模型模式。模式在启动时判断；从官方模式切换为本机网关后，
+需重启启动器或使用 `on` 启动。
 如果执行策略阻止脚本，可用
 `powershell -ExecutionPolicy Bypass -File .\scripts\start-ce.ps1`，只对本次进程生效。
 
@@ -123,7 +143,7 @@ curl http://localhost:8780/api/v1/config   # 返回 200 即正常
 
 ### 4. 网关（仅自定义 / 本地 + 官方混合模式需要）
 
-官方模式什么都不用再跑。另外两种模式下，API 需要一个跑在 `127.0.0.1:3000` 的网关（`.env` 里 `NEWAPI_ADMIN_BASE_URL` 的默认值），且它的 SQLite 文件在 `./state/newapi/one-api.db`，设置页的「初始化」写的就是这个文件。用发布镜像并把这个目录挂进去：
+官方模式什么都不用再跑。源码启动器在 `auto` 模式下，仅在已保存的配置需要匹配的本机实例且没有健康实例时启动平级网关。单独管理网关时，在设置页配置其管理地址与数据库。CE 默认 SQLite 文件为 `./state/newapi/one-api.db`，设置页的「初始化」写的就是这个文件。若改用发布镜像，可把这个目录挂进去：
 
 ```bash
 mkdir -p state/newapi

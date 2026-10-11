@@ -79,7 +79,33 @@ isolated `.cache/hermes-venv`. It starts the API with hot reload and the fronten
 at `http://localhost:5173`. Ctrl+C stops both process trees; logs are in
 `runtime/dev-*`. Use `-SkipHermes` to skip chat runtime setup, and `-SkipInstall`
 when dependencies are already installed. These switches do not change the chat
-backend configuration. Start the independent model gateway separately.
+backend configuration.
+
+Both launchers accept a gateway mode, defaulting to `auto`:
+
+```powershell
+.\scripts\start-ce.ps1 -GatewayMode auto # official: skip; custom/hybrid: inspect configuration
+.\scripts\start-ce.ps1 -GatewayMode on   # start the sibling gateway, or reuse a healthy instance
+.\scripts\start-ce.ps1 -GatewayMode off  # start only API + frontend
+```
+
+For Bash use `scripts/start-ce.sh --gateway-mode auto`, replacing `auto` with
+`on` or `off` when needed.
+`auto` reads the saved model mode and gateway address without changing settings.
+Official mode skips local discovery/builds. Custom and hybrid modes first check
+the configured gateway's `/api/status`; a healthy existing instance is reused
+and is never stopped by this launcher. An unavailable remote endpoint cannot
+be replaced by a local checkout. For a matching local endpoint, the launcher
+discovers `<dramaclaw parent>/dramaclaw-gateway`, builds it with Go, and starts it.
+Bun is required only when its `web/dist` is missing. The port comes from `PORT`
+in its environment or `.env`, then from its Go source default. Missing required
+projects, port mismatches and startup failures show actionable errors; use `off`
+to start the UI for configuration repair. No gateway address is invented.
+The default SQLite file is `state/newapi/one-api.db`; explicit gateway database
+and Redis settings are preserved. Ctrl+C stops only service trees started by
+this launcher. `on` starts/reuses a gateway without changing the saved model mode.
+Mode selection happens at startup; after switching from Official to a local
+gateway in Settings, restart the launcher or launch with `on`.
 If execution policy blocks scripts, use
 `powershell -ExecutionPolicy Bypass -File .\scripts\start-ce.ps1`; this changes
 policy only for that process.
@@ -129,7 +155,7 @@ curl http://localhost:8780/api/v1/config   # a 200 response means it's working
 
 ### 4. Gateway (only for Custom / Local + Official Hybrid mode)
 
-Official mode needs nothing else. For the other two modes the API expects a gateway on `127.0.0.1:3000` (the `NEWAPI_ADMIN_BASE_URL` default in `.env`) whose SQLite file is `./state/newapi/one-api.db`, which is what **Initialize** in Settings writes to. Run the published image with that directory mounted:
+Official mode needs nothing else. In `auto` mode, source launchers start the sibling gateway only when the saved configuration requires a matching local instance and none is healthy. For a separately managed gateway, configure its management address and database in Settings. The default CE SQLite file is `./state/newapi/one-api.db`, which is what **Initialize** in Settings writes to. To use the published image instead, run it with that directory mounted:
 
 ```bash
 mkdir -p state/newapi

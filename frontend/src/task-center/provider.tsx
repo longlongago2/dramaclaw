@@ -244,6 +244,7 @@ export function TaskCenterProvider({
     }
     activeSessionRef.current = { username, projectId };
     useTaskCenterStore.getState().setProject(projectId);
+    useTaskCenterStore.getState().setHealth("connecting");
 
     let cancelled = false;
     let client: ReturnType<typeof createStreamClient> | null = null;

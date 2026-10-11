@@ -77,6 +77,7 @@ def test_launcher_rejects_ipv6_port_owner_before_starting_services(tmp_path):
         pytest.skip('Launcher dependencies are unavailable')
     (tmp_path / 'scripts').mkdir()
     shutil.copy2(ROOT / 'scripts/start-ce.ps1', tmp_path / 'scripts/start-ce.ps1')
+    shutil.copy2(ROOT / 'scripts/local_gateway.py', tmp_path / 'scripts/local_gateway.py')
     with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as occupied:
         occupied.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
         occupied.bind(('::', 0))
@@ -134,6 +135,7 @@ $start = $ast.Find({{ param($node) $node -is [System.Management.Automation.Langu
 $cleanup = @($ast.EndBlock.Statements | Where-Object {{ $_ -is [System.Management.Automation.Language.TryStatementAst] }})[-1].Finally.Extent.Text
 $body = @'
 $ErrorActionPreference = 'Stop'
+$rootDir = {quoted(ROOT)}
 $logDir = {quoted(tmp_path)}
 $processes = @()
 Push-Location {quoted(tmp_path)}
@@ -196,4 +198,57 @@ $body = $body.Replace('CLEANUP', $cleanup)
             controller.communicate(timeout=20)
         # Clean fixture children even when testing a broken launcher.
         for pid_file in tmp_path.glob('child*.pid'):
+            subprocess.run(['taskkill.exe', '/PID', pid_file.read_text(), '/T', '/F'], capture_output=True, timeout=10)
+
+
+def test_service_wrapper_exit_stops_orphan_listener(tmp_path):
+    """A wrapper can exit before its HTTP child; no launcher tree remains to kill."""
+    with socket.socket() as available:
+        available.bind(('127.0.0.1', 0))
+        port = available.getsockname()[1]
+    worker = tmp_path / 'wrapper.py'
+    pid_file = tmp_path / 'orphan.pid'
+    worker.write_text(
+        'import socket, subprocess, sys, time\n'
+        'from pathlib import Path\n'
+        'child = subprocess.Popen([sys.executable, "-m", "http.server", sys.argv[1], "--bind", "127.0.0.1"])\n'
+        'deadline = time.monotonic() + 10\n'
+        'while True:\n'
+        '    with socket.socket() as probe:\n'
+        '        if probe.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0: break\n'
+        '    if time.monotonic() > deadline: raise RuntimeError("Child did not listen")\n'
+        '    time.sleep(0.05)\n'
+        'Path(sys.argv[2]).write_text(str(child.pid))\n', encoding='utf-8',
+    )
+
+    def quoted(value):
+        return "'" + str(value).replace("'", "''") + "'"
+
+    code = f"""
+$ast = [System.Management.Automation.Language.Parser]::ParseFile({quoted(ROOT / 'scripts/start-ce.ps1')}, [ref]$null, [ref]$null)
+$start = $ast.Find({{ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Start-DevProcess' }}, $false).Extent.Text
+Invoke-Expression $start
+$rootDir = {quoted(ROOT)}
+$logDir = {quoted(tmp_path)}
+$service = Start-DevProcess 'api' {quoted(tmp_path)} {quoted(sys.executable)} @({quoted(worker)}, '{port}', {quoted(pid_file)})
+try {{
+    if (-not $service.WaitForExit(20000)) {{ throw 'Service wrapper did not exit' }}
+}} finally {{ $service.Dispose() }}
+"""
+    try:
+        result = subprocess.run([SHELL, '-NoProfile', '-Command', code], capture_output=True, text=True, encoding='utf-8', timeout=30)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert pid_file.is_file(), (tmp_path / 'api.error.log').read_text(encoding='utf-8')
+        deadline = time.monotonic() + 2
+        while True:
+            with socket.socket() as probe:
+                if probe.connect_ex(('127.0.0.1', port)) != 0:
+                    break
+            assert time.monotonic() < deadline, 'Wrapper exited but its orphan HTTP server still listens'
+            time.sleep(0.05)
+        child_pid = pid_file.read_text()
+        check = subprocess.run([SHELL, '-NoProfile', '-Command', f'if (Get-Process -Id {child_pid} -ErrorAction SilentlyContinue) {{ exit 1 }}'], capture_output=True, timeout=10)
+        assert check.returncode == 0, 'Orphan HTTP process survived its service shell'
+    finally:
+        if pid_file.is_file():
             subprocess.run(['taskkill.exe', '/PID', pid_file.read_text(), '/T', '/F'], capture_output=True, timeout=10)

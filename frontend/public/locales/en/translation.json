@@ -3338,6 +3338,7 @@
       "selectPrompt": "Select a task to see details."
     },
     "statusBar": {
+      "inactive": "No project selected",
       "idle": "Idle",
       "connecting": "Connecting…",
       "connected": "Connected",

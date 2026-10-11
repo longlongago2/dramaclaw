@@ -51,7 +51,7 @@ function isActiveTask(t: TaskState): boolean {
 export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
   projectId: null,
   tasks: new Map(),
-  streamHealth: "connecting",
+  streamHealth: "inactive",
   lastEventAt: null,
   selectedTaskKey: null,
   filter: "all",
@@ -111,7 +111,7 @@ export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
     set({
       projectId: null,
       tasks: new Map(),
-      streamHealth: "connecting",
+      streamHealth: "inactive",
       lastEventAt: null,
       selectedTaskKey: null,
       filter: "all",

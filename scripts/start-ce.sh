@@ -2,6 +2,24 @@
 # Start the SuperTale CE API and bundled frontend locally.
 set -euo pipefail
 
+gateway_mode=auto
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --gateway-mode)
+      if [ "$#" -lt 2 ]; then echo '--gateway-mode requires auto, on, or off.' >&2; exit 2; fi
+      gateway_mode="$2"
+      shift 2
+      ;;
+    --gateway-mode=*) gateway_mode="${1#*=}"; shift ;;
+    --help|-h) echo 'Usage: scripts/start-ce.sh [--gateway-mode auto|on|off]'; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+case "$gateway_mode" in
+  auto|on|off) ;;
+  *) echo '--gateway-mode must be auto, on, or off.' >&2; exit 2 ;;
+esac
+
 root_dir="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root_dir"
 
@@ -12,6 +30,7 @@ frontend_host="${SUPERTALE_FE_HOST:-0.0.0.0}"
 api_ready_timeout="${NOVELVIDEO_API_READY_TIMEOUT:-90}"
 api_pid=""
 fe_pid=""
+gateway_pid=""
 
 cleanup() {
   local exit_status=$?
@@ -19,7 +38,7 @@ cleanup() {
   trap - EXIT
   # Repeated Ctrl+C must not interrupt cleanup halfway through.
   trap '' INT TERM
-  for service_pid in "$fe_pid" "$api_pid"; do
+  for service_pid in "$fe_pid" "$api_pid" "$gateway_pid"; do
     if [ -n "$service_pid" ]; then
       # Signal the group even if its original leader has already exited.
       kill -TERM -- "-$service_pid" >/dev/null 2>&1 || true
@@ -29,7 +48,7 @@ cleanup() {
   # to exit. Never wait indefinitely on a service that ignores SIGTERM.
   for ((attempt = 0; attempt < 30; attempt++)); do
     running=false
-    for service_pid in "$fe_pid" "$api_pid"; do
+    for service_pid in "$fe_pid" "$api_pid" "$gateway_pid"; do
       if [ -n "$service_pid" ] && kill -0 -- "-$service_pid" >/dev/null 2>&1; then
         running=true
       fi
@@ -37,7 +56,7 @@ cleanup() {
     if [ "$running" = false ]; then break; fi
     sleep 0.1
   done
-  for service_pid in "$fe_pid" "$api_pid"; do
+  for service_pid in "$fe_pid" "$api_pid" "$gateway_pid"; do
     if [ -n "$service_pid" ]; then
       kill -KILL -- "-$service_pid" >/dev/null 2>&1 || true
       wait "$service_pid" 2>/dev/null || true
@@ -140,6 +159,27 @@ fi
 echo "Checking/installing dependencies with uv sync --group dev ..."
 uv sync --group dev
 
+gateway_python="$root_dir/.venv/bin/python"
+gateway_plan="$("$gateway_python" scripts/local_gateway.py select --root "$root_dir" --gateway-mode "$gateway_mode")"
+gateway_action="$(printf '%s' "$gateway_plan" | "$gateway_python" -c 'import json,sys; print(json.load(sys.stdin)["action"])')"
+printf '%s' "$gateway_plan" | "$gateway_python" -c 'import json,sys; print(json.load(sys.stdin)["message"])'
+gateway_url=""
+if [ "$gateway_action" = error ]; then exit 1; fi
+if [ "$gateway_action" = start ] || [ "$gateway_action" = reuse ]; then
+  gateway_url="$(printf '%s' "$gateway_plan" | "$gateway_python" -c 'import json,sys; print(json.load(sys.stdin)["url"])')"
+  export NEWAPI_ADMIN_BASE_URL="$gateway_url"
+fi
+if [ "$gateway_action" = start ]; then
+  gateway_port="$(printf '%s' "$gateway_plan" | "$gateway_python" -c 'import json,sys; print(json.load(sys.stdin)["port"])')"
+  if [ "$gateway_port" = "$api_port" ] || [ "$gateway_port" = "$frontend_port" ]; then
+    echo "Gateway PORT conflicts with the API or frontend port." >&2
+    exit 1
+  fi
+  # Refuse occupied ports before probing, so another service cannot look ready.
+  "$gateway_python" -c 'import socket,sys; s=socket.socket(); s.bind(("", int(sys.argv[1]))); s.close()' "$gateway_port"
+  "$gateway_python" scripts/local_gateway.py prepare --root "$root_dir" >/dev/null
+fi
+
 # Keep the Hermes fork in its own environment. The fork currently pins an
 # older OpenAI SDK than pydantic-ai requires for Recipe text execution; putting
 # both in the application .venv makes setup-hermes silently downgrade the API
@@ -162,6 +202,19 @@ echo "Health check: http://127.0.0.1:${api_port}/api/v1/config"
 # Bash job control puts each background service in its own process group.
 # This works on Linux and macOS without a platform-specific setsid command.
 set -m
+if [ "$gateway_action" = start ]; then
+  "$gateway_python" scripts/local_gateway.py run --root "$root_dir" &
+  gateway_pid="$!"
+  gateway_deadline=$((SECONDS + api_ready_timeout))
+  until curl -fsS --max-time 2 "$gateway_url/api/status" | "$gateway_python" -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("success") is True else 1)' >/dev/null 2>&1; do
+    if ! kill -0 "$gateway_pid" >/dev/null 2>&1 || [ "$SECONDS" -ge "$gateway_deadline" ]; then
+      echo "Gateway exited or did not become ready: $gateway_url" >&2
+      exit 1
+    fi
+    sleep 1
+  done
+  echo "Gateway ready: $gateway_url"
+fi
 # Dependencies are synchronized explicitly above.  `uv run` otherwise performs
 # an implicit sync in this background process, which can download the 100+ MiB
 # Codex binary while the readiness timeout is already counting down.
@@ -192,10 +245,13 @@ echo "Frontend API target comes from frontend/.env"
 ) &
 fe_pid="$!"
 
-echo "Gateway (new-api, managed separately): ${NEWAPI_ADMIN_BASE_URL:-http://127.0.0.1:3000}"
 echo "Press Ctrl+C to stop."
 
 while true; do
+  if [ -n "$gateway_pid" ] && ! kill -0 "$gateway_pid" >/dev/null 2>&1; then
+    echo "Gateway process exited."
+    exit 1
+  fi
   if ! kill -0 "$api_pid" >/dev/null 2>&1; then
     echo "API process exited."
     exit 1

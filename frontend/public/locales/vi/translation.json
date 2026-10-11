@@ -3276,6 +3276,7 @@
       "cancelled": "Đã huỷ"
     },
     "statusBar": {
+      "inactive": "Chưa chọn dự án",
       "idle": "Rảnh",
       "connecting": "Đang kết nối…",
       "connected": "Đã kết nối",

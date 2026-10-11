@@ -95,7 +95,7 @@ describe("per-store reset() actions", () => {
     const s = useTaskCenterStore.getState();
     expect(s.tasks).toBeInstanceOf(Map);
     expect(s.tasks.size).toBe(0);
-    expect(s.streamHealth).toBe("connecting");
+    expect(s.streamHealth).toBe("inactive");
     expect(s.projectId).toBeNull();
     expect(s.lastEventAt).toBeNull();
     expect(s.selectedTaskKey).toBeNull();

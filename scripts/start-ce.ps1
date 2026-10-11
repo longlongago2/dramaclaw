@@ -1,6 +1,10 @@
 # Start the CE API and frontend locally; no Docker or Bash required.
 [CmdletBinding()]
-param([switch]$SkipHermes, [switch]$SkipInstall)
+param(
+    [switch]$SkipHermes,
+    [switch]$SkipInstall,
+    [ValidateSet('auto', 'on', 'off')][string]$GatewayMode = 'auto'
+)
 $ErrorActionPreference = 'Stop'
 $rootDir = Split-Path -Parent $PSScriptRoot
 $processes = @()
@@ -16,7 +20,12 @@ function Invoke-Checked([string]$Command, [string[]]$Arguments) {
 function Start-DevProcess([string]$Name, [string]$Directory, [string]$Command, [string[]]$Arguments) {
     # Encode PowerShell source to pass paths and arguments without cmd.exe quoting.
     $quoted = @($Command) + $Arguments | ForEach-Object { "'" + $_.Replace("'", "''") + "'" }
-    $source = '& ' + ($quoted -join ' ') + '; exit $LASTEXITCODE'
+    $jobCode = Join-Path $rootDir 'scripts/DevProcessJob.cs'
+    $quotedJobCode = "'" + $jobCode.Replace("'", "''") + "'"
+    # The hidden shell joins its own Windows job before any uv/pnpm children
+    # can spawn. Even if a wrapper exits first, the OS kills its descendants.
+    $source = '$ErrorActionPreference = ''Stop''; Add-Type -LiteralPath ' + $quotedJobCode +
+        '; [CEDevProcessJob]::AttachCurrentProcess(); & ' + ($quoted -join ' ') + '; exit $LASTEXITCODE'
     $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($source))
     $shell = (Get-Process -Id $PID).Path
     $stdout = Join-Path $logDir "$Name.log"
@@ -52,9 +61,19 @@ try {
     $frontendPort = [int](Get-Setting 'SUPERTALE_FE_PORT' '5173')
     $frontendHost = Get-Setting 'SUPERTALE_FE_HOST' '0.0.0.0'
     $readyTimeout = [int](Get-Setting 'NOVELVIDEO_API_READY_TIMEOUT' '90')
+    $gatewayHelper = Join-Path $PSScriptRoot 'local_gateway.py'
+    $gateway = (& $python $gatewayHelper select --root $rootDir --gateway-mode $GatewayMode.ToLowerInvariant()) | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw 'Could not discover the sibling gateway project.' }
+    if ($gateway.action -eq 'error') { throw $gateway.message }
+    Write-Host $gateway.message
     if ($apiPort -lt 1 -or $apiPort -gt 65535 -or $frontendPort -lt 1 -or $frontendPort -gt 65535 -or $apiPort -eq $frontendPort -or $readyTimeout -lt 1) { throw 'Invalid ports or API readiness timeout.' }
     # Refuse occupied ports so readiness cannot accidentally probe another API.
-    foreach ($port in @($apiPort, $frontendPort)) {
+    $ports = @($apiPort, $frontendPort)
+    if ($gateway.action -eq 'start') {
+        if ($gateway.port -in $ports) { throw 'Gateway PORT conflicts with the API or frontend port.' }
+        $ports += [int]$gateway.port
+    }
+    foreach ($port in $ports) {
         $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Any, $port)
         try {
             # Windows dual-stack listeners can block Node's IPv4 bind even
@@ -64,13 +83,17 @@ try {
             $listener.ExclusiveAddressUse = $true
             $listener.Start()
         } catch {
-            $service = if ($port -eq $apiPort) { 'API' } else { 'Frontend' }
+            $bindError = $_.Exception.GetBaseException().Message
+            $service = if ($port -eq $apiPort) { 'API' } elseif ($port -eq $frontendPort) { 'Frontend' } else { 'Gateway' }
             $owners = @(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue |
                 Select-Object -ExpandProperty OwningProcess -Unique |
                 ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue } |
                 ForEach-Object { "$($_.ProcessName) (PID $($_.Id))" })
-            $detail = if ($owners.Count) { ' Occupied by: ' + ($owners -join ', ') + '.' } else { '' }
-            $setting = if ($port -eq $apiPort) { 'NOVELVIDEO_API_PORT' } else { 'SUPERTALE_FE_PORT' }
+            $ownerIds = @($existingListeners | Select-Object -ExpandProperty OwningProcess -Unique)
+            $detail = if ($owners.Count) { ' Occupied by: ' + ($owners -join ', ') + '.' }
+                elseif ($ownerIds.Count) { ' Listener owner PID(s): ' + ($ownerIds -join ', ') + ' (process may have exited while descendants retain the socket).' }
+                else { " Bind error: $bindError" }
+            $setting = if ($port -eq $apiPort) { 'NOVELVIDEO_API_PORT' } elseif ($port -eq $frontendPort) { 'SUPERTALE_FE_PORT' } else { 'PORT in the gateway project .env' }
             throw "$service port $port is unavailable.$detail Stop the existing dev service with Ctrl+C, or change $setting in .env and retry."
         } finally {
             $listener.Stop()
@@ -99,6 +122,25 @@ try {
     }
     $logDir = Join-Path $env:NOVELVIDEO_RUNTIME_DIR ('dev-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    if ($gateway.action -in @('start', 'reuse')) { $env:NEWAPI_ADMIN_BASE_URL = $gateway.url }
+    if ($gateway.action -eq 'start') {
+        Write-Host "Preparing gateway from $($gateway.directory)"
+        & $python $gatewayHelper prepare --root $rootDir | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Gateway preparation failed; see the error above.' }
+        $env:NEWAPI_ADMIN_BASE_URL = $gateway.url
+        $gatewayProcess = Start-DevProcess 'gateway' $rootDir $python @($gatewayHelper, 'run', '--root', $rootDir)
+        $processes += $gatewayProcess
+        $deadline = [DateTime]::UtcNow.AddSeconds($readyTimeout)
+        while ($true) {
+            if ($gatewayProcess.HasExited) { throw "Gateway exited; see $logDir." }
+            try {
+                $status = Invoke-RestMethod -Uri "$($gateway.url)/api/status" -TimeoutSec 2
+                if ($status.success -eq $true) { break }
+            } catch { }
+            if ([DateTime]::UtcNow -ge $deadline) { throw "Gateway readiness timed out; see $logDir." }
+            Start-Sleep -Milliseconds 250
+        }
+    }
     $apiProcess = Start-DevProcess 'api' $rootDir (Get-Command uv).Source @('run', '--no-sync', 'novelvideo', 'api', '--host', $apiHost, '--port', "$apiPort", '--reload')
     $processes += $apiProcess
     $deadline = [DateTime]::UtcNow.AddSeconds($readyTimeout)
@@ -133,11 +175,14 @@ try {
     Write-Host 'Local development services:'
     Write-Host "  API ready: $($env:NOVELVIDEO_API_URL)"
     Write-Host "  Frontend ready: http://127.0.0.1:$frontendPort"
-    Write-Host "  Gateway (new-api, managed separately): $(Get-Setting 'NEWAPI_ADMIN_BASE_URL' 'http://127.0.0.1:3000')"
+    if ($gateway.action -eq 'start') { Write-Host "  Gateway ready: $($gateway.url) (project: $($gateway.directory))" }
+    else { Write-Host "  $($gateway.message)" }
     Write-Host ''
-    Write-Host 'Press Ctrl+C to stop both services.'
+    Write-Host 'Press Ctrl+C to stop all services started by this launcher.'
+    $services = @(@('API', $apiProcess), @('Frontend', $frontendProcess))
+    if ($gateway.action -eq 'start') { $services += ,@('Gateway', $gatewayProcess) }
     while ($true) {
-        foreach ($entry in @(@('API', $apiProcess), @('Frontend', $frontendProcess))) {
+        foreach ($entry in $services) {
             if ($entry[1].HasExited) {
                 $errorLog = Join-Path $logDir ($entry[0].ToLower() + '.error.log')
                 Get-Content -LiteralPath $errorLog -Tail 15 | ForEach-Object { Write-Host $_ }

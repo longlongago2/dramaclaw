@@ -119,6 +119,36 @@ function TasksConsumer() {
 }
 
 describe("TaskCenterProvider", () => {
+  it("stays inactive on the dashboard and closes the stream when leaving a project", async () => {
+    server.use(
+      http.get("*/api/v1/projects/demo/tasks", () =>
+        HttpResponse.json({ ok: true, data: [] }),
+      ),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = (projectId: string | null) => (
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <TaskCenterProvider projectId={projectId}><div /></TaskCenterProvider>
+        </I18nextProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(view(null));
+    expect(useTaskCenterStore.getState().streamHealth).toBe("inactive");
+    expect(MockEventSource.instances).toHaveLength(0);
+
+    rerender(view("demo"));
+    expect(useTaskCenterStore.getState().streamHealth).toBe("connecting");
+    await vi.waitFor(() => expect(MockEventSource.instances).toHaveLength(1));
+    act(() => MockEventSource.instances[0].dispatch("heartbeat", { ts: "now" }));
+    expect(useTaskCenterStore.getState().streamHealth).toBe("connected");
+
+    rerender(view(null));
+    expect(MockEventSource.instances[0].readyState).toBe(2);
+    expect(useTaskCenterStore.getState().streamHealth).toBe("inactive");
+    expect(useTaskCenterStore.getState().projectId).toBeNull();
+  });
+
   it("runs full session teardown when the auth probe returns 403", async () => {
     server.use(
       http.get("*/api/v1/projects/demo/tasks", () =>
