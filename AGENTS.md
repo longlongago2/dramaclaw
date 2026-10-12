@@ -13,12 +13,18 @@ This repository contains the SuperTale Community Edition backend and video pipel
 - `scripts/acceptance/run.sh`: run acceptance checks when validating broader API behavior.
 - `pre-commit run --all-files`: run repository hooks, currently including `gitleaks` secret scanning.
 
-## Publishing Docker Images to Harbor
+## Publishing and Deploying Docker Images with Harbor
 
 When asked to upload, push, or sync this project's Docker images to Harbor, read
 [publish_harbor.md](publish_harbor.md) in the repository root and use the existing
 `scripts/publish_harbor.py` script. It publishes the API, gateway, and frontend
 images to `harbor.n.nebulaedata.com/dramaclaw` by default.
+
+For image publication, follow chapter 1 of the guide. For deploying or updating
+a target server from Harbor images, follow chapter 2, including Git checkout,
+server `.env` image settings, Docker login, pull, startup, and deployment checks.
+Use `docker-compose.release.yml` on the target server and keep its default
+runtime parameters unless the user requests a change.
 
 - Already built with `docker compose up -d --build`: run `python scripts/publish_harbor.py --skip-build --tag <tag>` to publish the existing local images.
 - Build and publish: run `python scripts/publish_harbor.py --tag <tag>`.
