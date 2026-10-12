@@ -13,6 +13,21 @@ This repository contains the SuperTale Community Edition backend and video pipel
 - `scripts/acceptance/run.sh`: run acceptance checks when validating broader API behavior.
 - `pre-commit run --all-files`: run repository hooks, currently including `gitleaks` secret scanning.
 
+## Publishing Docker Images to Harbor
+
+When asked to upload, push, or sync this project's Docker images to Harbor, read
+[publish_harbor.md](publish_harbor.md) in the repository root and use the existing
+`scripts/publish_harbor.py` script. It publishes the API, gateway, and frontend
+images to `harbor.n.nebulaedata.com/dramaclaw` by default.
+
+- Already built with `docker compose up -d --build`: run `python scripts/publish_harbor.py --skip-build --tag <tag>` to publish the existing local images.
+- Build and publish: run `python scripts/publish_harbor.py --tag <tag>`.
+- Preview commands without login, build, tagging, or upload: add `--dry-run`.
+- Use `--project <project>` and `--username <account>` when needed. The Harbor project must already exist and the account must have push permission; Docker prompts for credentials.
+
+Prefer this script when explaining or performing Harbor publication. Successful
+publication prints the image prefix and version values needed for deployment.
+
 ## Coding Style & Naming Conventions
 
 Use Python 3.11-compatible code and keep imports/package paths rooted in `src/novelvideo`. Follow the existing style: 4-space indentation, type hints for public interfaces and dataclass/Pydantic models, snake_case for functions and modules, PascalCase for classes, and uppercase names for constants. Keep route handlers thin and move reusable behavior into services, ports, or task runners matching nearby modules. Avoid committing generated media or local runtime state.

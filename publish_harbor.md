@@ -1,6 +1,6 @@
 # 发布到公司 Harbor
 
-`publish_harbor.py` 使用 Python 3.11+ 标准库，无需安装 Python 依赖。
+`scripts/publish_harbor.py` 使用 Python 3.11+ 标准库，无需安装 Python 依赖。
 需要 Docker CLI、Docker Compose，以及运行中的 Docker Engine。
 
 **首次发布前，需要自己在 Harbor 网页中创建“文件夹”（Harbor 中称为项目）。

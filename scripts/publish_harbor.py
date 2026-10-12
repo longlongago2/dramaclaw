@@ -3,7 +3,7 @@
 
 Run from any directory; Docker commands use the repository root. Credentials
 are entered directly into Docker's interactive login prompt, never this script.
-See scripts/publish_harbor.md for usage and deployment instructions.
+See publish_harbor.md in the repository root for usage and deployment instructions.
 """
 
 from __future__ import annotations
