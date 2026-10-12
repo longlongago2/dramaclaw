@@ -92,7 +92,7 @@ After initialization, start with **Recommended**. One profile configures:
 - Cognee embedding model, dimensions, and batch size.
 - Image, video, and audio model mappings.
 
-Enter each provider key separately, then click **Save & Apply All**. Keys are stored separately and never written into profile JSON. Leave an already saved key blank; entering a new value replaces it.
+Enter each provider key separately, then click **Save & Apply**. Keys are stored separately and never written into profile JSON. Leave an already saved key blank; entering a new value replaces it.
 
 The current recommended template includes OpenRouter, VolcEngine, fal.ai, and DoubaoAudio. The recommended speech mapping keeps `index-tts-2` as DramaClaw's model ID while routing it through the DoubaoAudio channel to the upstream `seed-audio-1.0` model.
 
@@ -136,7 +136,9 @@ The built-in recommended profile is read-only. Switch to **My Config** to edit a
 }
 ```
 
-Each `channel` references a `channels[].id`. A profile currently supports only one entry per `provider`. Switching profiles or viewing JSON only changes the pending template; it does not overwrite the active Advanced Settings. Click **Save & Apply All** to write provider channels, feature models, embedding, and media models to the backend and update the lists below. Saving Advanced Settings synchronizes them into My Config so there are not two competing configurations. After the built-in recommended profile changes, reapply it when Advanced Settings still show an older channel or model. Clearing browser data is not required.
+Each `channel` references a `channels[].id`. A profile currently supports only one entry per `provider`. Switching profiles or viewing JSON only changes the pending template. Click **Save & Apply** to write the supplied sections to the backend and update the lists below. Text, vision, and embedding are optional. Unmentioned channels and models are preserved; use the deletion controls in Advanced Settings to remove them.
+
+A video-only profile needs `channels` and `mediaModels`, without feature or embedding models. Existing Advanced Settings are recovered into editable personal JSON, including recovery of legacy `null` drafts. Invalid JSON cannot be applied or marked Active. An edited personal draft is marked Active again only after it is successfully applied.
 
 The recommended profile does not create a ComfyUI channel by default. To use local MiniMax H3, open **Manage Channels** in Advanced Settings, add ComfyUI, then load the template from that channel's **ComfyUI Workflows** area. The template adds the workflows and creates a corresponding `MiniMax-H3-local` media-model draft.
 

@@ -77,6 +77,28 @@ async def test_empty_catalog_has_no_defaults():
     assert await discover_models("test-platform-key") == []
 
 
+@pytest.mark.parametrize(
+    "payload, expected",
+    [
+        ({"detail": {"reasons": ["insufficient balance"]},
+          "error": {"message": "ignored"}}, "insufficient balance"),
+        ({"error": {"message": "invalid test-platform-key"},
+          "detail": "ignored"}, "invalid [REDACTED]"),
+        ({"detail": "permission denied"}, "permission denied"),
+        ({"message": "try again"}, "try again"),
+    ],
+)
+@respx.mock
+async def test_discovery_reports_documented_error_without_key(payload, expected):
+    respx.get("https://api.mrtoken.cn/v1/models").mock(
+        return_value=httpx.Response(403, json=payload)
+    )
+    with pytest.raises(ValueError) as error:
+        await discover_models("test-platform-key")
+    assert expected in str(error.value)
+    assert "test-platform-key" not in str(error.value)
+
+
 @pytest.mark.parametrize("status", [301, 401, 403, 429, 502])
 @respx.mock
 async def test_error_bodies_and_redirects_never_expose_key(status):

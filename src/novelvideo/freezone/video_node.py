@@ -382,7 +382,7 @@ def is_freezone_seedance2_backend(backend: str | None) -> bool:
     from novelvideo.generators.video_generator import parse_newapi_video_backend
 
     model = parse_newapi_video_backend(text) or parse_huimeng_video_backend(text)
-    return bool(model and model.startswith("seedance-2.0"))
+    return bool(model and model.startswith(("seedance-2.0", "doubao-seedance-2.0")))
 
 
 def is_freezone_seedance_backend(backend: str | None) -> bool:
@@ -395,7 +395,7 @@ def is_freezone_seedance_backend(backend: str | None) -> bool:
     from novelvideo.generators.video_generator import parse_newapi_video_backend
 
     model = parse_newapi_video_backend(text) or parse_huimeng_video_backend(text)
-    return bool(model and model.startswith("seedance"))
+    return bool(model and model.startswith(("seedance", "doubao-seedance")))
 
 
 def is_freezone_happyhorse_backend(backend: str | None) -> bool:

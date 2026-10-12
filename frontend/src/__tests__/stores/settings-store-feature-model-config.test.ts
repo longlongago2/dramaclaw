@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   providersSupportingCapability,
+  parseQuickModelProfile,
   syncQuickProfileFromAdvancedSettings,
 } from "@/components/settings/settings-dialog";
 import type { NewApiChannelType } from "@/lib/queries/model-gateway";
@@ -504,9 +505,8 @@ describe("custom profile reconciliation", () => {
     ).toBeNull();
   });
 
-  it("does not claim success when the backend embedding is orphaned", () => {
-    expect(
-      syncQuickProfileFromAdvancedSettings(quickProfileFixture(), {
+  it("omits an orphaned embedding while keeping the remaining configuration", () => {
+    const profile = syncQuickProfileFromAdvancedSettings(quickProfileFixture(), {
         ...DEFAULT_FEATURE_MODEL_SETTINGS,
         providerChannels: {
           openrouter: {
@@ -522,7 +522,65 @@ describe("custom profile reconciliation", () => {
           upstreamModel: "embedding-model",
           dimension: 1024,
         },
-      }),
-    ).toBeNull();
+      });
+    expect(profile?.channels[0]?.provider).toBe("openrouter");
+    expect(profile?.embedding).toBeUndefined();
+    expect(profile?.featureModels).toEqual({ overrides: {} });
+  });
+
+  it("round-trips a video-only MrToken configuration without inventing other models", () => {
+    const profile = syncQuickProfileFromAdvancedSettings(quickProfileFixture(), {
+      ...DEFAULT_FEATURE_MODEL_SETTINGS,
+      providerChannels: {
+        mrtoken: { provider: "mrtoken", upstreamKey: "test-only-secret", baseUrl: "https://api.mrtoken.cn", priority: 0, settings: {} },
+      },
+      mediaModels: {
+        "minimax-h3-r2v": {
+          provider: "mrtoken", upstreamModel: "minimax-h3-r2v", mediaType: "video",
+          config: { maxReferenceImages: 4 },
+        },
+      },
+    });
+    const json = JSON.stringify(profile);
+    expect(json).not.toContain("test-only-secret");
+    expect(parseQuickModelProfile(json)).toMatchObject({
+      channels: [{ id: "mrtoken", provider: "mrtoken" }],
+      featureModels: { overrides: {} },
+      mediaModels: { "minimax-h3-r2v": { channel: "mrtoken", config: { maxReferenceImages: 4 } } },
+    });
+    expect(profile?.featureModels.text).toBeUndefined();
+    expect(profile?.featureModels.vision).toBeUndefined();
+    expect(profile?.embedding).toBeUndefined();
+  });
+
+  it("keeps a single business mapping as an override instead of applying it to every feature", () => {
+    const profile = syncQuickProfileFromAdvancedSettings(quickProfileFixture(), {
+      ...DEFAULT_FEATURE_MODEL_SETTINGS,
+      providerChannels: {
+        openrouter: { provider: "openrouter", upstreamKey: "", baseUrl: "", priority: 0, settings: {} },
+      },
+      featureModels: { CHARACTER_BUILD: { provider: "openrouter", model: "selected-text-model" } },
+    });
+    expect(profile?.featureModels).toEqual({
+      overrides: { CHARACTER_BUILD: { channel: "openrouter", model: "selected-text-model" } },
+    });
+  });
+
+  it("still parses complete profiles and validates present embedding settings", () => {
+    expect(parseQuickModelProfile(JSON.stringify(quickProfileFixture()))).toEqual(quickProfileFixture());
+    expect(() => parseQuickModelProfile(JSON.stringify({
+      ...quickProfileFixture(), embedding: { ...quickProfileFixture().embedding, dimension: 0 },
+    }))).toThrow("embedding.dimension");
+  });
+
+  it.each(["null", "[]", "{}"])("rejects invalid applied snapshot %s", (json) => {
+    expect(() => parseQuickModelProfile(json)).toThrow();
+  });
+
+  it("rejects an invalid channel reference even in a partial profile", () => {
+    expect(() => parseQuickModelProfile(JSON.stringify({
+      version: 2, name: "Video", channels: [{ id: "mrtoken", provider: "mrtoken", baseUrl: "" }],
+      mediaModels: { video: { channel: "missing", model: "minimax-h3-r2v" } },
+    }))).toThrow("mediaModels.video.channel");
   });
 });

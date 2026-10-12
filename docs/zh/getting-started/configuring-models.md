@@ -92,7 +92,7 @@ DramaClaw 不保存管理员密码。初始化完成后请自行保管该密码�
 - Cognee Embedding 模型、维度和批量大小。
 - 图片、视频和音频模型映射。
 
-按渠道填写 API Key，然后点击 **保存并应用全部配置**。Key 独立保存，不会写入配置 JSON；已经保存的 Key 可以留空，重新输入会替换旧值。
+按渠道填写 API Key，然后点击 **保存并应用配置**。Key 独立保存，不会写入配置 JSON；已经保存的 Key 可以留空，重新输入会替换旧值。
 
 当前推荐模板包含 OpenRouter、VolcEngine、fal.ai 和 DoubaoAudio。推荐音频映射中的 DramaClaw 模型 ID 仍是 `index-tts-2`，实际通过 DoubaoAudio 渠道调用上游 `seed-audio-1.0`。
 
@@ -136,7 +136,9 @@ DramaClaw 不保存管理员密码。初始化完成后请自行保管该密码�
 }
 ```
 
-`channel` 引用 `channels[].id`。当前一个 profile 中同一 `provider` 只能配置一次。切换配置或查看 JSON 只会切换待应用模板，不会覆盖当前已经生效的高级配置；点击 **保存并应用全部配置** 后，供应商渠道、业务模型、Embedding 和媒体模型才会一起写入后端并更新下方列表。高级配置保存后会同步为当前个人配置，避免两套配置同时生效。推荐配置升级后，如果下方仍显示旧渠道或旧模型，重新应用推荐配置即可，不需要清理浏览器数据。
+`channel` 引用 `channels[].id`。当前一个 profile 中同一 `provider` 只能配置一次。切换配置或查看 JSON 只会切换待应用模板；点击 **保存并应用配置** 后才会写入后端并更新下方列表。文本、视觉和 Embedding 可省略，保存时只处理已填写的部分，保留未列出的渠道及模型。需要删除配置时，请使用高级配置中的删除操作。
+
+仅接入视频时，填写 `channels` 和 `mediaModels` 即可，无需为此补齐业务模型或 Embedding。已有高级配置会恢复为可编辑的个人 JSON；旧版本留下的 `null` 草稿也会自动从现有配置恢复。无效 JSON 不能应用，也不会标成“使用中”；修改个人 JSON 后，成功应用才会重新显示该标记。
 
 推荐配置不默认创建 ComfyUI 渠道；需要使用本地 MiniMax H3 时，请在高级配置中先通过 **渠道管理** 添加 ComfyUI，再在该渠道的 **ComfyUI Workflows** 区域载入模板。模板会补入 Workflow，并生成对应的 `MiniMax-H3-local` 媒体模型草稿。
 

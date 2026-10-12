@@ -1502,11 +1502,11 @@ interface QuickModelProfile {
   name: string;
   channels: QuickProfileChannel[];
   featureModels: {
-    text: QuickProfileModel;
-    vision: QuickProfileModel;
+    text?: QuickProfileModel;
+    vision?: QuickProfileModel;
     overrides: Record<string, QuickProfileModel>;
   };
-  embedding: QuickProfileModel & { dimension: number; batchSize: number };
+  embedding?: QuickProfileModel & { dimension: number; batchSize: number };
   mediaModels: Record<string, QuickProfileModel>;
 }
 
@@ -1881,17 +1881,26 @@ function loadStoredQuickProfiles(): StoredQuickProfiles {
       localStorage.getItem(QUICK_PROFILES_STORAGE_KEY) ?? "null",
     ) as Partial<StoredQuickProfiles> | null;
     if (!stored || stored.version !== 1) return fallback;
+    // Older clients persisted JSON.stringify(null) as both the draft and the
+    // applied snapshot. Recover it from the existing advanced settings.
+    const customProfileJson =
+      typeof stored.customProfileJson === "string" && stored.customProfileJson.trim() !== "null"
+        ? stored.customProfileJson
+        : "";
+    let appliedProfileJson = "";
+    if (typeof stored.appliedProfileJson === "string") {
+      try {
+        parseQuickModelProfile(stored.appliedProfileJson);
+        appliedProfileJson = stored.appliedProfileJson;
+      } catch {
+        // An invalid snapshot must never be marked as applied.
+      }
+    }
     return {
       version: 1,
       selected: stored.selected === "custom" ? "custom" : "recommended",
-      customProfileJson:
-        typeof stored.customProfileJson === "string"
-          ? stored.customProfileJson
-          : "",
-      appliedProfileJson:
-        typeof stored.appliedProfileJson === "string"
-          ? stored.appliedProfileJson
-          : "",
+      customProfileJson,
+      appliedProfileJson,
     };
   } catch {
     return fallback;
@@ -1907,8 +1916,11 @@ function saveStoredQuickProfiles(
   );
 }
 
-function parseQuickModelProfile(value: string): QuickModelProfile {
+export function parseQuickModelProfile(value: string): QuickModelProfile {
   const profile = JSON.parse(value) as QuickModelProfile;
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+    throw new Error("profile must be an object");
+  }
   if (profile.version !== 2) throw new Error("unsupported profile version");
   if (!Array.isArray(profile.channels) || profile.channels.length === 0) {
     throw new Error("channels must be a non-empty array");
@@ -1916,6 +1928,9 @@ function parseQuickModelProfile(value: string): QuickModelProfile {
   const channelIds = new Set<string>();
   const providers = new Set<string>();
   for (const channel of profile.channels) {
+    if (!channel || typeof channel !== "object") {
+      throw new Error("channel must be an object");
+    }
     const id = channel.id?.trim();
     if (!id) throw new Error("channel.id is required");
     if (channelIds.has(id)) throw new Error(`duplicate channel id: ${id}`);
@@ -1953,33 +1968,43 @@ function parseQuickModelProfile(value: string): QuickModelProfile {
     }
     if (!item.model?.trim()) throw new Error(`${path}.model is required`);
   };
-  validateModel(profile.featureModels?.text, "featureModels.text");
-  validateModel(profile.featureModels?.vision, "featureModels.vision");
+  const featureModels = profile.featureModels ?? { overrides: {} };
+  if (typeof featureModels !== "object" || Array.isArray(featureModels)) {
+    throw new Error("featureModels must be an object");
+  }
+  if (featureModels.text !== undefined) validateModel(featureModels.text, "featureModels.text");
+  if (featureModels.vision !== undefined) validateModel(featureModels.vision, "featureModels.vision");
+  const overrides = featureModels.overrides ?? {};
+  if (typeof overrides !== "object" || Array.isArray(overrides)) {
+    throw new Error("featureModels.overrides must be an object");
+  }
   for (const [featureId, item] of Object.entries(
-    profile.featureModels?.overrides ?? {},
+    overrides,
   )) {
     validateModel(item, `featureModels.overrides.${featureId}`);
   }
-  validateModel(profile.embedding, "embedding");
-  if (
-    !Number.isInteger(profile.embedding.dimension) ||
-    profile.embedding.dimension <= 0
-  ) {
-    throw new Error("embedding.dimension must be a positive integer");
+  if (profile.embedding !== undefined) {
+    validateModel(profile.embedding, "embedding");
+    if (
+      !Number.isInteger(profile.embedding.dimension) ||
+      profile.embedding.dimension <= 0
+    ) {
+      throw new Error("embedding.dimension must be a positive integer");
+    }
+    if (
+      !Number.isInteger(profile.embedding.batchSize) ||
+      profile.embedding.batchSize <= 0
+    ) {
+      throw new Error("embedding.batchSize must be a positive integer");
+    }
   }
-  if (
-    !Number.isInteger(profile.embedding.batchSize) ||
-    profile.embedding.batchSize <= 0
-  ) {
-    throw new Error("embedding.batchSize must be a positive integer");
-  }
-  if (!profile.mediaModels || typeof profile.mediaModels !== "object") {
+  if (!profile.mediaModels || typeof profile.mediaModels !== "object" || Array.isArray(profile.mediaModels)) {
     throw new Error("mediaModels must be an object");
   }
   for (const [model, item] of Object.entries(profile.mediaModels)) {
     validateModel(item, `mediaModels.${model}`);
   }
-  return profile;
+  return { ...profile, featureModels: { ...featureModels, overrides } };
 }
 
 export function syncQuickProfileFromAdvancedSettings(
@@ -2020,27 +2045,21 @@ export function syncQuickProfileFromAdvancedSettings(
     };
   });
   const channelIdByProvider = new Map(channels.map((channel) => [channel.provider, channel.id]));
-  const activeChannelIds = new Set(channels.map((channel) => channel.id));
   const modelFromEntry = (entry: FeatureModelEntry | undefined): QuickProfileModel | null => {
     const channel = entry && channelIdByProvider.get(entry.provider);
     const model = entry?.model.trim() ?? "";
     return channel && model ? { channel, model } : null;
   };
-  const firstFeatureModel = (requiresVision: boolean) => {
-    for (const group of FEATURE_MODEL_GROUPS) {
-      for (const feature of group.features) {
-        if (Boolean(feature.requiresVision) !== requiresVision) continue;
-        const selected = modelFromEntry(settings.featureModels[feature.id]);
-        if (selected) return selected;
-      }
-    }
-    return null;
+  // A default applies to every feature in its group. Only emit one when the
+  // entire group is configured; otherwise retain the individual overrides.
+  const groupDefault = (requiresVision: boolean) => {
+    const entries = FEATURE_MODEL_GROUPS.flatMap((group) => group.features)
+      .filter((feature) => Boolean(feature.requiresVision) === requiresVision)
+      .map((feature) => modelFromEntry(settings.featureModels[feature.id]));
+    return entries.length > 0 && entries.every(Boolean) ? entries[0] : null;
   };
-  const keepActiveModel = (item: QuickProfileModel) =>
-    activeChannelIds.has(item.channel) && item.model.trim() ? item : null;
-  const text = keepActiveModel(profile.featureModels.text) ?? firstFeatureModel(false);
-  const vision = keepActiveModel(profile.featureModels.vision) ?? firstFeatureModel(true);
-  if (!text || !vision) return null;
+  const text = groupDefault(false);
+  const vision = groupDefault(true);
 
   const overrides: Record<string, QuickProfileModel> = {};
   for (const group of FEATURE_MODEL_GROUPS) {
@@ -2049,7 +2068,7 @@ export function syncQuickProfileFromAdvancedSettings(
       if (!selected) continue;
       const fallback = feature.requiresVision ? vision : text;
       if (
-        selected.channel !== fallback.channel ||
+        !fallback || selected.channel !== fallback.channel ||
         selected.model !== fallback.model
       ) {
         overrides[feature.id] = selected;
@@ -2066,10 +2085,9 @@ export function syncQuickProfileFromAdvancedSettings(
         channel: embeddingChannel,
         model: configuredEmbedding.upstreamModel.trim(),
         dimension: configuredEmbedding.dimension,
-        batchSize: configuredEmbedding.batchSize ?? profile.embedding.batchSize,
+        batchSize: configuredEmbedding.batchSize ?? DEFAULT_EMBEDDING_BATCH_SIZE,
       }
     : null;
-  if (!embedding) return null;
 
   const mediaModels = Object.fromEntries(
     Object.entries(settings.mediaModels).flatMap(([model, entry]) => {
@@ -2093,8 +2111,8 @@ export function syncQuickProfileFromAdvancedSettings(
   const next: QuickModelProfile = {
     ...profile,
     channels,
-    featureModels: { text, vision, overrides },
-    embedding,
+    featureModels: { ...(text ? { text } : {}), ...(vision ? { vision } : {}), overrides },
+    embedding: embedding ?? undefined,
     mediaModels,
   };
   try {
@@ -2130,6 +2148,41 @@ function QuickLocalNewApiSetup({
   const setEmbeddingModel = useSettingsStore((s) => s.setEmbeddingModel);
   const setMediaModels = useSettingsStore((s) => s.setMediaModels);
   const advancedSettings = useSettingsStore((s) => s.featureModelConfig);
+  const consumedBackendSnapshotKey = useSettingsStore(
+    (s) => s.featureModelConfigBackendSnapshotKey,
+  );
+  const backendSnapshotKey = config?.provisioner
+    ? JSON.stringify({
+        channels: config.provisioner.providerChannels ?? [],
+        mediaModels: config.provisioner.mediaModels ?? {},
+        embeddingModel: config.provisioner.embeddingModel,
+      })
+    : "";
+  useEffect(() => {
+    if (loading || !config?.provisioner || !backendSnapshotKey) return;
+    const store = useSettingsStore.getState();
+    if (store.featureModelConfigBackendSnapshotKey === backendSnapshotKey) return;
+    // These sections are intentionally omitted from startup persistence. Load
+    // one authoritative snapshot before reconciling an applied quick profile.
+    const providerChannels = Object.fromEntries(
+      (config.provisioner.providerChannels ?? []).map((channel) => [
+        channel.provider,
+        {
+          provider: channel.provider,
+          upstreamKey: store.featureModelConfig.providerChannels[channel.provider]?.upstreamKey ?? "",
+          baseUrl: channel.baseUrl ?? "",
+          priority: channel.priority ?? 0,
+          settings: channel.settings ?? {},
+        },
+      ]),
+    );
+    store.hydrateFeatureModelConfigFromBackend({
+      providerChannels,
+      providerKeys: {},
+      mediaModels: config.provisioner.mediaModels ?? {},
+      embeddingModel: config.provisioner.embeddingModel,
+    }, backendSnapshotKey);
+  }, [backendSnapshotKey, config?.provisioner, loading]);
   const [upstreamKeys, setUpstreamKeys] = useState<Record<string, string>>({});
   const [recentlySavedChannels, setRecentlySavedChannels] = useState<
     SavedProviderChannelConfig[]
@@ -2153,10 +2206,15 @@ function QuickLocalNewApiSetup({
     selectedProfileKind === "recommended"
       ? RECOMMENDED_PROFILE_JSON
       : customProfileJson;
-  const appliedProfileKind: QuickProfileKind | null = appliedProfileJson
-    ? appliedProfileJson === RECOMMENDED_PROFILE_JSON
-      ? "recommended"
-      : "custom"
+  const appliedProfile = useMemo(() => {
+    try {
+      return parseQuickModelProfile(appliedProfileJson);
+    } catch {
+      return null;
+    }
+  }, [appliedProfileJson]);
+  const appliedProfileKind: QuickProfileKind | null = appliedProfile
+    ? appliedProfileJson === RECOMMENDED_PROFILE_JSON ? "recommended" : "custom"
     : null;
   const parsedProfile = useMemo(() => {
     try {
@@ -2168,57 +2226,57 @@ function QuickLocalNewApiSetup({
   const advancedSettingsKey = JSON.stringify(advancedSettings);
   const previousAdvancedSettingsKey = useRef("");
   useEffect(() => {
+    if (loading || (backendSnapshotKey && consumedBackendSnapshotKey !== backendSnapshotKey)) return;
     if (previousAdvancedSettingsKey.current === advancedSettingsKey) return;
     previousAdvancedSettingsKey.current = advancedSettingsKey;
-    if (!appliedProfileJson) {
+    if (!appliedProfile) {
       const hasExistingAdvancedSettings =
         Object.keys(advancedSettings.providerChannels).length > 0 ||
         Object.keys(advancedSettings.featureModels).length > 0 ||
         Object.keys(advancedSettings.mediaModels).length > 0 ||
         Boolean(advancedSettings.embeddingModel);
       if (!hasExistingAdvancedSettings) return;
-      const recoveredJson = JSON.stringify(
-        syncQuickProfileFromAdvancedSettings(
-          RECOMMENDED_LOCAL_NEWAPI_PROFILE,
-          advancedSettings,
-        ),
-        null,
-        2,
+      const recovered = syncQuickProfileFromAdvancedSettings(
+        { ...RECOMMENDED_LOCAL_NEWAPI_PROFILE, name: t("settings.modelConfig.quick.custom") },
+        advancedSettings,
       );
+      if (!recovered) return;
+      const recoveredJson = JSON.stringify(recovered, null, 2);
+      const nextCustomJson = customProfileJson || recoveredJson;
       setSelectedProfileKind("custom");
-      setCustomProfileJson(recoveredJson);
+      setCustomProfileJson(nextCustomJson);
       setAppliedProfileJson(recoveredJson);
       saveStoredQuickProfiles({
         selected: "custom",
-        customProfileJson: recoveredJson,
+        customProfileJson: nextCustomJson,
         appliedProfileJson: recoveredJson,
       });
       return;
     }
-    let appliedProfile: QuickModelProfile;
-    try {
-      appliedProfile = parseQuickModelProfile(appliedProfileJson);
-    } catch {
-      return;
-    }
-    const syncedJson = JSON.stringify(
-      syncQuickProfileFromAdvancedSettings(appliedProfile, advancedSettings),
-      null,
-      2,
-    );
+    const synced = syncQuickProfileFromAdvancedSettings(appliedProfile, advancedSettings);
+    const syncedJson = synced ? JSON.stringify(synced, null, 2) : "";
     if (syncedJson === appliedProfileJson) return;
-    setCustomProfileJson(syncedJson);
+    const nextCustomJson = customProfileJson === appliedProfileJson && synced
+      ? syncedJson
+      : customProfileJson;
+    setCustomProfileJson(nextCustomJson);
     setAppliedProfileJson(syncedJson);
     saveStoredQuickProfiles({
       selected: selectedProfileKind,
-      customProfileJson: syncedJson,
+      customProfileJson: nextCustomJson,
       appliedProfileJson: syncedJson,
     });
   }, [
     advancedSettings,
     advancedSettingsKey,
     appliedProfileJson,
+    appliedProfile,
+    customProfileJson,
     selectedProfileKind,
+    backendSnapshotKey,
+    consumedBackendSnapshotKey,
+    loading,
+    t,
   ]);
   const localNewApiReady = Boolean(
     config?.custom?.configured && config?.provisioner?.database?.available,
@@ -2246,9 +2304,9 @@ function QuickLocalNewApiSetup({
     }
 
     const usedChannelIds = new Set<string>([
-      profile.featureModels.text.channel,
-      profile.featureModels.vision.channel,
-      profile.embedding.channel,
+      ...(profile.featureModels.text ? [profile.featureModels.text.channel] : []),
+      ...(profile.featureModels.vision ? [profile.featureModels.vision.channel] : []),
+      ...(profile.embedding ? [profile.embedding.channel] : []),
       ...Object.values(profile.featureModels.overrides).map(
         (item) => item.channel,
       ),
@@ -2295,34 +2353,33 @@ function QuickLocalNewApiSetup({
           (feature.requiresVision
             ? profile.featureModels.vision
             : profile.featureModels.text);
+        if (!selected) continue;
         selectedFeatureModels.set(feature.id, selected);
         const mapping = featureMappingsByChannel.get(selected.channel) ?? {};
         mapping[feature.defaultModel] = selected.model.trim();
         featureMappingsByChannel.set(selected.channel, mapping);
       }
     }
-    // Quick profiles configure the custom NewAPI stack, while ComfyUI mappings
-    // are shared with Hybrid mode. Applying a profile that does not mention
-    // ComfyUI must not erase those independently managed local overrides.
-    const mediaModels: Record<string, SavedMediaModelConfig> =
-      Object.fromEntries(
-        Object.entries(config?.provisioner?.mediaModels ?? {}).filter(
-          ([, item]) => item.provider === "comfyui",
-        ),
-      );
+    // Omitted sections and models retain their existing configuration. A
+    // partial video profile must not remove other media or Hybrid overrides.
+    const mediaModels: Record<string, SavedMediaModelConfig> = {
+      ...config?.provisioner?.mediaModels,
+    };
     for (const [rawModel, item] of Object.entries(profile.mediaModels)) {
       const model = rawModel.trim();
       const upstreamModel = item.model.trim();
       const channel = channelById.get(item.channel)!;
+      const existing = mediaModels[model];
       if (model && upstreamModel)
         mediaModels[model] = {
+          ...existing,
           provider: channel.provider,
           upstreamModel,
           ...(item.mediaType ? { mediaType: item.mediaType } : {}),
           ...(item.label ? { label: item.label } : {}),
-          enabled: item.enabled !== false,
-          sortOrder: item.sortOrder ?? 100,
-          config: item.config ?? {},
+          enabled: item.enabled ?? existing?.enabled ?? true,
+          sortOrder: item.sortOrder ?? existing?.sortOrder ?? 100,
+          config: item.config ?? existing?.config ?? {},
         };
     }
 
@@ -2356,49 +2413,55 @@ function QuickLocalNewApiSetup({
         "data" in channelResult ? channelResult.data.channels : [];
       setRecentlySavedChannels(savedChannels);
 
-      setApplyingStep(t("settings.modelConfig.quick.steps.features"));
-      const featureResult = await saveBatch.mutateAsync({
-        newApiBaseUrl: newApiBaseUrl.trim(),
-        ...(database ? { database } : {}),
-        channels: [...featureMappingsByChannel.entries()].map(
-          ([channelId, modelMapping]) => {
-            const channel = channelById.get(channelId)!;
-            return {
-              provider: channel.provider,
-              ...(channel.type ? { type: channel.type } : {}),
-              upstreamKey: upstreamKeys[channel.id]?.trim() ?? "",
-              modelMapping,
-              group: "default",
-              priority: channel.priority ?? 0,
-              weight: 0,
-              baseUrl: channel.baseUrl.trim(),
-              testModel: "",
-              settings: normalizeProviderChannelSettings(
-                channel.provider,
-                channel.settings ?? {},
-              ),
-            };
-          },
-        ),
-      });
-      if (!featureResult.ok || featureResult.data.failed) {
-        fail(t("settings.modelConfig.quick.steps.features"), featureResult);
+      if (featureMappingsByChannel.size) {
+        setApplyingStep(t("settings.modelConfig.quick.steps.features"));
+        const featureResult = await saveBatch.mutateAsync({
+          newApiBaseUrl: newApiBaseUrl.trim(),
+          ...(database ? { database } : {}),
+          channels: [...featureMappingsByChannel.entries()].map(
+            ([channelId, modelMapping]) => {
+              const channel = channelById.get(channelId)!;
+              return {
+                provider: channel.provider,
+                ...(channel.type ? { type: channel.type } : {}),
+                upstreamKey: upstreamKeys[channel.id]?.trim() ?? "",
+                modelMapping,
+                group: "default",
+                priority: channel.priority ?? 0,
+                weight: 0,
+                baseUrl: channel.baseUrl.trim(),
+                testModel: "",
+                settings: normalizeProviderChannelSettings(
+                  channel.provider,
+                  channel.settings ?? {},
+                ),
+              };
+            },
+          ),
+        });
+        if (!featureResult.ok || featureResult.data.failed) {
+          fail(t("settings.modelConfig.quick.steps.features"), featureResult);
+        }
       }
 
-      setApplyingStep(t("settings.modelConfig.quick.steps.embedding"));
-      const embeddingChannel = channelById.get(profile.embedding.channel)!;
-      const embeddingResult = await saveEmbedding.mutateAsync({
-        newApiBaseUrl: newApiBaseUrl.trim(),
-        ...(database ? { database } : {}),
-        provider: embeddingChannel.provider,
-        upstreamModel: profile.embedding.model.trim(),
-        dimension: profile.embedding.dimension,
-        batchSize: profile.embedding.batchSize,
-      });
-      if (!embeddingResult.ok)
-        fail(t("settings.modelConfig.quick.steps.embedding"), embeddingResult);
+      const embeddingChannel = profile.embedding
+        ? channelById.get(profile.embedding.channel)!
+        : undefined;
+      if (profile.embedding && embeddingChannel) {
+        setApplyingStep(t("settings.modelConfig.quick.steps.embedding"));
+        const embeddingResult = await saveEmbedding.mutateAsync({
+          newApiBaseUrl: newApiBaseUrl.trim(),
+          ...(database ? { database } : {}),
+          provider: embeddingChannel.provider,
+          upstreamModel: profile.embedding.model.trim(),
+          dimension: profile.embedding.dimension,
+          batchSize: profile.embedding.batchSize,
+        });
+        if (!embeddingResult.ok)
+          fail(t("settings.modelConfig.quick.steps.embedding"), embeddingResult);
+      }
 
-      if (Object.keys(mediaModels).length) {
+      if (Object.keys(profile.mediaModels).length) {
         setApplyingStep(t("settings.modelConfig.quick.steps.media"));
         const mediaResult = await saveMedia.mutateAsync({
           newApiBaseUrl: newApiBaseUrl.trim(),
@@ -2424,7 +2487,8 @@ function QuickLocalNewApiSetup({
       }
       for (const group of FEATURE_MODEL_GROUPS) {
         for (const feature of group.features) {
-          const selected = selectedFeatureModels.get(feature.id)!;
+          const selected = selectedFeatureModels.get(feature.id);
+          if (!selected) continue;
           const channel = channelById.get(selected.channel)!;
           updateFeatureModel(feature.id, {
             provider: channel.provider,
@@ -2432,13 +2496,13 @@ function QuickLocalNewApiSetup({
           });
         }
       }
-      setEmbeddingModel({
+      if (profile.embedding && embeddingChannel) setEmbeddingModel({
         provider: embeddingChannel.provider,
         upstreamModel: profile.embedding.model,
         dimension: profile.embedding.dimension,
         batchSize: profile.embedding.batchSize,
       });
-      setMediaModels(mediaModels);
+      if (Object.keys(profile.mediaModels).length) setMediaModels(mediaModels);
       // Applying a profile updates the advanced store by design. Mark that
       // snapshot as synchronized so it is not mistaken for a manual edit.
       previousAdvancedSettingsKey.current = JSON.stringify(
@@ -2516,7 +2580,7 @@ function QuickLocalNewApiSetup({
             }}
           >
             {t("settings.modelConfig.quick.custom")}
-            {appliedProfileKind === "custom"
+            {appliedProfileKind === "custom" && customProfileJson === appliedProfileJson
               ? ` · ${t("settings.modelConfig.quick.active")}`
               : ""}
           </Button>
@@ -2595,6 +2659,7 @@ function QuickLocalNewApiSetup({
         </summary>
         <div className="border-t border-border/60 p-3">
           <Textarea
+            aria-label={t("settings.modelConfig.quick.editJson")}
             value={profileJson}
             readOnly={selectedProfileKind === "recommended"}
             onChange={(event) => {
@@ -2607,7 +2672,7 @@ function QuickLocalNewApiSetup({
               });
             }}
             spellCheck={false}
-            className="min-h-72 resize-y font-mono text-[11px] leading-relaxed"
+            className="field-sizing-fixed h-72 min-h-72 resize-y font-mono text-[11px] leading-relaxed"
           />
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
             {selectedProfileKind === "recommended"
@@ -2633,7 +2698,7 @@ function QuickLocalNewApiSetup({
           type="button"
           size="sm"
           onClick={handleApply}
-          disabled={loading || isPending || !localNewApiReady}
+          disabled={loading || isPending || !localNewApiReady || !parsedProfile}
         >
           {isPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
           {t("settings.modelConfig.quick.apply")}
@@ -4821,7 +4886,7 @@ function ProviderChannelsBlock({
             disabled={channelTypesLoading || availableProviders.length === 0}
           >
             <Plus className="size-3.5" />
-            {t("settings.modelConfig.featureModels.addChannel")}
+            {t("settings.modelConfig.featureModels.addChannelShort")}
           </Button>
         </div>
       </div>

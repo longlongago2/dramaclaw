@@ -2221,6 +2221,32 @@ class NewApiVideoGenerator(VideoGeneratorBase):
             image_transform=image_transform,
         )
 
+    async def _prepare_video_image_input(self, value: str) -> str:
+        """Send local H3 images inline for native platform file upload."""
+        if self.model not in {
+            "minimax-h3-t2v", "minimax-h3-i2v", "minimax-h3-r2v",
+            "minimax-h3-max-t2v", "minimax-h3-max-i2v",
+        }:
+            return await self._relay_frame_input(value)
+        value = str(value or "").strip()
+        if value.startswith(("http://", "https://", "data:image/")) or re.fullmatch(r"file_[a-f0-9]{32}", value):
+            return value
+        path = Path(value)
+        if not 0 < path.stat().st_size <= 20 * 1024 * 1024:
+            raise ValueError("H3 reference images must contain at most 20 MiB")
+        data = await asyncio.to_thread(path.read_bytes)
+        if len(data) > 20 * 1024 * 1024:
+            raise ValueError("H3 reference images must contain at most 20 MiB")
+        import base64
+        import io
+        from PIL import Image
+
+        with Image.open(io.BytesIO(data)) as image:
+            mime = {"PNG": "image/png", "JPEG": "image/jpeg", "WEBP": "image/webp"}.get(image.format)
+        if mime is None:
+            raise ValueError("H3 reference images must be PNG, JPEG or WebP")
+        return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+
     async def _apply_huimeng_protocol_media_inputs(
         self,
         metadata: dict[str, object],
@@ -2262,7 +2288,7 @@ class NewApiVideoGenerator(VideoGeneratorBase):
                 )
             if not first_frame_path:
                 raise ValueError("first frame is required for first_frame mode")
-            metadata["image_url"] = await self._relay_frame_input(first_frame_path)
+            metadata["image_url"] = await self._prepare_video_image_input(first_frame_path)
             return
 
         if normalized_mode == "first_last_frame":
@@ -2271,11 +2297,11 @@ class NewApiVideoGenerator(VideoGeneratorBase):
                     "at least one keyframe is required for first_last_frame mode"
                 )
             if image_path:
-                metadata["first_frame_image"] = await self._relay_frame_input(
+                metadata["first_frame_image"] = await self._prepare_video_image_input(
                     image_path
                 )
             if last_frame_path:
-                metadata["last_frame_image"] = await self._relay_frame_input(
+                metadata["last_frame_image"] = await self._prepare_video_image_input(
                     str(last_frame_path)
                 )
             return
@@ -2302,7 +2328,7 @@ class NewApiVideoGenerator(VideoGeneratorBase):
                 continue
             seen.add(identity)
             if media_type == "image":
-                url = await self._relay_frame_input(path)
+                url = await self._prepare_video_image_input(path)
             elif media_type == "link":
                 parsed = urllib.parse.urlsplit(path)
                 if parsed.scheme not in {"http", "https"} or not parsed.hostname:

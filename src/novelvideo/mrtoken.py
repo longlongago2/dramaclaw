@@ -7,6 +7,26 @@ from urllib.parse import urlsplit
 import httpx
 
 BASE_URL = "https://api.mrtoken.cn"
+SDK_BASE_URL = f"{BASE_URL}/v1"
+
+
+def _error_message(payload: object, api_key: str) -> str:
+    """Read documented error fields without returning credentials or raw bodies."""
+    if not isinstance(payload, dict):
+        return ""
+    detail = payload.get("detail")
+    error = payload.get("error")
+    candidates: list[object] = []
+    if isinstance(detail, dict) and isinstance(detail.get("reasons"), list):
+        candidates.extend(detail["reasons"])
+    if isinstance(error, dict):
+        candidates.append(error.get("message"))
+    candidates.extend([detail, payload.get("message")])
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate.strip():
+            # Redact before truncating: a truncation must not leave a partial key.
+            return " ".join(candidate.replace(api_key, "[REDACTED]").split())[:300]
+    return ""
 
 
 def normalize_base_url(value: str | None = None) -> str:
@@ -41,9 +61,13 @@ async def discover_models(api_key: str, base_url: str | None = None) -> list[str
                 headers={"Authorization": f"Bearer {api_key.strip()}"},
             )
         if response.status_code != 200:
-            # Upstream error bodies may echo credentials. Never relay them.
+            try:
+                message = _error_message(response.json(), api_key.strip())
+            except ValueError:
+                message = ""
             raise ValueError(
                 f"MrToken model discovery failed: HTTP {response.status_code}"
+                + (f" ({message})" if message else "")
             )
         payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:

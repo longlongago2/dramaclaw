@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 
 import { SettingsDialog } from "@/components/settings/settings-dialog";
+import { DEFAULT_FEATURE_MODEL_SETTINGS, useSettingsStore } from "@/stores/settingsStore";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 const modelGatewayMocks = vi.hoisted(() => ({
@@ -13,6 +14,10 @@ const modelGatewayMocks = vi.hoisted(() => ({
   saveBrainClaw: vi.fn(),
   setCustomLlmMode: vi.fn(),
   saveBilling: vi.fn(),
+  saveProviderChannels: vi.fn(),
+  saveBatch: vi.fn(),
+  saveEmbedding: vi.fn(),
+  saveMedia: vi.fn(),
 }));
 const freezoneAgentConfigMocks = vi.hoisted(() => ({
   delete: vi.fn(),
@@ -69,6 +74,8 @@ vi.mock("@/lib/queries/model-gateway", () => ({
   }),
   useCheckOfficialMediaCatalog: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useNewApiChannelTypes: () => ({ data: undefined, isLoading: false }),
+  useDiscoverProviderModels: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useClearComfyUIConfig: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useEnableOfficial: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useEnableCustom: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useEnableHybrid: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -94,10 +101,10 @@ vi.mock("@/lib/queries/model-gateway", () => ({
   }),
   useInitCustomNewApi: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSaveCustomChannel: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useSaveCustomChannelsBatch: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useSaveEmbeddingModel: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useSaveMediaModels: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useSaveProviderChannels: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSaveCustomChannelsBatch: () => ({ mutateAsync: modelGatewayMocks.saveBatch, isPending: false }),
+  useSaveEmbeddingModel: () => ({ mutateAsync: modelGatewayMocks.saveEmbedding, isPending: false }),
+  useSaveMediaModels: () => ({ mutateAsync: modelGatewayMocks.saveMedia, isPending: false }),
+  useSaveProviderChannels: () => ({ mutateAsync: modelGatewayMocks.saveProviderChannels, isPending: false }),
   useSaveMediaRelayConfig: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSyncProviderChannel: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
@@ -352,6 +359,9 @@ function openRecipesManagement() {
 }
 
 beforeEach(() => {
+  localStorage.clear();
+  useSettingsStore.setState({ featureModelConfig: { ...DEFAULT_FEATURE_MODEL_SETTINGS } });
+  useSettingsStore.setState({ featureModelConfigBackendSnapshotKey: "" });
   runtimeState.isCeRuntime = true;
   modelGatewayMocks.config = undefined;
   modelGatewayMocks.saveBrainClaw.mockReset();
@@ -359,6 +369,10 @@ beforeEach(() => {
   modelGatewayMocks.setCustomLlmMode.mockResolvedValue({ ok: true });
   modelGatewayMocks.saveBilling.mockReset();
   modelGatewayMocks.saveBilling.mockResolvedValue({ ok: true });
+  modelGatewayMocks.saveProviderChannels.mockReset();
+  modelGatewayMocks.saveBatch.mockReset();
+  modelGatewayMocks.saveEmbedding.mockReset();
+  modelGatewayMocks.saveMedia.mockReset();
   freezoneAgentConfigMocks.delete.mockReset();
   freezoneAgentConfigMocks.exportBundle.mockReset();
   freezoneAgentConfigMocks.installBundle.mockReset();
@@ -373,6 +387,144 @@ beforeEach(() => {
     bundle_id: "test-bundle",
     installed_skill: "test-skill",
     installed_recipes: [],
+  });
+});
+
+describe("partial quick model profiles", () => {
+  const storageKey = "dramaclaw-ce-quick-model-profiles";
+  const jsonLabel = "settings.modelConfig.quick.editJson";
+  const partialProfile = {
+    version: 2, name: "Video only",
+    channels: [{ id: "mrtoken", provider: "mrtoken", baseUrl: "https://api.mrtoken.cn" }],
+    mediaModels: { "minimax-h3-r2v": { channel: "mrtoken", model: "minimax-h3-r2v", mediaType: "video" } },
+  };
+
+  function seedVideoSettings() {
+    const channels = [{ provider: "mrtoken", configured: true, baseUrl: "https://api.mrtoken.cn", priority: 0, settings: {} }];
+    const mediaModels = {
+      "minimax-h3-r2v": { provider: "mrtoken", upstreamModel: "minimax-h3-r2v", mediaType: "video" as const, config: { maxReferenceImages: 4 } },
+      "existing-image": { provider: "mrtoken", upstreamModel: "existing-image", mediaType: "image" as const, config: { preserved: true } },
+    };
+    modelGatewayMocks.config = {
+      mode: "custom", effective: { source: "custom", configured: true },
+      llmEffective: { mode: "advanced", configured: true },
+      custom: { configured: true, llmMode: "advanced", adminBaseUrl: "http://127.0.0.1:3000" },
+      provisioner: { database: { available: true }, providerChannels: channels, mediaModels },
+    };
+    useSettingsStore.setState({ featureModelConfig: {
+      ...DEFAULT_FEATURE_MODEL_SETTINGS,
+      providerChannels: { mrtoken: { provider: "mrtoken", upstreamKey: "", baseUrl: "https://api.mrtoken.cn", priority: 0, settings: {} } },
+      mediaModels,
+    } });
+    modelGatewayMocks.saveProviderChannels.mockResolvedValue({ ok: true, data: { channels } });
+    modelGatewayMocks.saveMedia.mockResolvedValue({ ok: true, data: { failed: 0 } });
+  }
+
+  it("recovers a legacy null draft from saved video settings on reopening", async () => {
+    seedVideoSettings();
+    localStorage.setItem(storageKey, JSON.stringify({ version: 1, selected: "custom", customProfileJson: "null", appliedProfileJson: "null" }));
+    const view = renderSettingsDialog();
+    await waitFor(() => {
+      const profile = JSON.parse((screen.getByLabelText(jsonLabel) as HTMLTextAreaElement).value);
+      expect(profile.mediaModels["minimax-h3-r2v"].channel).toBe("mrtoken");
+      expect(profile.embedding).toBeUndefined();
+      expect(profile.featureModels).toEqual({ overrides: {} });
+    });
+    expect(screen.queryByText("settings.modelConfig.quick.fixJsonFirst")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "settings.modelConfig.quick.apply" })).toBeEnabled();
+    view.unmount();
+    renderSettingsDialog();
+    expect((screen.getByLabelText(jsonLabel) as HTMLTextAreaElement).value).not.toBe("null");
+    expect(screen.getByRole("button", { name: /settings.modelConfig.quick.custom · settings.modelConfig.quick.active/ })).toBeInTheDocument();
+  });
+
+  it("does not mark an invalid draft as active or allow it to be applied", () => {
+    seedVideoSettings();
+    renderSettingsDialog();
+    fireEvent.change(screen.getByLabelText(jsonLabel), { target: { value: "null" } });
+    expect(screen.queryByRole("button", { name: / · settings.modelConfig.quick.active/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "settings.modelConfig.quick.apply" })).toBeDisabled();
+    expect(modelGatewayMocks.saveProviderChannels).not.toHaveBeenCalled();
+  });
+
+  it("waits for backend hydration after a refresh instead of replacing saved media with an empty snapshot", async () => {
+    seedVideoSettings();
+    localStorage.setItem(storageKey, JSON.stringify({ version: 1, selected: "custom", customProfileJson: "null", appliedProfileJson: "null" }));
+    let view = renderSettingsDialog();
+    await waitFor(() => expect(screen.getByRole("button", { name: /settings.modelConfig.quick.custom · settings.modelConfig.quick.active/ })).toBeInTheDocument());
+    const savedJson = (screen.getByLabelText(jsonLabel) as HTMLTextAreaElement).value;
+    view.unmount();
+    // Startup persistence intentionally omits provider/media/embedding data.
+    useSettingsStore.setState({ featureModelConfig: { ...DEFAULT_FEATURE_MODEL_SETTINGS }, featureModelConfigBackendSnapshotKey: "" });
+    view = renderSettingsDialog();
+    await waitFor(() => {
+      expect((screen.getByLabelText(jsonLabel) as HTMLTextAreaElement).value).toBe(savedJson);
+      expect(screen.getByRole("button", { name: /settings.modelConfig.quick.custom · settings.modelConfig.quick.active/ })).toBeInTheDocument();
+    });
+    expect(Object.keys(useSettingsStore.getState().featureModelConfig.mediaModels)).toHaveLength(2);
+  });
+
+  it("applies a video-only JSON without writing business or embedding models and preserves other media", async () => {
+    seedVideoSettings();
+    renderSettingsDialog();
+    fireEvent.change(screen.getByLabelText(jsonLabel), { target: { value: JSON.stringify(partialProfile) } });
+    expect(screen.queryByRole("button", { name: / · settings.modelConfig.quick.active/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "settings.modelConfig.quick.apply" }));
+    await waitFor(() => expect(modelGatewayMocks.saveMedia).toHaveBeenCalledOnce());
+    expect(modelGatewayMocks.saveBatch).not.toHaveBeenCalled();
+    expect(modelGatewayMocks.saveEmbedding).not.toHaveBeenCalled();
+    expect(modelGatewayMocks.saveProviderChannels).toHaveBeenCalledWith(expect.objectContaining({ preserveUnmentioned: true }));
+    expect(modelGatewayMocks.saveMedia).toHaveBeenCalledWith(expect.objectContaining({ models: expect.objectContaining({
+      "existing-image": expect.objectContaining({ config: { preserved: true } }),
+      "minimax-h3-r2v": expect.objectContaining({ provider: "mrtoken", config: { maxReferenceImages: 4 } }),
+    }) }));
+    expect(useSettingsStore.getState().featureModelConfig.featureModels).toEqual({});
+    expect(useSettingsStore.getState().featureModelConfig.embeddingModel).toBeUndefined();
+    await waitFor(() => expect(screen.getByRole("button", { name: /settings.modelConfig.quick.custom · settings.modelConfig.quick.active/ })).toBeInTheDocument());
+  });
+
+  it("retains existing business and embedding settings when applying a video-only draft", async () => {
+    seedVideoSettings();
+    const existingFeatures = { CHARACTER_BUILD: { provider: "openrouter", model: "existing-text" } };
+    const existingEmbedding = { provider: "openrouter", upstreamModel: "existing-embedding", dimension: 1024, batchSize: 10 };
+    useSettingsStore.setState({ featureModelConfig: {
+      ...useSettingsStore.getState().featureModelConfig,
+      featureModels: existingFeatures,
+      embeddingModel: existingEmbedding,
+      providerChannels: {
+        ...useSettingsStore.getState().featureModelConfig.providerChannels,
+        openrouter: { provider: "openrouter", upstreamKey: "", baseUrl: "", priority: 0, settings: {} },
+      },
+    } });
+    // The existing backend embedding and channel are authoritative on reopen.
+    const provisioner = modelGatewayMocks.config!.provisioner as { providerChannels: Array<Record<string, unknown>>; embeddingModel?: unknown };
+    provisioner.providerChannels.push({ provider: "openrouter", configured: true, baseUrl: "", settings: {} });
+    provisioner.embeddingModel = existingEmbedding;
+    renderSettingsDialog();
+    fireEvent.change(screen.getByLabelText(jsonLabel), { target: { value: JSON.stringify(partialProfile) } });
+    fireEvent.click(screen.getByRole("button", { name: "settings.modelConfig.quick.apply" }));
+    await waitFor(() => expect(modelGatewayMocks.saveMedia).toHaveBeenCalledOnce());
+    expect(modelGatewayMocks.saveBatch).not.toHaveBeenCalled();
+    expect(modelGatewayMocks.saveEmbedding).not.toHaveBeenCalled();
+    expect(useSettingsStore.getState().featureModelConfig.featureModels).toEqual(existingFeatures);
+    expect(useSettingsStore.getState().featureModelConfig.embeddingModel).toEqual(existingEmbedding);
+  });
+
+  it("continues to apply supplied text, vision and embedding sections in a complete profile", async () => {
+    seedVideoSettings();
+    modelGatewayMocks.saveBatch.mockResolvedValue({ ok: true, data: { failed: 0 } });
+    modelGatewayMocks.saveEmbedding.mockResolvedValue({ ok: true });
+    renderSettingsDialog();
+    fireEvent.change(screen.getByLabelText(jsonLabel), { target: { value: JSON.stringify({
+      ...partialProfile,
+      featureModels: { text: { channel: "mrtoken", model: "test-text" }, vision: { channel: "mrtoken", model: "test-vision" }, overrides: {} },
+      embedding: { channel: "mrtoken", model: "test-embedding", dimension: 1024, batchSize: 10 },
+    }) } });
+    fireEvent.click(screen.getByRole("button", { name: "settings.modelConfig.quick.apply" }));
+    await waitFor(() => expect(modelGatewayMocks.saveMedia).toHaveBeenCalledOnce());
+    expect(modelGatewayMocks.saveBatch).toHaveBeenCalledOnce();
+    expect(modelGatewayMocks.saveEmbedding).toHaveBeenCalledWith(expect.objectContaining({ upstreamModel: "test-embedding", dimension: 1024, batchSize: 10 }));
+    expect(useSettingsStore.getState().featureModelConfig.featureModels.CHARACTER_BUILD?.model).toBe("test-text");
   });
 });
 

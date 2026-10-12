@@ -1,0 +1,341 @@
+{
+  "models": {
+    "minimax-h3-t2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "minimax-h3-t2v",
+      "mediaType": "video",
+      "label": "MrToken minimax-h3-t2v",
+      "enabled": true,
+      "sortOrder": 200,
+      "config": {
+        "minDuration": 1,
+        "maxDuration": 30,
+        "supportedModes": [
+          "text_to_video"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "resolutionOptions": [
+          "480p",
+          "720p",
+          "1080p"
+        ],
+        "referenceImageMax": 0,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": 0,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "steps",
+              "label": "Steps",
+              "control": "number",
+              "min": 1,
+              "max": 100,
+              "requestPath": "metadata.steps"
+            },
+            {
+              "key": "turbo",
+              "label": "Turbo",
+              "control": "switch",
+              "requestPath": "metadata.parameters.turbo"
+            },
+            {
+              "key": "lora_strength",
+              "label": "LoRA strength",
+              "control": "number",
+              "min": 0,
+              "max": 2,
+              "requestPath": "metadata.parameters.lora_strength"
+            }
+          ]
+        },
+        "supportsGenerateAudio": false,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 20
+      }
+    },
+    "minimax-h3-i2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "minimax-h3-i2v",
+      "mediaType": "video",
+      "label": "MrToken minimax-h3-i2v",
+      "enabled": true,
+      "sortOrder": 201,
+      "config": {
+        "minDuration": 1,
+        "maxDuration": 30,
+        "supportedModes": [
+          "text_to_video",
+          "first_frame",
+          "first_last_frame",
+          "image_to_video"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "resolutionOptions": [
+          "480p",
+          "720p",
+          "1080p"
+        ],
+        "referenceImageMax": 1,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": 0,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "steps",
+              "label": "Steps",
+              "control": "number",
+              "min": 1,
+              "max": 100,
+              "requestPath": "metadata.steps"
+            },
+            {
+              "key": "turbo",
+              "label": "Turbo",
+              "control": "switch",
+              "requestPath": "metadata.parameters.turbo"
+            },
+            {
+              "key": "lora_strength",
+              "label": "LoRA strength",
+              "control": "number",
+              "min": 0,
+              "max": 2,
+              "requestPath": "metadata.parameters.lora_strength"
+            }
+          ]
+        },
+        "supportsGenerateAudio": false,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 20
+      }
+    },
+    "minimax-h3-r2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "minimax-h3-r2v",
+      "mediaType": "video",
+      "label": "MrToken minimax-h3-r2v",
+      "enabled": true,
+      "sortOrder": 202,
+      "config": {
+        "minDuration": 1,
+        "maxDuration": 30,
+        "supportedModes": [
+          "image_reference"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "resolutionOptions": [
+          "720p",
+          "480p",
+          "1080p"
+        ],
+        "referenceImageMax": 4,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": 0,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "steps",
+              "label": "Steps",
+              "control": "number",
+              "min": 1,
+              "max": 100,
+              "requestPath": "metadata.steps"
+            },
+            {
+              "key": "turbo",
+              "label": "Turbo",
+              "control": "switch",
+              "requestPath": "metadata.parameters.turbo"
+            },
+            {
+              "key": "lora_strength",
+              "label": "LoRA strength",
+              "control": "number",
+              "min": 0,
+              "max": 2,
+              "requestPath": "metadata.parameters.lora_strength"
+            }
+          ]
+        },
+        "supportsGenerateAudio": false,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 20
+      }
+    },
+    "minimax-h3-max-t2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "minimax-h3-max-t2v",
+      "mediaType": "video",
+      "label": "MrToken minimax-h3-max-t2v",
+      "enabled": true,
+      "sortOrder": 203,
+      "config": {
+        "minDuration": 1,
+        "maxDuration": 30,
+        "supportedModes": [
+          "text_to_video"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "resolutionOptions": [
+          "480p",
+          "720p",
+          "1080p"
+        ],
+        "referenceImageMax": 0,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": 0,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "steps",
+              "label": "Steps",
+              "control": "number",
+              "min": 1,
+              "max": 100,
+              "requestPath": "metadata.steps"
+            }
+          ]
+        },
+        "supportsGenerateAudio": false,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 20
+      }
+    },
+    "minimax-h3-max-i2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "minimax-h3-max-i2v",
+      "mediaType": "video",
+      "label": "MrToken minimax-h3-max-i2v",
+      "enabled": true,
+      "sortOrder": 204,
+      "config": {
+        "minDuration": 1,
+        "maxDuration": 30,
+        "supportedModes": [
+          "first_frame",
+          "first_last_frame",
+          "image_to_video"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "resolutionOptions": [
+          "480p",
+          "720p",
+          "1080p"
+        ],
+        "referenceImageMax": 1,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": 0,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "steps",
+              "label": "Steps",
+              "control": "number",
+              "min": 1,
+              "max": 100,
+              "requestPath": "metadata.steps"
+            }
+          ]
+        },
+        "supportsGenerateAudio": false,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 20
+      }
+    }
+  }
+}

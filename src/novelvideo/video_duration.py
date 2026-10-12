@@ -49,7 +49,15 @@ def video_duration_bounds_for_backend(
         if bounds:
             return bounds
         lowered_model = model.lower()
-        if lowered_model == "seedance-2.0-mini":
+        if lowered_model in {
+            "minimax-h3-t2v", "minimax-h3-i2v", "minimax-h3-r2v",
+            "minimax-h3-max-t2v", "minimax-h3-max-i2v",
+        }:
+            return (1, 30)
+        if lowered_model in {
+            "seedance-2.0-mini", "doubao-seedance-2.0",
+            "doubao-seedance-2.0-fast", "doubao-seedance-2.0-mini",
+        }:
             return (4, 15)
         if lowered_model == "happyhorse-1.0":
             return (3, 15)

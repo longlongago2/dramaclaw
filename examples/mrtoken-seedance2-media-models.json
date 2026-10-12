@@ -1,0 +1,257 @@
+{
+  "models": {
+    "doubao-seedance-2.0": {
+      "provider": "mrtoken",
+      "upstreamModel": "doubao-seedance-2.0",
+      "mediaType": "video",
+      "label": "MrToken Seedance 2.0",
+      "enabled": true,
+      "sortOrder": 210,
+      "config": {
+        "minDuration": 4,
+        "maxDuration": 15,
+        "supportsGenerateAudio": true,
+        "supportedModes": [
+          "text_to_video",
+          "first_frame",
+          "first_last_frame",
+          "image_to_video",
+          "image_reference",
+          "all_reference"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9",
+          "auto"
+        ],
+        "resolutionOptions": [
+          "480p",
+          "720p",
+          "1080p"
+        ],
+        "referenceImageMax": 9,
+        "referenceVideoMax": 3,
+        "referenceAudioMax": 3,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 30,
+        "referenceVideoFormats": [
+          "mp4",
+          "mov"
+        ],
+        "referenceVideoMaxMB": 200,
+        "referenceVideoMinSeconds": 2,
+        "referenceVideoMaxSeconds": 15,
+        "referenceVideoTotalMaxSeconds": 15,
+        "referenceAudioFormats": [
+          "mp3",
+          "wav"
+        ],
+        "referenceAudioMaxMB": 15,
+        "referenceAudioMinSeconds": 2,
+        "referenceAudioMaxSeconds": 15,
+        "referenceAudioTotalMaxSeconds": 15,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": -1,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "return_last_frame",
+              "label": "Return last frame",
+              "control": "switch",
+              "requestPath": "metadata.return_last_frame"
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "control": "switch",
+              "requestPath": "metadata.watermark"
+            }
+          ]
+        }
+      }
+    },
+    "doubao-seedance-2.0-fast": {
+      "provider": "mrtoken",
+      "upstreamModel": "doubao-seedance-2.0-fast",
+      "mediaType": "video",
+      "label": "MrToken Seedance 2.0 Fast",
+      "enabled": true,
+      "sortOrder": 211,
+      "config": {
+        "minDuration": 4,
+        "maxDuration": 15,
+        "supportsGenerateAudio": true,
+        "supportedModes": [
+          "text_to_video",
+          "first_frame",
+          "first_last_frame",
+          "image_to_video",
+          "image_reference",
+          "all_reference"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9",
+          "auto"
+        ],
+        "resolutionOptions": [
+          "480p",
+          "720p"
+        ],
+        "referenceImageMax": 9,
+        "referenceVideoMax": 3,
+        "referenceAudioMax": 3,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 30,
+        "referenceVideoFormats": [
+          "mp4",
+          "mov"
+        ],
+        "referenceVideoMaxMB": 200,
+        "referenceVideoMinSeconds": 2,
+        "referenceVideoMaxSeconds": 15,
+        "referenceVideoTotalMaxSeconds": 15,
+        "referenceAudioFormats": [
+          "mp3",
+          "wav"
+        ],
+        "referenceAudioMaxMB": 15,
+        "referenceAudioMinSeconds": 2,
+        "referenceAudioMaxSeconds": 15,
+        "referenceAudioTotalMaxSeconds": 15,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": -1,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "return_last_frame",
+              "label": "Return last frame",
+              "control": "switch",
+              "requestPath": "metadata.return_last_frame"
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "control": "switch",
+              "requestPath": "metadata.watermark"
+            }
+          ]
+        }
+      }
+    },
+    "doubao-seedance-2.0-mini": {
+      "provider": "mrtoken",
+      "upstreamModel": "doubao-seedance-2.0-mini",
+      "mediaType": "video",
+      "label": "MrToken Seedance 2.0 Mini",
+      "enabled": true,
+      "sortOrder": 212,
+      "config": {
+        "minDuration": 4,
+        "maxDuration": 15,
+        "supportsGenerateAudio": true,
+        "supportedModes": [
+          "text_to_video",
+          "first_frame",
+          "first_last_frame",
+          "image_to_video",
+          "image_reference",
+          "all_reference"
+        ],
+        "ratioOptions": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9",
+          "auto"
+        ],
+        "resolutionOptions": [
+          "480p",
+          "720p"
+        ],
+        "referenceImageMax": 9,
+        "referenceVideoMax": 3,
+        "referenceAudioMax": 3,
+        "referenceImageFormats": [
+          "jpeg",
+          "png",
+          "webp"
+        ],
+        "referenceImageMaxMB": 30,
+        "referenceVideoFormats": [
+          "mp4",
+          "mov"
+        ],
+        "referenceVideoMaxMB": 200,
+        "referenceVideoMinSeconds": 2,
+        "referenceVideoMaxSeconds": 15,
+        "referenceVideoTotalMaxSeconds": 15,
+        "referenceAudioFormats": [
+          "mp3",
+          "wav"
+        ],
+        "referenceAudioMaxMB": 15,
+        "referenceAudioMinSeconds": 2,
+        "referenceAudioMaxSeconds": 15,
+        "referenceAudioTotalMaxSeconds": 15,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {
+              "key": "seed",
+              "label": "Seed",
+              "control": "number",
+              "min": -1,
+              "max": 2147483647,
+              "requestPath": "metadata.seed"
+            },
+            {
+              "key": "return_last_frame",
+              "label": "Return last frame",
+              "control": "switch",
+              "requestPath": "metadata.return_last_frame"
+            },
+            {
+              "key": "watermark",
+              "label": "Watermark",
+              "control": "switch",
+              "requestPath": "metadata.watermark"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
