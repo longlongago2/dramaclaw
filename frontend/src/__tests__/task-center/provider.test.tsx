@@ -422,6 +422,8 @@ describe("TaskCenterProvider", () => {
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.scenes("demo") });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.beats("demo", 1) });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.script("demo", 1) });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.episodes("demo") });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: queryKeys.episodeDetail("demo", 1),
@@ -517,6 +519,11 @@ describe("TaskCenterProvider", () => {
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: queryKeys.beats("demo", 1),
       });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: queryKeys.episodeDetail("demo", 1),
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.props("demo") });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.scenes("demo") });
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: queryKeys.pipelineStatus("demo"),
       });
