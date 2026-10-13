@@ -22,7 +22,7 @@
   "frontend/src/features/canvas/nodes/VideoComposeNode.tsx": 5,
   "frontend/src/features/canvas/nodes/VideoNode.tsx": 1,
   "frontend/src/features/canvas/nodes/shared/ImageGenerationForm.tsx": 17,
-  "frontend/src/features/canvas/nodes/shared/VideoGenerationForm.tsx": 48,
+  "frontend/src/features/canvas/nodes/shared/VideoGenerationForm.tsx": 46,
   "frontend/src/features/canvas/nodes/shared/assetLibraryReferenceSpawn.ts": 2,
   "frontend/src/features/canvas/nodes/shared/imageGenerationOptions.ts": 4,
   "frontend/src/features/canvas/nodes/shared/useImageGenerationForm.ts": 7,

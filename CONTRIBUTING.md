@@ -28,6 +28,21 @@ uv run novelvideo api --port 8780
 
 ### 流程
 
+首次克隆后安装提交前检查（需要 Python 3.11+）：
+
+```bash
+uv tool install pre-commit
+uv tool run pre-commit install --install-hooks
+```
+
+新增、删除或重命名文件并暂存后，许可证钩子会按 Git 暂存区自动更新
+`license-inventory.csv`，不更新 SBOM 或依赖报告，也不会自动暂存其他文件。
+清单发生变化时，本次提交会暂停；检查清单后执行 `git add license-inventory.csv`，
+再重试原来的提交即可。未暂存文件不会进入清单；已有手工修改或许可元数据冲突会保留并提示处理。
+现有密钥扫描和文案检查仍会执行。钩子需要在每份本地克隆中安装，CI 保留兜底检查。
+
+也可手动检查：`uv tool run pre-commit run license-inventory --all-files`。
+
 1. Fork 仓库，从 `main` 切一个主题分支；
 2. 改动 + 自测（`uv run pytest`）；
 3. 提交信息清晰（建议 [Conventional Commits](https://www.conventionalcommits.org/)），并对**每个 commit** 用 `git commit -s` 附上 DCO 签署（见 [开发者原产证书](#开发者原产证书dco)）；

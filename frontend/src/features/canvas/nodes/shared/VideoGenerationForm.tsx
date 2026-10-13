@@ -1656,17 +1656,17 @@ export const VideoGenerationForm = memo((props: VideoGenerationFormProps) => {
                   ? "text-text-dark"
                   : "text-text-dark/72 hover:text-text-dark"
               }`}>
-              <span>真人验证</span>
+              <span>{t("node.videoOps.humanReviewLabel")}</span>
               <Switch
                 checked={humanReview}
-                title="素材含真实人脸时开启，可能增加审核时间，不保证通过。"
+                title={t("node.videoOps.humanReviewTitle")}
                 onClick={(event) => {
                   event.stopPropagation();
                   updateNodeData(nodeId, { humanReview: !humanReview });
                 }}
                 size="sm"
                 className="nodrag"
-                aria-label="真人验证"
+                aria-label={t("node.videoOps.humanReviewLabel")}
               />
             </label>
           )}

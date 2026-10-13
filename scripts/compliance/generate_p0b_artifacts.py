@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import re
 import subprocess
@@ -374,8 +375,8 @@ def _inventory_row(path: str) -> dict[str, str]:
     }
 
 
-def write_license_inventory(files: list[str]) -> None:
-    rows = [
+def license_inventory_rows(files: list[str]) -> list[dict[str, str]]:
+    return [
         _inventory_row(path)
         for path in sorted(set(files + [
             "REUSE.toml",
@@ -392,11 +393,20 @@ def write_license_inventory(files: list[str]) -> None:
             "scripts/compliance/generate_p0b_artifacts.py",
         ]))
     ]
-    write_csv(
-        ROOT / "license-inventory.csv",
-        ["path", "license_expression", "copyright", "evidence"],
-        rows,
+
+
+def render_license_inventory(files: list[str]) -> str:
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        buffer, fieldnames=["path", "license_expression", "copyright", "evidence"]
     )
+    writer.writeheader()
+    writer.writerows(license_inventory_rows(files))
+    return buffer.getvalue()
+
+
+def write_license_inventory(files: list[str]) -> None:
+    (ROOT / "license-inventory.csv").write_bytes(render_license_inventory(files).encode("utf-8"))
 
 
 def write_dependency_reports(packages: list[PackageLicense]) -> None:

@@ -317,6 +317,27 @@ def test_missing_template_keys_are_reported_for_runtime_reads(tmp_path: Path) ->
     assert not report.ok
 
 
+def test_gateway_and_windows_env_ownership_does_not_allow_unrelated_keys(tmp_path: Path) -> None:
+    check_env_config = _load_module()
+    root = tmp_path / "repo"
+    _write(root / ".env.example", "# PLATFORM_API_KEY=\n")
+    _write(
+        root / "scripts" / "local_probe.py",
+        'import os\n'
+        'os.environ.get("PORT")\n'
+        'os.environ.get("ProgramFiles")\n'
+        'os.environ.get("PLATFORM_API_KEY")\n'
+        'os.environ.get("PORT_EXTRA")\n'
+        'os.environ.get("ProgramFilesOverride")\n',
+    )
+    report = check_env_config.analyze_ce_repo(root)
+    assert report.missing_keys == {"PORT_EXTRA", "ProgramFilesOverride"}
+    assert "PORT" in report.allowed_missing_keys
+    assert "ProgramFiles" in report.allowed_missing_keys
+    assert "PLATFORM_API_KEY" not in report.missing_keys
+    assert not report.ok
+
+
 def test_cli_exits_nonzero_for_dead_keys(tmp_path: Path, capsys) -> None:
     check_env_config = _load_module()
     root = tmp_path / "repo"

@@ -1,9 +1,9 @@
 # pre-commit 钩子 — dramaclaw-ce（SECRET-14）
 # 一次性安装：
 #   uv tool install pre-commit
-#   pre-commit install
+#   uv tool run pre-commit install --install-hooks
 # 手动全量扫描：
-#   pre-commit run --all-files
+#   uv tool run pre-commit run --all-files
 # 钩子会自动读取仓库根的 .gitleaks.toml（含 newAPI 自定义规则）。
 
 repos:
@@ -14,9 +14,16 @@ repos:
 
   - repo: local
     hooks:
+      - id: license-inventory
+        name: Update license inventory from staged files
+        entry: python -X utf8 -m scripts.compliance.update_license_inventory
+        language: python
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, manual]
       - id: banned-words
         name: 禁用词 lint（开源/open source）
-        entry: python3 scripts/lint_banned_words.py
-        language: system
+        entry: python -X utf8 scripts/lint_banned_words.py
+        language: python
         pass_filenames: false
         always_run: true
