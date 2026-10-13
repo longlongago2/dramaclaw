@@ -36,6 +36,19 @@ const TEMPLATES: FreezoneStyleTemplate[] = [
 ];
 
 describe("StyleGalleryModal", () => {
+  it("shows the selected style as an applied action and moves that state when selection changes", () => {
+    const props = { templates: TEMPLATES, assetBase: "", onSelect: vi.fn(), onClose: vi.fn() };
+    const { rerender } = render(<StyleGalleryModal {...props} selectedId="golden_age" />);
+    const applied = screen.getByRole("button", { name: "已使用黄金时代" });
+    expect(applied).toHaveTextContent("已使用");
+    expect(applied).toHaveAttribute("aria-pressed", "true");
+    expect(applied.querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "使用武侠江湖" })).toHaveAttribute("aria-pressed", "false");
+    rerender(<StyleGalleryModal {...props} selectedId="wuxia" />);
+    expect(screen.getByRole("button", { name: "已使用武侠江湖" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "使用黄金时代" })).toHaveTextContent("使用");
+  });
+
   it("renders one card per template with the bundled cover url", () => {
     render(
       <StyleGalleryModal

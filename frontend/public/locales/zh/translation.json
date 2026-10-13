@@ -5431,7 +5431,12 @@
       "detailAria": "查看{{label}}详情",
       "useAria": "使用{{label}}",
       "loading": "加载中…",
-      "empty": "暂无风格模板"
+      "empty": "暂无风格模板",
+      "viewMode": "风格展示方式",
+      "listView": "列表",
+      "gridView": "网格",
+      "used": "已使用",
+      "usedAria": "已使用{{label}}"
     },
     "commitHint": {
       "title": "生成后的产物在 commit 时如何写回主线槽位",

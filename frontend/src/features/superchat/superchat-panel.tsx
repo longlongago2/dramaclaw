@@ -1,3 +1,4 @@
+import { Switch } from "@/components/ui/switch";
 import { RECIPE_OUTPUT_CHOICES, recipeOutputChoice, recipeOutputFields, type RecipeOutputChoice } from "@/lib/recipe-output";
 import { type HtmlArtifactReference, parseHtmlArtifactReference, appendHtmlArtifactTransportContext } from '@/features/html-artifacts/chatReference';
 import { HtmlArtifactResultCard } from '@/features/html-artifacts/HtmlArtifactResultCard';
@@ -3441,24 +3442,11 @@ function CanvasApprovalVideoConfigChip({
               </div>
               <div className="flex items-center justify-between rounded-md bg-white/[0.06] px-2.5 py-1.5">
                 <span className="text-xs font-medium text-foreground">{audioLabel}</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={params.generateAudio}
+                <Switch
+                  checked={params.generateAudio}
                   aria-label={t("freezone.chat.generationParams.generateAudio")}
                   onClick={() => onChange({ generateAudio: !params.generateAudio })}
-                  className={cn(
-                    "relative h-5 w-9 rounded-full transition-colors",
-                    params.generateAudio ? "bg-white/35" : "bg-white/15",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 size-4 rounded-full bg-white transition-transform",
-                      params.generateAudio ? "translate-x-4" : "translate-x-0.5",
-                    )}
-                  />
-                </button>
+                />
               </div>
             </>
           ) : null}
@@ -3711,25 +3699,12 @@ function CanvasCommandApprovalCard({
               检测到 {humanReviewNodeIds.length} 个图片转视频节点，确认后将在模型支持时开启真人审核。
             </div>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={humanReviewEnabled}
+          <Switch
+            checked={humanReviewEnabled}
             aria-label="真人审核"
             disabled={isExecuting}
             onClick={() => setHumanReviewEnabled((enabled) => !enabled)}
-            className={cn(
-              "relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-60",
-              humanReviewEnabled ? "bg-amber-500" : "bg-white/15",
-            )}
-          >
-            <span
-              className={cn(
-                "absolute left-0.5 top-0.5 size-4 rounded-full bg-white transition-transform",
-                humanReviewEnabled ? "translate-x-4" : "translate-x-0",
-              )}
-            />
-          </button>
+          />
         </div>
       )}
       {imageParams.map((imageParam, imageParamIndex) => {

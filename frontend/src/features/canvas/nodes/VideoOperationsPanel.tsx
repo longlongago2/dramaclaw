@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import {
   useCallback,
   useEffect,
@@ -1129,36 +1130,24 @@ export function VideoOperationsPanel({
                     onChange={(modelParams) => updateNodeData(id, { modelParams })}
                   />
                   {supportsHumanReview && (
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={humanReview}
-                      title={t("node.videoOps.humanReviewTitle")}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        updateNodeData(id, { humanReview: !humanReview });
-                      }}
-                      className={`nodrag inline-flex h-7 items-center gap-1.5 rounded px-1 text-xs font-medium transition-colors ${
+                    <label className={`nodrag inline-flex h-7 items-center gap-1.5 rounded px-1 text-xs font-medium transition-colors ${
                         humanReview
                           ? "text-text-dark"
                           : "text-text-dark/72 hover:text-text-dark"
-                      }`}
-                    >
+                      }`}>
                       <span>{t("node.videoOps.humanReviewLabel")}</span>
-                      <span
-                        className={`relative inline-flex h-3.5 w-6 shrink-0 items-center rounded-full transition-colors ${
-                          humanReview
-                            ? "bg-[rgb(var(--accent-rgb))]"
-                            : "bg-white/15"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${
-                            humanReview ? "translate-x-3" : "translate-x-0.5"
-                          }`}
-                        />
-                      </span>
-                    </button>
+                      <Switch
+                        checked={humanReview}
+                        title={t("node.videoOps.humanReviewTitle")}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          updateNodeData(id, { humanReview: !humanReview });
+                        }}
+                        size="sm"
+                        className="nodrag"
+                        aria-label={t("node.videoOps.humanReviewLabel")}
+                      />
+                    </label>
                   )}
                   <CountPicker
                     value={count}
@@ -1806,24 +1795,11 @@ function VideoConfigChip({
                     ? t("node.videoNode.audio.on")
                     : t("node.videoNode.audio.off")}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={generateAudio}
+                <Switch
+                  checked={generateAudio}
                   aria-label={t("node.videoNode.audio.title")}
                   onClick={() => onChange({ generateAudio: !generateAudio })}
-                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
-                    generateAudio
-                      ? "border-white/24 bg-white/[0.18]"
-                      : "border-white/10 bg-white/[0.08]"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full bg-text-dark shadow-[0_2px_8px_rgba(0,0,0,0.35)] transition-transform ${
-                      generateAudio ? "translate-x-[18px]" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
+                />
               </div>
             </>
           )}

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { ArrowUp, Check, ChevronDown } from 'lucide-react';
@@ -262,20 +263,11 @@ function ToggleRow({ label, checked, onChange }: {
   return (
     <div className="flex items-center justify-between text-xs text-text-dark/80">
       <span>{label}</span>
-      <button
-        type="button"
-        role="switch"
+      <Switch
+        checked={checked}
         aria-label={label}
-        aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-dark ${
-          checked ? 'bg-[rgb(var(--accent-rgb))]' : 'bg-white/15'
-        }`}
-      >
-        <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform ${
-          checked ? 'translate-x-[18px]' : 'translate-x-0.5'
-        }`} />
-      </button>
+      />
     </div>
   );
 }

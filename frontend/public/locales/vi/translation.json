@@ -5317,7 +5317,12 @@
       "detailAria": "Xem chi tiết {{label}}",
       "useAria": "Dùng {{label}}",
       "loading": "Đang tải…",
-      "empty": "Chưa có mẫu phong cách nào"
+      "empty": "Chưa có mẫu phong cách nào",
+      "viewMode": "Cách hiển thị phong cách",
+      "listView": "Danh sách",
+      "gridView": "Lưới",
+      "used": "Đã áp dụng",
+      "usedAria": "Đã áp dụng {{label}}"
     },
     "commitHint": {
       "title": "Khi commit, kết quả này được ghi về slot nào trong luồng chính",

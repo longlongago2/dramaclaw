@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -884,29 +885,14 @@ function OfficialGatewayPanel({
               {t("settings.modelConfig.official.mediaCatalogAutoUpdateHint")}
             </p>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={mediaCatalog?.autoUpdate ?? false}
+          <Switch
+            checked={mediaCatalog?.autoUpdate ?? false}
             aria-label={t(
               "settings.modelConfig.official.mediaCatalogAutoUpdate",
             )}
             disabled={!mediaCatalog || saveMediaCatalogPreferences.isPending}
-            onClick={() => void handleMediaCatalogAutoUpdate()}
-            className={cn(
-              "relative h-5 w-9 shrink-0 rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
-              mediaCatalog?.autoUpdate
-                ? "border-primary bg-primary"
-                : "border-input bg-muted",
-            )}
-          >
-            <span
-              className={cn(
-                "absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-sm transition-transform",
-                mediaCatalog?.autoUpdate ? "translate-x-4" : "translate-x-0",
-              )}
-            />
-          </button>
+            onCheckedChange={() => void handleMediaCatalogAutoUpdate()}
+          />
         </div>
       </div>
 
@@ -1022,24 +1008,13 @@ function LocalGatewayBillingPanel() {
             {t("settings.modelConfig.custom.noBillingDescription")}
           </p>
         </div>
-        <button
-          type="button"
-          role="switch"
+        <Switch
+          checked={Boolean(disabled)}
           aria-label={t("settings.modelConfig.custom.noBilling")}
-          aria-checked={Boolean(disabled)}
           aria-busy={saveBilling.isPending}
           disabled={!billingQuery.data?.ok || billingQuery.isFetching || saveBilling.isPending}
-          onClick={() => void handleToggle()}
-          className={cn(
-            "relative h-5 w-9 shrink-0 rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
-            disabled ? "border-primary bg-primary" : "border-input bg-muted",
-          )}
-        >
-          <span className={cn(
-            "absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-sm transition-transform",
-            disabled ? "translate-x-4" : "translate-x-0",
-          )} />
-        </button>
+          onCheckedChange={() => void handleToggle()}
+        />
       </div>
       {billingQuery.isError ? (
         <div className="mt-2 flex items-center gap-2">

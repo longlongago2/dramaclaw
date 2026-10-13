@@ -5431,7 +5431,12 @@
       "detailAria": "View {{label}} details",
       "useAria": "Use {{label}}",
       "loading": "Loading…",
-      "empty": "No style templates yet"
+      "empty": "No style templates yet",
+      "viewMode": "Style display",
+      "listView": "List",
+      "gridView": "Grid",
+      "used": "Applied",
+      "usedAria": "{{label}} applied"
     },
     "commitHint": {
       "title": "How this output is written back to a mainline slot on commit",

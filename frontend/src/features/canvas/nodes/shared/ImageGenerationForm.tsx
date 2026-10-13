@@ -2,10 +2,13 @@
 // Copyright (c) 2026 ClaymoreLab
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowUp,
   Camera,
   ChevronDown,
+  LayoutGrid,
+  List,
   Languages,
   Library,
   Loader2,
@@ -38,6 +41,9 @@ import {
   CameraPickerPopover,
 } from '@/features/canvas/nodes/CameraPickerPopover';
 import { StylePickerPopover } from '@/features/canvas/nodes/StylePickerPopover';
+import { StyleGalleryModal } from '@/features/canvas/ui/StyleGalleryModal';
+import { useStyleViewTransition, type StyleViewBounds } from '@/features/canvas/ui/useStyleViewTransition';
+import { useFreezoneStyleTemplates } from '@/features/canvas/hooks/useFreezoneStyleTemplates';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
 import {
   contextPromptPaletteInsertionText,
@@ -242,10 +248,65 @@ interface StyleChipProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+function StyleViewToggle({ value, onChange }: {
+  value: 'list' | 'grid';
+  onChange: (view: 'list' | 'grid', from: StyleViewBounds | null) => void;
+}) {
+  const { t } = useTranslation();
+  const labels = {
+    list: t('canvas.styleGallery.listView'),
+    grid: t('canvas.styleGallery.gridView'),
+  };
+  return (
+    <div role="group" aria-label={t('canvas.styleGallery.viewMode')} className="grid w-full max-w-[192px] grid-cols-2 gap-0.5 rounded-lg border border-white/[0.06] bg-black/[0.12] p-0.5">
+      {(['list', 'grid'] as const).map((mode) => {
+        const Icon = mode === 'list' ? List : LayoutGrid;
+        return (
+          <button
+            key={mode}
+            type="button"
+            data-style-view={mode}
+            aria-pressed={value === mode}
+            title={labels[mode]}
+            onClick={(event) => {
+              if (mode === value) return;
+              const panel = event.currentTarget.closest('[data-style-picker-panel]');
+              onChange(mode, panel?.getBoundingClientRect() ?? null);
+            }}
+            className={`flex h-7 items-center justify-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${value === mode ? 'border-white/[0.10] bg-white/[0.12] text-text-dark shadow-sm' : 'border-transparent text-text-muted hover:bg-white/[0.06] hover:text-text-dark'}`}
+          >
+            <Icon className="size-3.5" />
+            {labels[mode]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function StyleChip({ selectedId, selectedLabel, onChange, onOpenChange }: StyleChipProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<'list' | 'grid'>('list');
+  const [transitionFrom, setTransitionFrom] = useState<StyleViewBounds | null>(null);
+  const view = isOpen ? mode : null;
+  useStyleViewTransition(popoverRef, transitionFrom, view === 'list');
+  const { templates, assetBase, isLoading, retry } = useFreezoneStyleTemplates();
+  const closePicker = () => {
+    setIsOpen(false);
+    setTransitionFrom(null);
+    triggerRef.current?.focus({ preventScroll: true });
+  };
+  const selectStyle = (nextId: string | null) => {
+    onChange(nextId);
+    closePicker();
+  };
+  const viewControls = <StyleViewToggle value={mode} onChange={(next, from) => {
+    retry();
+    setTransitionFrom(from);
+    setMode(next);
+  }} />;
 
   useEffect(() => {
     onOpenChange?.(isOpen);
@@ -256,22 +317,18 @@ function StyleChip({ selectedId, selectedLabel, onChange, onOpenChange }: StyleC
   }, [onOpenChange]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (view !== 'list') return;
+    popoverRef.current?.querySelector<HTMLButtonElement>('[data-style-view="list"]')?.focus({ preventScroll: true });
     const onPointerDown = (event: MouseEvent) => {
-      if (
-        triggerRef.current?.contains(event.target as Node) ||
-        popoverRef.current?.contains(event.target as Node)
-      ) {
-        return;
-      }
+      if (triggerRef.current?.contains(event.target as Node) || popoverRef.current?.contains(event.target as Node)) return;
       setIsOpen(false);
+      setTransitionFrom(null);
     };
     document.addEventListener('mousedown', onPointerDown, true);
     return () => document.removeEventListener('mousedown', onPointerDown, true);
-  }, [isOpen]);
+  }, [view]);
 
-  const isActive = Boolean(selectedId);
-  const label = isActive ? selectedLabel ?? '风格' : '风格';
+  const label = selectedId ? selectedLabel ?? '风格' : '风格';
 
   return (
     <div className="relative">
@@ -280,29 +337,44 @@ function StyleChip({ selectedId, selectedLabel, onChange, onOpenChange }: StyleC
         type="button"
         onClick={(event) => {
           event.stopPropagation();
+          if (!isOpen) retry();
+          setTransitionFrom(null);
           setIsOpen((prev) => !prev);
         }}
-        title={isActive ? selectedLabel ?? undefined : '风格'}
+        title={selectedId ? selectedLabel ?? undefined : '风格'}
+        aria-expanded={isOpen}
         className={`${NODE_TEXT_CONTROL_TRIGGER_CLASS} max-w-[160px]`}
       >
         <Palette className={`${NODE_TEXT_CONTROL_ICON_CLASS} shrink-0`} />
         <span className="truncate">{label}</span>
       </button>
-      {isOpen && (
+      {view === 'list' && (
         <div
           ref={popoverRef}
+          data-style-picker-panel="list"
           className="absolute top-full left-0 z-50 mt-2"
           onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
+              event.stopPropagation();
+              closePicker();
+            }
+          }}
         >
-          <StylePickerPopover
-            selectedId={selectedId}
-            onSelect={(nextId) => {
-              onChange(nextId);
-              setIsOpen(false);
-            }}
-            onClose={() => setIsOpen(false)}
-          />
+          <StylePickerPopover selectedId={selectedId} onSelect={selectStyle} onClose={closePicker} viewControls={viewControls} />
         </div>
+      )}
+      {view === 'grid' && (
+        <StyleGalleryModal
+          templates={templates}
+          assetBase={assetBase}
+          selectedId={selectedId}
+          isLoading={isLoading}
+          onSelect={selectStyle}
+          onClose={closePicker}
+          viewControls={viewControls}
+          transitionFrom={transitionFrom}
+        />
       )}
     </div>
   );

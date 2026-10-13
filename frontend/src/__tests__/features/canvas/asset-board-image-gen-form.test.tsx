@@ -10,7 +10,8 @@ import { useCanvasStore } from '@/stores/canvasStore';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback ?? key,
+    t: (key: string, fallback?: string | { label?: string }) =>
+      typeof fallback === 'string' ? fallback : fallback?.label ? `${key}:${fallback.label}` : key,
   }),
 }));
 
@@ -35,7 +36,13 @@ vi.mock('@/api/ops', async (importOriginal) => ({
       label: '测试模型',
     },
   ]),
-  listFreezoneStyleTemplates: vi.fn(async () => []),
+  listFreezoneStyleTemplates: vi.fn(async () => ({
+    assetBase: '',
+    templates: [
+      { id: 'golden_age', label: '黄金时代', category: '年代', cover: 'golden_age/cover.webp', samples: ['golden_age/female.webp'], style_prompt: '复古电影质感' },
+      { id: 'wuxia', label: '武侠江湖', category: '古装', cover: 'wuxia/cover.webp', samples: ['wuxia/female.webp'], style_prompt: '武侠电影质感' },
+    ],
+  })),
   fetchFreezoneCameraOptions: vi.fn(async () => null),
   listFreezoneGenerationHistory: vi.fn(async () => []),
   submitFreezoneGen: vi.fn(async () => ({
@@ -85,6 +92,51 @@ function openDetail(name: string) {
 describe('故事板详情 · 图片生成表单', () => {
   beforeEach(() => {
     vi.mocked(submitFreezoneGen).mockClear();
+  });
+
+  it('文字列表与图墙共享风格，生成请求携带图墙选择，列表仍可清除', async () => {
+    seed([emptyImageGenNode({ prompt: '雪夜里的古装人物' })]);
+    openDetail('图片节点 3');
+    const detail = detailPanel();
+    fireEvent.click(within(detail).getByRole('button', { name: '风格' }));
+    fireEvent.click(await screen.findByRole('button', { name: '黄金时代' }));
+    expect(useCanvasStore.getState().nodes.find((n) => n.id === 'gen-1')?.data.styleTemplateId).toBe('golden_age');
+    const styleButton = within(detail).getByRole('button', { name: '黄金时代' });
+    fireEvent.click(styleButton);
+    fireEvent.click(screen.getByRole('button', { name: 'canvas.styleGallery.gridView' }));
+    const gallery = screen.getByRole('dialog', { name: 'canvas.styleGallery.title' });
+    expect(within(gallery).getByRole('img', { name: '黄金时代' })).toBeInTheDocument();
+    fireEvent.click(within(gallery).getByRole('button', { name: 'canvas.styleGallery.useAria:武侠江湖' }));
+    expect(screen.queryByRole('dialog', { name: 'canvas.styleGallery.title' })).not.toBeInTheDocument();
+    expect(within(detail).getByRole('button', { name: '武侠江湖' })).toBeInTheDocument();
+    expect(styleButton).toHaveFocus();
+    fireEvent.click(within(detail).getByRole('button', { name: '生成' }));
+    await waitFor(() => expect(submitFreezoneGen).toHaveBeenCalled());
+    expect(vi.mocked(submitFreezoneGen).mock.calls[0][1].style).toEqual({ templateId: 'wuxia' });
+    fireEvent.click(within(detail).getByRole('button', { name: '武侠江湖' }));
+    expect(screen.getByRole('button', { name: 'canvas.styleGallery.gridView' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'canvas.styleGallery.listView' }));
+    expect(screen.queryByRole('dialog', { name: 'canvas.styleGallery.title' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'canvas.styleGallery.listView' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: '清除' }));
+    expect(useCanvasStore.getState().nodes.find((n) => n.id === 'gen-1')?.data.styleTemplateId).toBeNull();
+  });
+
+  it('列表切换到图墙只保留一个弹层，Esc 关闭不改变风格并恢复焦点', async () => {
+    seed([emptyImageGenNode({ styleTemplateId: 'golden_age' })]);
+    openDetail('图片节点 3');
+    const detail = detailPanel();
+    fireEvent.click(await within(detail).findByRole('button', { name: '黄金时代' }));
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument();
+    const styleButton = within(detail).getByRole('button', { name: '黄金时代', expanded: true });
+    expect(within(detail).queryByRole('button', { name: 'canvas.styleGallery.title' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'canvas.styleGallery.gridView' }));
+    expect(screen.queryByRole('button', { name: '关闭' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'canvas.styleGallery.title' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'canvas.styleGallery.title' })).not.toBeInTheDocument();
+    expect(useCanvasStore.getState().nodes.find((n) => n.id === 'gen-1')?.data.styleTemplateId).toBe('golden_age');
+    expect(styleButton).toHaveFocus();
   });
 
   it('空 imageGen 节点：媒体区显示「待确认后生成」占位，下方挂完整生成表单', () => {

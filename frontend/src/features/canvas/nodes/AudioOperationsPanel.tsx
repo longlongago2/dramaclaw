@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -499,30 +500,17 @@ function MusicSettingToggle({
   ariaLabel: string;
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
+    <Switch
+      checked={checked}
       aria-label={ariaLabel}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
         onChange(!checked);
       }}
-      className="nodrag inline-flex shrink-0 items-center"
-    >
-      <span
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
-          checked ? 'bg-[rgb(var(--accent-rgb))]' : 'bg-white/15'
-        }`}
-      >
-        <span
-          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-3.5' : 'translate-x-0.5'
-          }`}
-        />
-      </span>
-    </button>
+      size="sm"
+      className="nodrag"
+    />
   );
 }
 

@@ -54,7 +54,7 @@ vi.mock("@/api/ops", async (importOriginal) => ({
       label: "测试模型",
     },
   ]),
-  listFreezoneStyleTemplates: vi.fn(async () => []),
+  listFreezoneStyleTemplates: vi.fn(async () => ({ templates: [], assetBase: '' })),
   fetchFreezoneCameraOptions: vi.fn(async () => null),
   listFreezoneGenerationHistory: vi.fn(async () => []),
 }));
@@ -111,6 +111,20 @@ function paletteButton() {
 describe("ImageGenNode 的上下文调色盘", () => {
   beforeEach(() => {
     useCanvasStore.getState().setCanvasData([], []);
+  });
+
+  it("画布风格入口内切换列表与网格，不增加并列功能", async () => {
+    useCanvasStore.getState().setCanvasData([imageGenNode("img-1")], []);
+    render(<Host nodeId="img-1" />);
+    fireEvent.click(screen.getByRole("button", { name: "风格" }));
+    expect(await screen.findByText("暂无风格模板")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "canvas.styleGallery.title" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "canvas.styleGallery.gridView" }));
+    expect(screen.getByRole("dialog", { name: "canvas.styleGallery.title" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "关闭" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "common.close" }));
+    expect(screen.queryByRole("dialog", { name: "canvas.styleGallery.title" })).not.toBeInTheDocument();
+    expect(useCanvasStore.getState().nodes).toHaveLength(1);
   });
 
   it("画布上有节拍上下文时，面板里出现调色盘按钮", async () => {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import {
   useMemo,
   useEffect,
@@ -2518,26 +2519,11 @@ function ToggleRow({
           </span>
         ) : null}
       </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
+      <Switch
+        checked={checked}
         aria-label={label}
-        onClick={() => onChange(!checked)}
-        className={cn(
-          "relative h-5 w-9 shrink-0 rounded-full border transition-colors",
-          checked
-            ? "border-transparent bg-[#111] dark:bg-white/[0.18]"
-            : "border-transparent bg-black/[0.06] dark:bg-white/[0.08]",
-        )}
-      >
-        <span
-          className={cn(
-            "absolute top-1/2 left-0.5 size-4 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform",
-            checked ? "translate-x-4" : "translate-x-0",
-          )}
-        />
-      </button>
+        onCheckedChange={onChange}
+      />
     </label>
   );
 }
@@ -3476,26 +3462,12 @@ function CatalogList({
             <p className="mt-1 truncate text-[11px] text-muted-foreground">{item.description}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={item.enabled}
+            <Switch
+              checked={item.enabled}
               aria-label={t("settings.freezoneCatalog.toggleEnabled", { id: item.title })}
-              onClick={() => onToggleEnabled(item, !item.enabled)}
-              className={cn(
-                "relative h-4 w-7 rounded-full border transition-colors",
-                item.enabled
-                  ? "border-transparent bg-[#111] dark:bg-white/[0.18]"
-                  : "border-transparent bg-black/[0.06] dark:bg-white/[0.08]",
-              )}
-            >
-              <span
-                className={cn(
-                  "absolute top-1/2 left-0.5 size-3 -translate-y-1/2 rounded-full bg-white transition-transform",
-                  item.enabled ? "translate-x-3" : "translate-x-0",
-                )}
-              />
-            </button>
+              onCheckedChange={(enabled) => onToggleEnabled(item, enabled)}
+              size="sm"
+            />
             <button
               type="button"
               aria-label={t("settings.freezoneCatalog.editItem", { id: item.title })}
