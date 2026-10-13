@@ -81,8 +81,13 @@ Fast/Mini 为 480p、720p；基础型号的 1080p 仅适用于文生/首帧输�
 原生 content 数组，保存平台任务 ID，成功后读取 content.video_url 归档。
 平台模型名不会改成火山引擎带日期的模型名；Seedance 不调用 H3 文件接口。
 
-可复用配置流程见 [mrtoken-integration skill](../skills/mrtoken-integration/SKILL.md)，
-附有独立的只读模型发现脚本、协议说明及不含凭据的合并配置。
+在 `dramaclaw-all` 工作区中，可复用配置流程统一放在工作区根目录的
+`.agents/skills/mrtoken-integration/SKILL.md`，附有独立的只读模型发现脚本、
+协议说明、不含凭据的合并配置及脚本测试。该共享技能不属于本仓库的发布文件；
+单独克隆本仓库时，可使用 `scripts/check_mrtoken.py` 检查已配置的 MrToken 接入。
+工作区内两个仓库的 `.agents/skills` 均通过目录链接访问这份共享目录；修改任一
+入口看到的技能文件都会修改同一个源文件。Windows 当前使用 Junction 目录联接，
+链接配置不会随普通 Git 克隆自动恢复。
 
 2026-10-12 本机验证：H3 R2V 使用一张本地参考图、请求 1 秒，实际输出
 1280×736、1.625 秒、24 fps 的 H.264 视频，提交、查询、归档和浏览器播放均通过。

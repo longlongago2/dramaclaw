@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / "skills/mrtoken-integration/scripts/discover_models.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts/discover_models.py"
 SPEC = importlib.util.spec_from_file_location("mrtoken_skill_helper", SCRIPT)
 HELPER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPER)

@@ -32,6 +32,13 @@ For DramaClaw channel setup, media catalog merge, gateway build, browser configu
 
 ## Verify the requested outcome
 
+The helper's offline regression tests live in `tests/test_mrtoken_skill_helper.py`.
+Run them with an interpreter containing `pytest` and `httpx`:
+
+```text
+python -m pytest tests/test_mrtoken_skill_helper.py -q
+```
+
 Run contract tests for canonical conversion, mapped model identity, input limits, optional zero/false values, task IDs, terminal errors, and secret redaction. A saved channel or accepted task is not evidence of a playable video.
 
 If the user has requested or authorized real generation, submit one small representative task for each requested protocol that needs live verification, poll its original ID, download it, check its media metadata, and play it in the target UI. Additional variants can use contract tests unless the user requests live coverage. Record which variants were actually generated.
