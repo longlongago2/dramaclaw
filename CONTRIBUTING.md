@@ -35,10 +35,11 @@ uv tool install pre-commit
 uv tool run pre-commit install --install-hooks
 ```
 
-新增、删除或重命名文件并暂存后，许可证钩子会按 Git 暂存区自动更新
-`license-inventory.csv`，不更新 SBOM 或依赖报告，也不会自动暂存其他文件。
-清单发生变化时，本次提交会暂停；检查清单后执行 `git add license-inventory.csv`，
-再重试原来的提交即可。未暂存文件不会进入清单；已有手工修改或许可元数据冲突会保留并提示处理。
+新增、删除或重命名文件并暂存后，许可证钩子只检查 Git 暂存区中的
+`license-inventory.csv`，不修改文件或暂存区，避免与 pre-commit 恢复未暂存改动发生冲突。
+清单过期时，本次提交会暂停；执行 `python -X utf8 -m scripts.compliance.update_license_inventory`
+更新清单，检查后执行 `git add license-inventory.csv`，再重试原来的提交即可。
+未暂存文件不会进入清单；更新命令遇到已有手工修改或许可元数据冲突会保留并提示处理。
 现有密钥扫描和文案检查仍会执行。钩子需要在每份本地克隆中安装，CI 保留兜底检查。
 
 也可手动检查：`uv tool run pre-commit run license-inventory --all-files`。

@@ -69,8 +69,8 @@ logger = logging.getLogger(__name__)
 # 确保加载 .env 环境变量
 load_dotenv()
 
-NEWAPI_VIDEO_HTTP_TIMEOUT_SECONDS = 1800.0
-NEWAPI_MEDIA_INPUT_MIN_TTL_SECONDS = 2 * 60 * 60
+NEWAPI_VIDEO_HTTP_TIMEOUT_SECONDS = 120 * 60.0
+NEWAPI_MEDIA_INPUT_MIN_TTL_SECONDS = 4 * 60 * 60
 _POST_ACCEPT_AUTHZ_MAX_RETRIES = 5
 _POST_ACCEPT_AUTHZ_RETRY_BASE_SECONDS = 2.0
 _POST_ACCEPT_AUTHZ_RETRY_CAP_SECONDS = 60.0
@@ -3027,7 +3027,7 @@ class NewApiVideoGenerator(VideoGeneratorBase):
         aspect_ratio: str = "9:16",
         duration: float = 5.0,
         poll_interval: float = 5.0,
-        max_polls: int = 360,
+        max_polls: int = 1440,
         on_log: Optional[Callable[[str], None]] = None,
         on_progress: Optional[Callable[[float], None]] = None,
         last_frame_path: Optional[str] = None,

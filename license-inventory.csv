@@ -2,8 +2,10 @@ path,license_expression,copyright,evidence
 .agents/skills/i18n-translate/SKILL.md,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .agents/skills/mrtoken-integration/SKILL.md,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .agents/skills/mrtoken-integration/agents/openai.yaml,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+.agents/skills/mrtoken-integration/assets/happyhorse-media-models.json,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .agents/skills/mrtoken-integration/assets/media-models.json,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .agents/skills/mrtoken-integration/references/dramaclaw.md,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+.agents/skills/mrtoken-integration/references/happyhorse.md,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .agents/skills/mrtoken-integration/references/video-protocols.md,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .agents/skills/mrtoken-integration/scripts/discover_models.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .agents/skills/mrtoken-integration/tests/test_mrtoken_skill_helper.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
@@ -227,6 +229,7 @@ docs/虾画token优化.md,Elastic-2.0,2026 SuperTale contributors,REUSE.toml agg
 examples/__init__.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 examples/codex/config.toml.example,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 examples/mrtoken-h3-media-models.json,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+examples/mrtoken-happyhorse-media-models.json,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 examples/mrtoken-seedance2-media-models.json,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 examples/seedance2_fast_demo.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 frontend/.dockerignore,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
@@ -2871,6 +2874,7 @@ tests/test_model_gateway_settings.py,Elastic-2.0,2026 SuperTale contributors,REU
 tests/test_mrtoken.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 tests/test_mrtoken_h3_catalog.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 tests/test_mrtoken_h3_inputs.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+tests/test_mrtoken_happyhorse_catalog.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 tests/test_mrtoken_seedance_catalog.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 tests/test_narrator_main_semantics.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 tests/test_newapi_channel_models.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation

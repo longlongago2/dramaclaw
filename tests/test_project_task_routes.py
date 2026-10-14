@@ -157,6 +157,58 @@ async def test_project_task_limits_reports_project_and_user_lane_capacity(
     }
 
 
+@pytest.mark.asyncio
+async def test_default_video_admission_allows_two_and_releases_capacity(
+    tmp_path, monkeypatch
+):
+    from novelvideo.ports.local.tasks import InlineTaskBackend
+    from novelvideo.task_backend.limits import ProjectTaskLimitExceeded
+
+    for name in (
+        "ST_PROJECT_MIN_ACTIVE_VIDEO_TASKS",
+        "ST_PROJECT_MAX_ACTIVE_VIDEO_TASKS",
+        "ST_PROJECT_USER_MAX_ACTIVE_VIDEO_TASKS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    ctx = _ctx(tmp_path)
+    manager = TaskStateManager()
+    monkeypatch.setattr("novelvideo.ports.local.tasks.get_task_manager", lambda: manager)
+    backend = InlineTaskBackend()
+    # Exercise real admission and persistence without calling a paid provider.
+    submitted = []
+    monkeypatch.setattr(backend, "_submit_lane_job", submitted.append)
+
+    async def enqueue(scope):
+        return await backend.enqueue_project_task(
+            ctx,
+            task_type="freezone_video_gen",
+            product_surface="freezone",
+            queue_kind="video",
+            scope=scope,
+        )
+
+    first = await enqueue("video_1")
+    second = await enqueue("video_2")
+    assert first.task_state.task_id != second.task_state.task_id
+    assert manager.count_active_tasks_for_project_lane(ctx, "video") == 2
+    with pytest.raises(ProjectTaskLimitExceeded) as rejected:
+        await enqueue("video_3")
+    assert (rejected.value.active, rejected.value.limit) == (2, 2)
+    assert len(submitted) == 2
+
+    manager.fail_task_for_project(
+        ctx,
+        "freezone_video_gen",
+        0,
+        scope="video_1",
+        error="test task finished",
+        expected_task_id=first.task_state.task_id,
+    )
+    await enqueue("video_3")
+    assert len(submitted) == 3
+    assert manager.count_active_tasks_for_project_lane(ctx, "video") == 2
+
+
 def test_project_task_serialization_exposes_localized_display_name() -> None:
     from novelvideo.api.routes.tasks import _serialize_task
     from novelvideo.task_state import TaskState

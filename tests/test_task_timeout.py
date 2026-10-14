@@ -117,12 +117,12 @@ def test_remaining_timeout_seconds_raises_when_deadline_expired():
         )
 
 
-def test_project_task_timeout_defaults_to_30_minutes_without_celery(monkeypatch):
+def test_project_task_timeout_defaults_to_120_minutes_without_celery(monkeypatch):
     from novelvideo.task_backend import run_core
 
     monkeypatch.delenv("ST_PROJECT_TASK_TIMEOUT_S", raising=False)
 
-    assert run_core._project_task_timeout_seconds() == 30 * 60
+    assert run_core._project_task_timeout_seconds() == 120 * 60
 
 
 def test_project_task_timeout_reads_ce_neutral_env(monkeypatch):

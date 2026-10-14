@@ -23,7 +23,7 @@ PROJECT_LANE_MIN_DEFAULTS = {
 
 PROJECT_USER_LANE_LIMIT_DEFAULTS = {
     "default": 3,
-    "video": 1,
+    "video": 2,
     "world": 1,
     "ffmpeg": 1,
 }

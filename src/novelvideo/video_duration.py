@@ -59,7 +59,11 @@ def video_duration_bounds_for_backend(
             "doubao-seedance-2.0-fast", "doubao-seedance-2.0-mini",
         }:
             return (4, 15)
-        if lowered_model == "happyhorse-1.0":
+        if lowered_model in {
+            "happyhorse-1.0", "happyhorse-1.0-t2v", "happyhorse-1.0-i2v",
+            "happyhorse-1.0-r2v", "happyhorse-1.1-t2v", "happyhorse-1.1-i2v",
+            "happyhorse-1.1-r2v",
+        }:
             return (3, 15)
         if lowered_model == "grok-video-channel":
             return (6, 30)

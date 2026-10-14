@@ -587,7 +587,7 @@ def _project_task_timeout_seconds() -> int:
             logger.warning(
                 "Invalid ST_PROJECT_TASK_TIMEOUT_S=%r; using default", raw_value
             )
-    return 30 * 60
+    return 120 * 60
 
 
 def _project_task_failure_for_exception(
@@ -619,7 +619,7 @@ def _project_task_failure_for_exception(
         return str(exc), {"error_code": exc.error_code}, True
 
     if isinstance(exc, TaskTimedOut):
-        timeout_seconds = int(getattr(exc, "timeout_seconds", None) or 30 * 60)
+        timeout_seconds = int(getattr(exc, "timeout_seconds", None) or _project_task_timeout_seconds())
         timeout_minutes = max(round(timeout_seconds / 60), 1)
         return (
             f"任务超过 {timeout_minutes} 分钟未完成，已自动放弃",

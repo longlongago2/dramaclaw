@@ -15,8 +15,8 @@ repos:
   - repo: local
     hooks:
       - id: license-inventory
-        name: Update license inventory from staged files
-        entry: python -X utf8 -m scripts.compliance.update_license_inventory
+        name: Check license inventory from staged files
+        entry: python -X utf8 -m scripts.compliance.update_license_inventory --check
         language: python
         pass_filenames: false
         always_run: true

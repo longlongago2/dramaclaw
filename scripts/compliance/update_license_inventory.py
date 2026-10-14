@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
 import io
 from pathlib import Path
@@ -13,7 +14,7 @@ import sys
 from scripts.compliance.generate_p0b_artifacts import render_license_inventory
 
 
-def update_inventory(root: Path) -> int:
+def update_inventory(root: Path, *, check: bool = False) -> int:
     def git(*args: str) -> bytes:
         return subprocess.check_output(["git", "-C", str(root), *args])
 
@@ -24,6 +25,20 @@ def update_inventory(root: Path) -> int:
         return 1
 
     expected = render_license_inventory(files).replace("\r\n", "\n")
+    staged = git("show", ":license-inventory.csv").decode("utf-8").replace("\r\n", "\n") if "license-inventory.csv" in files else ""
+    # pre-commit hides unstaged changes before running hooks. Never write here:
+    # an auto-fix can conflict with the hidden inventory when it is restored.
+    if check:
+        if staged == expected:
+            return 0
+        print(
+            "The staged license inventory is out of date. Run "
+            "python -X utf8 -m scripts.compliance.update_license_inventory, "
+            "then git add license-inventory.csv and retry the commit.",
+            file=sys.stderr,
+        )
+        return 1
+
     current = inventory_path.read_text(encoding="utf-8") if inventory_path.exists() else ""
     if current == expected:
         if "license-inventory.csv" not in files:
@@ -31,7 +46,6 @@ def update_inventory(root: Path) -> int:
             return 1
         return 0
 
-    staged = git("show", ":license-inventory.csv").decode("utf-8").replace("\r\n", "\n") if "license-inventory.csv" in files else ""
     if current != staged:
         print(
             "license-inventory.csv has unstaged edits; preserved without overwriting. "
@@ -63,8 +77,11 @@ def update_inventory(root: Path) -> int:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true", help="Check the Git index without modifying files.")
+    args = parser.parse_args()
     root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
-    return update_inventory(root)
+    return update_inventory(root, check=args.check)
 
 
 if __name__ == "__main__":

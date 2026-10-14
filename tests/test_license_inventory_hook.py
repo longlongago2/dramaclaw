@@ -46,6 +46,41 @@ def test_staged_addition_is_generated_but_neither_untracked_files_nor_index_are_
     assert (repo / "license-inventory.csv").read_bytes() == before
 
 
+def test_check_rejects_stale_index_even_when_worktree_is_updated(repo: Path):
+    (repo / "new.py").write_text("# staged\n", encoding="utf-8")
+    git(repo, "add", "new.py")
+    assert update_inventory(repo) == 1
+    before = (repo / "license-inventory.csv").read_bytes()
+    original_index = git(repo, "show", ":license-inventory.csv")
+    assert update_inventory(repo, check=True) == 1
+    assert (repo / "license-inventory.csv").read_bytes() == before
+    assert git(repo, "show", ":license-inventory.csv") == original_index
+    git(repo, "add", "license-inventory.csv")
+    assert update_inventory(repo, check=True) == 0
+
+
+def test_check_does_not_autofix_inventory_when_unstaged_changes_are_hidden(repo: Path):
+    (repo / "new.py").write_text("# staged\n", encoding="utf-8")
+    git(repo, "add", "new.py")
+    before = (repo / "license-inventory.csv").read_bytes()
+    assert update_inventory(repo, check=True) == 1
+    assert (repo / "license-inventory.csv").read_bytes() == before
+
+
+def test_check_validates_index_and_preserves_unstaged_manual_edits(repo: Path):
+    path = repo / "license-inventory.csv"
+    path.write_text("local edits\n", encoding="utf-8")
+    assert update_inventory(repo, check=True) == 0
+    assert path.read_text(encoding="utf-8") == "local edits\n"
+
+
+def test_check_missing_inventory_does_not_create_it(repo: Path):
+    git(repo, "rm", "--cached", "license-inventory.csv")
+    (repo / "license-inventory.csv").unlink()
+    assert update_inventory(repo, check=True) == 1
+    assert not (repo / "license-inventory.csv").exists()
+
+
 def test_staged_rename_and_deletion_follow_index_not_worktree(repo: Path):
     git(repo, "mv", "existing.py", "renamed.py")
     assert update_inventory(repo) == 1
