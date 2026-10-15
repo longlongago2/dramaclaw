@@ -65,6 +65,10 @@ def video_duration_bounds_for_backend(
             "happyhorse-1.1-r2v",
         }:
             return (3, 15)
+        if lowered_model in {"wan2.7-t2v", "wan2.7-i2v", "wan2.7-r2v"}:
+            return (2, 15)
+        if lowered_model in {"wan3.0-video", "wan3.0-video-prime"}:
+            return (2, 30)
         if lowered_model == "grok-video-channel":
             return (6, 30)
 

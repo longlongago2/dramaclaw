@@ -60,10 +60,10 @@ services:
       TZ: Asia/Shanghai
       # 留空 = 内置 SQLite（容器内 /data/one-api.db），与 api 侧 /newapi-data/one-api.db 是同一文件。
       SQL_DSN: ""
-    # 默认只绑本机回环：网关的首启 setup 页在初始化前对任何能访问 3000 的人开放。
+    # 默认只绑本机回环：网关的首启 setup 页在初始化前对任何能访问宿主映射端口的人开放。
     # 需要从别的机器进网关后台时，.env 设 ST_NEWAPI_BIND=0.0.0.0。
     ports:
-      - "${ST_NEWAPI_BIND:-127.0.0.1}:${ST_NEWAPI_PORT:-3000}:3000"
+      - "${ST_NEWAPI_BIND:-127.0.0.1}:${ST_NEWAPI_PORT:-18473}:3000"
     volumes:
       - newapi-data:/data
     healthcheck:

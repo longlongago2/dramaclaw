@@ -32,15 +32,20 @@ uv run novelvideo api --port 8780
 
 ```bash
 uv tool install pre-commit
-uv tool run pre-commit install --install-hooks
+python scripts/install_commit_hooks.py
 ```
 
-新增、删除或重命名文件并暂存后，许可证钩子只检查 Git 暂存区中的
-`license-inventory.csv`，不修改文件或暂存区，避免与 pre-commit 恢复未暂存改动发生冲突。
-清单过期时，本次提交会暂停；执行 `python -X utf8 -m scripts.compliance.update_license_inventory`
-更新清单，检查后执行 `git add license-inventory.csv`，再重试原来的提交即可。
-未暂存文件不会进入清单；更新命令遇到已有手工修改或许可元数据冲突会保留并提示处理。
-现有密钥扫描和文案检查仍会执行。钩子需要在每份本地克隆中安装，CI 保留兜底检查。
+提交时，安装器添加的准备步骤先根据 Git 暂存区自动更新并暂存
+`license-inventory.csv` 的文件增删条目，再运行 pre-commit 的严格校验。
+准备步骤在 pre-commit 隐藏未暂存改动之前执行；清单本身有未暂存修改、
+已有人工许可元数据与生成规则冲突或清单已从暂存区删除时，会保留内容并暂停提交。
+其他未暂存文件不会进入清单，也不会被自动暂存。无需为普通文件增删反复手工更新清单。
+可单独运行 `python -X utf8 -m scripts.compliance.update_license_inventory --stage`。
+
+密钥扫描仍照常执行。文案钩子只扫描本次提交的文本文件；CI 继续全量扫描。
+每份本地克隆需要安装一次钩子；若运行了普通 `pre-commit install` 覆盖包装步骤，
+重新运行上述安装器即可恢复。包含本安装器的分支之间切换不需要重新安装；
+未包含安装器的旧分支沿用其原有校验，不调用新的准备参数。
 
 也可手动检查：`uv tool run pre-commit run license-inventory --all-files`。
 

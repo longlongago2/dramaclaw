@@ -1,0 +1,89 @@
+{
+  "models": {
+    "wan2.7-t2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "wan2.7-t2v",
+      "mediaType": "video",
+      "label": "MrToken Wan 2.7 T2V",
+      "enabled": true,
+      "sortOrder": 230,
+      "config": {
+        "minDuration": 2,
+        "maxDuration": 15,
+        "supportedModes": ["text_to_video"],
+        "ratioOptions": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "resolutionOptions": ["720p", "1080p"],
+        "supportsGenerateAudio": false,
+        "referenceImageMax": 0,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {"key": "seed", "label": "Seed", "control": "number", "min": 0, "max": 2147483647, "requestPath": "metadata.seed"},
+            {"key": "prompt_extend", "label": "Prompt extend", "control": "switch", "requestPath": "metadata.prompt_extend"},
+            {"key": "watermark", "label": "Watermark", "control": "switch", "requestPath": "metadata.watermark"}
+          ]
+        }
+      }
+    },
+    "wan2.7-i2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "wan2.7-i2v",
+      "mediaType": "video",
+      "label": "MrToken Wan 2.7 I2V",
+      "enabled": true,
+      "sortOrder": 231,
+      "config": {
+        "minDuration": 2,
+        "maxDuration": 15,
+        "supportedModes": ["first_frame", "first_last_frame", "image_to_video"],
+        "ratioOptions": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "resolutionOptions": ["720p", "1080p"],
+        "supportsGenerateAudio": false,
+        "referenceImageMax": 1,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "referenceImageFormats": ["jpeg", "png", "webp"],
+        "referenceImageMaxMB": 20,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {"key": "seed", "label": "Seed", "control": "number", "min": 0, "max": 2147483647, "requestPath": "metadata.seed"},
+            {"key": "prompt_extend", "label": "Prompt extend", "control": "switch", "requestPath": "metadata.prompt_extend"},
+            {"key": "watermark", "label": "Watermark", "control": "switch", "requestPath": "metadata.watermark"}
+          ]
+        }
+      }
+    },
+    "wan2.7-r2v": {
+      "provider": "mrtoken",
+      "upstreamModel": "wan2.7-r2v",
+      "mediaType": "video",
+      "label": "MrToken Wan 2.7 R2V",
+      "enabled": true,
+      "sortOrder": 232,
+      "config": {
+        "minDuration": 2,
+        "maxDuration": 15,
+        "supportedModes": ["image_reference"],
+        "ratioOptions": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "resolutionOptions": ["720p", "1080p"],
+        "supportsGenerateAudio": false,
+        "referenceImageMax": 5,
+        "referenceVideoMax": 0,
+        "referenceAudioMax": 0,
+        "referenceImageFormats": ["jpeg", "png", "webp"],
+        "referenceImageMaxMB": 20,
+        "request": {
+          "endpoint": "video/generations",
+          "parameters": [
+            {"key": "seed", "label": "Seed", "control": "number", "min": 0, "max": 2147483647, "requestPath": "metadata.seed"},
+            {"key": "prompt_extend", "label": "Prompt extend", "control": "switch", "requestPath": "metadata.prompt_extend"},
+            {"key": "watermark", "label": "Watermark", "control": "switch", "requestPath": "metadata.watermark"}
+          ]
+        }
+      }
+    }
+  }
+}
