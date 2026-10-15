@@ -57,7 +57,7 @@ export default function FreezoneCanvasRoot({
       (projects ?? []).map((item) => ({
         id: item.id,
         name: item.name,
-        display_name: item.name,
+        display_name: item.displayName || item.name,
         updated_at: item.updatedAt,
         episode_count: item.episodeCount,
       })),

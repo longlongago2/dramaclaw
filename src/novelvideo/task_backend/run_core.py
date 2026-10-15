@@ -988,7 +988,11 @@ def run_project_task_core_sync(
                 # 唯一派发点，绑定本次投递的身份，使闸门总有一个请求作用域的
                 # 身份可读——否则「平台任务，允许」与「调用点漏传参数」都是 None。
                 # 5 个 runner 在自己函数体内另有绑定，嵌套安全（set/reset 成对）。
-                with model_gateway_scope_for_runner(envelope):
+                from novelvideo.styles.runtime import style_snapshot_scope
+
+                with model_gateway_scope_for_runner(envelope), style_snapshot_scope(
+                    (envelope.get("payload") or {}).get("style_snapshot")
+                ):
                     result = runner(envelope, ctx)
                 if task_type == "freezone_text_generate" and isinstance(result, dict):
                     result = dict(result)

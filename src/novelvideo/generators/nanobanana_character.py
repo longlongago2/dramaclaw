@@ -778,6 +778,17 @@ MUST AVOID:
 - Do NOT include multiple characters
 """
 
+            if style_preset.get("character_representation") == "stick_figure":
+                from novelvideo.styles.stickman import character_reference_prompt
+
+                prompt = character_reference_prompt(
+                    character_name=character_name, character_tag=character_tag,
+                    description=character_prompt, style=style_keywords, avoid=negative_keywords,
+                    layout="Two equal side-by-side panels: head-and-shoulders detail on the left, "
+                    "the same character's complete front-facing figure on the right.",
+                    theme=style_preset.get("style_theme"),
+                )
+
             # 保存 prompt 到文件（审计用）
             if output_dir:
                 if project_dir:
@@ -899,6 +910,20 @@ MUST AVOID:
         Returns:
             完整的生成 Prompt
         """
+        if StyleService.get_character_representation(
+            style_name or IMAGE_DEFAULT_STYLE,
+            project_dir=project_dir or None, state_dir=state_dir or None,
+        ) == "stick_figure":
+            from novelvideo.styles.stickman import character_reference_prompt
+
+            return character_reference_prompt(
+                character_name=character_name, character_tag=character_tag,
+                description=character_prompt, style=style_keywords, avoid=negative_keywords,
+                layout="One front-facing head-and-shoulders identity portrait; "
+                "keep the selected theme's head design and identifying accessories readable.",
+                theme=StyleService.get_style(style_name, project_dir=project_dir or None, state_dir=state_dir or None).style_theme,
+            )
+
         family, _ = StyleService.get_style_branch(
             style_name or IMAGE_DEFAULT_STYLE,
             project_dir=project_dir or None,
@@ -1032,6 +1057,22 @@ A second reference image is provided showing the target costume/clothing.
         Returns:
             4-panel reference sheet Prompt
         """
+        if StyleService.get_character_representation(
+            style_name or IMAGE_DEFAULT_STYLE,
+            project_dir=project_dir or None, state_dir=state_dir or None,
+        ) == "stick_figure":
+            from novelvideo.styles.stickman import character_reference_prompt
+
+            return character_reference_prompt(
+                character_name=character_name, character_tag=character_tag,
+                description=character_prompt, style=style_keywords, avoid=negative_keywords,
+                layout="Four panels arranged left to right: head-and-shoulders detail, "
+                "front full body, three-quarter full body, back full body. "
+                "Use the attached identity reference for the same simplified character in all views.",
+                has_costume_reference=has_costume_reference,
+                theme=StyleService.get_style(style_name, project_dir=project_dir or None, state_dir=state_dir or None).style_theme,
+            )
+
         family, _ = StyleService.get_style_branch(
             style_name or IMAGE_DEFAULT_STYLE,
             project_dir=project_dir or None,

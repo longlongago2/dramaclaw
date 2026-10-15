@@ -17,6 +17,9 @@ export interface Style {
   type?: "preset" | "custom";
   is_preset?: boolean;
   base?: string | null;
+  character_representation?: "standard" | "stick_figure";
+  theme_options?: string[];
+  style_theme?: string | null;
   // Top-level config fields (returned by single GET).
   style_instructions?: string;
   avoid_instructions?: string;

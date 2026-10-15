@@ -12,6 +12,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mutation = vi.hoisted(() => () => ({ mutateAsync: vi.fn(), isPending: false }));
 const createStyleMock = vi.hoisted(() => vi.fn());
+const updateProjectMock = vi.hoisted(() => vi.fn());
+const projectQueryState = vi.hoisted(() => ({ visual_style: "anime", visual_style_theme: null as string | null }));
 const PRESET_ZH_LABEL = "动漫风格";
 
 const styleQueryState = vi.hoisted(() => ({
@@ -52,8 +54,8 @@ vi.mock("@/lib/queries/styles", () => ({
 }));
 
 vi.mock("@/lib/queries/projects", () => ({
-  useProject: () => ({ data: { ok: true, data: { visual_style: "anime" } } }),
-  useUpdateProject: mutation,
+  useProject: () => ({ data: { ok: true, data: projectQueryState } }),
+  useUpdateProject: () => ({ mutateAsync: updateProjectMock, isPending: false }),
 }));
 
 import { Route } from "@/routes/_app/projects.$project/styles";
@@ -78,6 +80,17 @@ beforeAll(async () => {
             projectStyleSection: "Project style config",
             save: "Save",
             preset: "Preset",
+            themeLabel: "Drawing theme (optional)",
+            themeDefault: "Preset default",
+            themeClassic: "Classic monochrome",
+            themeModern: "Modern cinematic",
+            themePrehistoric: "Prehistoric hand-drawn",
+            themeHint: "Applies to future generations.",
+            themeVariantLabel: "Specific style",
+            theme1A: "Style 1A · Black on white",
+            theme1B: "Style 1B · White on black",
+            theme2A: "Style 2A · Minimal tech",
+            theme2B: "Style 2B · Colorful story",
           },
         },
       },
@@ -107,6 +120,10 @@ async function openStyleDirective(user: ReturnType<typeof userEvent.setup>) {
 describe("built-in preset labels in the style editor", () => {
   beforeEach(() => {
     createStyleMock.mockReset();
+    updateProjectMock.mockReset();
+    updateProjectMock.mockResolvedValue({ ok: true });
+    projectQueryState.visual_style = "anime";
+    projectQueryState.visual_style_theme = null;
     createStyleMock.mockResolvedValue({ ok: true, data: { id: "anime" } });
     styleQueryState.detail = {
       id: "anime",
@@ -176,5 +193,80 @@ describe("built-in preset labels in the style editor", () => {
     renderStyles();
 
     expect(await screen.findByLabelText("UI Label")).toHaveValue("我的风格");
+  });
+
+  it("does not show a theme control for an ordinary preset", async () => {
+    renderStyles();
+    await screen.findByLabelText("UI Label");
+    expect(screen.queryByRole("combobox", { name: /Drawing theme/ })).not.toBeInTheDocument();
+  });
+
+  it("applies an optional stickman theme together with the preset", async () => {
+    styleQueryState.detail = {
+      id: "stickman", name: "Stick Figure", label: "火柴人", type: "preset",
+      theme_options: ["classic", "modern", "prehistoric"],
+    };
+    const user = userEvent.setup();
+    renderStyles();
+    const select = await screen.findByRole("combobox", { name: /Drawing theme/ });
+    expect(select).toHaveTextContent("Preset default");
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Modern cinematic" }));
+    await user.click(screen.getByRole("button", { name: "styles.applyToProject" }));
+    expect(updateProjectMock).toHaveBeenCalledWith({ visual_style: "stickman", visual_style_theme: "2b" });
+  });
+
+  it("can change and clear the theme of the project's current default", async () => {
+    projectQueryState.visual_style = "stickman";
+    projectQueryState.visual_style_theme = "modern";
+    styleQueryState.detail = {
+      id: "stickman", name: "Stick Figure", type: "preset",
+      theme_options: ["classic", "modern", "prehistoric"],
+    };
+    const user = userEvent.setup();
+    renderStyles();
+    const select = await screen.findByRole("combobox", { name: /Drawing theme/ });
+    expect(select).toHaveTextContent("Modern cinematic");
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Prehistoric hand-drawn" }));
+    await user.click(screen.getByRole("button", { name: "styles.applyToProject" }));
+    expect(updateProjectMock).toHaveBeenLastCalledWith({ visual_style: "stickman", visual_style_theme: "3" });
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Preset default" }));
+    await user.click(screen.getByRole("button", { name: "styles.applyToProject" }));
+    expect(updateProjectMock).toHaveBeenLastCalledWith({ visual_style: "stickman", visual_style_theme: null });
+  });
+
+  it("switches upstream previews immediately for each concrete variant without saving", async () => {
+    styleQueryState.detail = {
+      id: "stickman", name: "Stick Figure", type: "preset",
+      theme_options: ["classic", "modern", "prehistoric", "1a", "1b", "2a", "2b", "3"],
+    };
+    const user = userEvent.setup();
+    renderStyles();
+    const primary = await screen.findByRole("combobox", { name: /Drawing theme/ });
+    const preview = screen.getByRole('img', { name: 'Stick Figure preview' });
+    expect(preview.getAttribute('src')).not.toContain('&theme=');
+    await user.click(primary);
+    await user.click(await screen.findByRole('option', { name: 'Classic monochrome' }));
+    expect(preview.getAttribute('src')).toContain('&theme=1a');
+    const variant = screen.getByRole('combobox', { name: 'Specific style' });
+    await user.click(variant);
+    await user.click(await screen.findByRole('option', { name: 'Style 1B · White on black' }));
+    expect(preview.getAttribute('src')).toContain('&theme=1b');
+    await user.click(primary);
+    await user.click(await screen.findByRole('option', { name: 'Modern cinematic' }));
+    expect(preview.getAttribute('src')).toContain('&theme=2b');
+    await user.click(screen.getByRole('combobox', { name: 'Specific style' }));
+    await user.click(await screen.findByRole('option', { name: 'Style 2A · Minimal tech' }));
+    expect(preview.getAttribute('src')).toContain('&theme=2a');
+    await user.click(primary);
+    await user.click(await screen.findByRole('option', { name: 'Prehistoric hand-drawn' }));
+    expect(preview.getAttribute('src')).toContain('&theme=3');
+    expect(screen.queryByRole('combobox', { name: 'Specific style' })).not.toBeInTheDocument();
+    expect(updateProjectMock).not.toHaveBeenCalled();
+    await user.click(primary);
+    await user.click(await screen.findByRole('option', { name: 'Preset default' }));
+    expect(preview.getAttribute('src')).not.toContain('&theme=');
   });
 });

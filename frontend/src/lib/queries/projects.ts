@@ -37,14 +37,29 @@ export function useProject(project: string) {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) =>
+    mutationFn: (displayName: string) =>
       api
-        .post("api/v1/projects", { json: { name } })
-        .json<OkResponse<{ id?: string; project_id?: string; name: string }>>(),
+        .post("api/v1/projects", { json: { display_name: displayName } })
+        .json<OkResponse<{ id: string; project_id: string; name: string; display_name: string }>>(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects() });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectSummaries() });
     },
+  });
+}
+
+export function useRenameProject(project: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (displayName: string) =>
+      api
+        .patch(p`api/v1/projects/${project}/display-name`, { json: { display_name: displayName } })
+        .json<OkResponse<{ id: string; name: string; display_name: string }>>(),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectSummaries() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.project(project) }),
+    ]),
   });
 }
 
@@ -55,8 +70,11 @@ export function useUpdateProject(project: string) {
       api
         .patch(p`api/v1/projects/${project}`, { json: config })
         .json<OkResponse<ProjectConfig>>(),
-    onSuccess: () => {
+    onSuccess: (_response, config) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.project(project) });
+      if ('visual_style' in config || 'visual_style_theme' in config) {
+        queryClient.invalidateQueries({ queryKey: ['styles'] });
+      }
     },
   });
 }
@@ -73,6 +91,7 @@ type SummaryPayload = {
   id?: string;
   project_id?: string;
   name: string;
+  display_name?: string | null;
   owner_type?: "user" | "team" | null;
   owner_id?: string | null;
   owner_username?: string | null;
@@ -94,6 +113,7 @@ function toSummary(p: SummaryPayload): ProjectSummary {
   return {
     id,
     name: p.name,
+    displayName: p.display_name || p.name,
     status: p.status,
     ownerType: p.owner_type ?? undefined,
     ownerId: p.owner_id ?? undefined,

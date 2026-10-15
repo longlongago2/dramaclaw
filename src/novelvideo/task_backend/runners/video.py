@@ -22,6 +22,24 @@ from novelvideo.task_state import get_task_manager
 logger = logging.getLogger(__name__)
 
 
+def _apply_project_video_style(prompt: str, ctx: ProjectContext) -> str:
+    from novelvideo.config import IMAGE_DEFAULT_STYLE
+    from novelvideo.project_config import load_project_config_file_from_state_dir
+    from novelvideo.services.style_service import StyleService
+    from novelvideo.styles.stickman import append_video_style
+    from novelvideo.styles.runtime import active_style_snapshot
+
+    snapshot = active_style_snapshot()
+    if snapshot and snapshot.get("id"):
+        return append_video_style(prompt, snapshot.get("character_representation", "standard"), snapshot.get("style_theme"))
+    config = load_project_config_file_from_state_dir(ctx.state_dir)
+    style = StyleService.get_style(
+        str(config.get("visual_style") or IMAGE_DEFAULT_STYLE),
+        project_dir=ctx.output_dir, state_dir=ctx.state_dir,
+    )
+    return append_video_style(prompt, style.character_representation, style.style_theme) if style else prompt
+
+
 def _log(manager, ctx: ProjectContext, envelope: dict[str, Any], message: str) -> None:
     manager.update_progress_for_project(
         ctx,
@@ -208,6 +226,7 @@ async def _run_single_video_async(
             if isinstance(item, dict) and str(item.get("path") or "").strip()
         ]
 
+    prompt = _apply_project_video_style(prompt, ctx)
     generate_kwargs = {
         "image_path": frame_path,
         "prompt": prompt,

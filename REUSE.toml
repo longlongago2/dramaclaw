@@ -19,6 +19,18 @@ SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [
+    "src/novelvideo/styles/presets/stickman-previews/1a.png",
+    "src/novelvideo/styles/presets/stickman-previews/1b.png",
+    "src/novelvideo/styles/presets/stickman-previews/2a.png",
+    "src/novelvideo/styles/presets/stickman-previews/3.png",
+    "src/novelvideo/styles/presets/stickman-previews/LICENSE",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Stickman Video Director contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
     "**",
 ]
 precedence = "aggregate"

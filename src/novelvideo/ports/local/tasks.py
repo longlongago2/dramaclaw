@@ -100,6 +100,12 @@ class InlineTaskBackend:
         require_project_home_node(ctx, operation="enqueue project task")
         manager = get_task_manager()
         payload = payload or {}
+        if product_surface == "mainline" and "style_snapshot" not in payload:
+            from novelvideo.styles.runtime import capture_project_style
+
+            snapshot = capture_project_style(ctx)
+            if snapshot:
+                payload = {**payload, "style_snapshot": snapshot}
         lane_name = normalize_queue_kind(queue_kind)
         metadata = {
             "backend": "inline",

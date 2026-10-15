@@ -34,6 +34,7 @@ import {
 } from "@/lib/queries/projects";
 import { MAX_PROJECT_GRANTS } from "@/lib/limits";
 import { projectRoleLabel } from "@/lib/project-permissions";
+import { getProjectDisplayName } from "@/lib/project-name";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 import type { ProjectRole, ProjectSummary } from "@/types/project";
@@ -219,7 +220,7 @@ export function ShareProjectDialog({
           <DialogDescription>
             {project
               ? t("project.shareDialog.descriptionWithOwner", {
-                  name: project.name,
+                  name: getProjectDisplayName(project),
                   owner: project.ownerUsername || t("project.shareDialog.currentUserFallback"),
                 })
               : t("project.shareDialog.descriptionFallback")}

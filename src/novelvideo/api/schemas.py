@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from novelvideo.models import SceneRef
+from novelvideo.ports.project import normalize_project_display_name
 from novelvideo.freezone.asset_copy import MAX_SOURCE_URL_LENGTH, MAX_SOURCES_PER_REQUEST
 from novelvideo.freezone.slots import PushTarget
 
@@ -43,12 +44,35 @@ class ErrorResponse(BaseModel):
 
 
 class ProjectCreate(BaseModel):
-    name: str = Field(max_length=64)
+    # Legacy clients supply the directory name; new clients supply a title.
+    name: str | None = Field(default=None, max_length=64)
+    display_name: str | None = None
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str | None) -> str | None:
+        return normalize_project_display_name(value) if value is not None else None
+
+    @model_validator(mode="after")
+    def require_project_name(self) -> "ProjectCreate":
+        if self.name is None and self.display_name is None:
+            raise ValueError("A project name or display name is required")
+        return self
+
+
+class ProjectDisplayNameUpdate(BaseModel):
+    display_name: str
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str) -> str:
+        return normalize_project_display_name(value)
 
 
 class ProjectSummary(BaseModel):
     id: str = ""
     name: str
+    display_name: str = ""
     owner_type: str = "user"
     owner_id: str = ""
     owner_username: str = ""
@@ -90,6 +114,7 @@ class ProjectUpdate(BaseModel):
     spine_template: Optional[Literal["drama", "narrated"]] = None
     aspect_ratio: Optional[Literal["2:3", "9:16", "16:9"]] = None
     visual_style: Optional[str] = None
+    visual_style_theme: Optional[Literal["classic", "modern", "prehistoric", "1a", "1b", "2a", "2b", "3"]] = None
     narration_style: Optional[str] = None
     ethnicity: Optional[str] = None
     rhythm: Optional[str] = None

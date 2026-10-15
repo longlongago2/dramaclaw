@@ -50,6 +50,15 @@ THIRD_PARTY_PATH_OVERRIDES: tuple[tuple[str, str, str, str], ...] = (
         "Quaternius",
         "upstream License.txt (CC0-1.0 public domain)",
     ),
+    *(
+        (
+            f"src/novelvideo/styles/presets/stickman-previews/{name}",
+            "MIT",
+            "2026 Stickman Video Director contributors",
+            "bundled upstream LICENSE and sources.json",
+        )
+        for name in ("1a.png", "1b.png", "2a.png", "3.png", "LICENSE")
+    ),
 )
 
 

@@ -1,0 +1,12 @@
+{
+  "id": "stickman",
+  "name": "Stick Figure",
+  "label": "火柴人",
+  "style_family": "animation",
+  "animation_subtype": "2d",
+  "character_representation": "stick_figure",
+  "theme_options": ["classic", "modern", "prehistoric", "1a", "1b", "2a", "2b", "3"],
+  "style_tag": "MINIMAL 2D STICK FIGURE, BLACK LINE ON WHITE",
+  "style_instructions": "Draw a minimalist 2D stick-figure animation frame on a flat pure white background. Use crisp, uniform medium-weight black lines, hollow circular heads, single-line torsos and connected line limbs with stable proportions. Use simple line expressions only when needed. Preserve the story's character identities, relative sizes, actions, camera composition, essential costume cues, props and locations, translating them into sparse readable outlines. Render clothing and accessories as simplified graphic cues; do not invent a fixed outfit. References provide identity and composition cues, not realistic anatomy or rendering materials. Use black and white by default, with only explicitly requested accent colors. Each limb occupies only its current pose; preserve natural occlusion without adding limbs. Always follow explicit character descriptions, beat, scene and prop descriptions for narrative content; do not override them with unrelated style themes.",
+  "avoid_instructions": "No photorealistic rendering, realistic skin texture, detailed facial features, volumetric human bodies, 3D CGI, gradients, cinematic shading, paper textures or film grain. No extra limbs, detached limbs or lingering duplicate limb poses. No captions, watermarks, signatures or text overlays. Do not convert stick figures into natural human anatomy."
+}

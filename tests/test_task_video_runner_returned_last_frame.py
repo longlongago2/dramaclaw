@@ -92,12 +92,21 @@ async def test_omni_video_edit_parameter_error_has_actionable_task_message(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("style_id", ["anime", "stickman"])
 async def test_single_video_runner_includes_returned_last_frame_in_task_result(
     tmp_path,
     monkeypatch,
+    style_id,
 ):
     from novelvideo.generators.video_generator import VideoGenStatus
     from novelvideo.task_backend.runners import video as video_runner
+    from novelvideo.styles.stickman import VIDEO_RULE
+
+    ctx = _ctx(tmp_path)
+    ctx.state_dir.mkdir(parents=True, exist_ok=True)
+    (ctx.state_dir / "project_config.json").write_text(
+        '{"visual_style": "' + style_id + '"}', encoding="utf-8",
+    )
 
     class FakeTaskManager:
         def update_progress_for_project(self, *_args, **_kwargs):
@@ -105,6 +114,7 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
 
     class FakeVideoGenerator:
         async def generate(self, **kwargs):
+            assert (VIDEO_RULE in kwargs["prompt"]) == (style_id == "stickman")
             video_path = Path(kwargs["output_path"])
             video_path.parent.mkdir(parents=True, exist_ok=True)
             video_path.write_bytes(b"video")
@@ -142,7 +152,7 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
                 }
             },
         },
-        _ctx(tmp_path),
+        ctx,
     )
 
     assert result["provider_task_id"] == "provider-task-1"

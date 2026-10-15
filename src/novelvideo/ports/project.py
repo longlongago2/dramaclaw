@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -18,6 +19,16 @@ ROLE_ORDER = {
     PROJECT_ROLE_ADMIN: 30,
     PROJECT_ROLE_OWNER: 40,
 }
+
+
+def normalize_project_display_name(value: str) -> str:
+    """Normalize a single-line, user-facing title without using it as a path."""
+    name = unicodedata.normalize("NFC", value).strip()
+    if not name or len(name) > 64:
+        raise ValueError("Project display name must be between 1 and 64 characters long")
+    if any(unicodedata.category(char) in {"Cc", "Cs", "Zl", "Zp"} for char in name):
+        raise ValueError("Project display name must not contain control characters or line breaks")
+    return name
 
 
 @dataclass(frozen=True)
@@ -37,6 +48,7 @@ class ProjectRecord:
     purged_at: str | None = None
     storage_org_id: str | None = None
     storage_org_name: str | None = None
+    display_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -68,12 +80,19 @@ class ProjectRegistry(Protocol):
         *,
         owner_user_id: str,
         owner_username: str,
-        name: str,
+        name: str | None = None,
+        display_name: str | None = None,
         home_node_id: str | None = None,
         output_dir: str | None = None,
         state_dir: str | None = None,
         runtime_dir: str | None = None,
     ) -> ProjectRecord: ...
+
+    async def update_project_display_name(
+        self,
+        project_id: str,
+        display_name: str,
+    ) -> ProjectRecord | None: ...
 
     async def list_accessible_projects(
         self,
