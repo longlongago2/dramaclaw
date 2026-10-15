@@ -249,7 +249,7 @@ def resolve_model_config(
         env_api_key="MODEL_API_KEY",
         env_base_url="MODEL_BASE_URL",
     )
-    return model, api_key, base_url or "http://localhost:3000/v1"
+    return model, api_key, base_url or "http://localhost:18473/v1"
 
 
 def create_staging_prop_agent(

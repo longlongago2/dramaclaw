@@ -492,7 +492,7 @@ def get_provisioner_config(
                 admin_base_url,
                 settings.get("custom_newapi_admin_base_url"),
                 os.environ.get("NEWAPI_ADMIN_BASE_URL", ""),
-                "http://127.0.0.1:3000",
+                "http://127.0.0.1:18473",
             )
         ),
         sql_dsn=resolved_sql_dsn,

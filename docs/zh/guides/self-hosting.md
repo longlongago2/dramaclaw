@@ -40,7 +40,7 @@ cp .env.example .env
 | 镜像（release） | `${DRAMACLAW_IMAGE_PREFIX:-claymorelab}/...` | 默认拉 Docker Hub；`.env` 设 `DRAMACLAW_IMAGE_PREFIX` 切到 ACR 镜像（只有钉 tag） |
 | 版本（release） | `DRAMACLAW_VERSION`（api/web）、`DRAMACLAW_GATEWAY_VERSION` | 默认 `2.0.2` / 文件里写死的网关 tag |
 | 端口 | `8780:8780` | REST API |
-| 网关管理端口 | `${ST_NEWAPI_BIND:-127.0.0.1}:${ST_NEWAPI_PORT:-3000}:3000` | 默认只绑 `127.0.0.1`；`.env` 设 `ST_NEWAPI_BIND=0.0.0.0` 放开 |
+| 网关管理端口 | `${ST_NEWAPI_BIND:-127.0.0.1}:${ST_NEWAPI_PORT:-18473}:3000` | 默认只绑 `127.0.0.1`；`.env` 设 `ST_NEWAPI_BIND=0.0.0.0` 放开 |
 | 强制环境 | `ST_EDITION=ce`、清空 control-plane/Redis/Celery | CE 模式不可降级 |
 | 数据卷 | `ce-data:/data`（输出为 `/data/output`） | 持久化项目数据库、设置和生成媒体 |
 
@@ -164,7 +164,7 @@ docker compose up -d
 |---|---|
 | 容器起不来 | `docker compose logs api`；多半是 `.env` 网关地址/Key 未改或不可达 |
 | 8780 端口占用 | 改 compose `ports` 左值，如 `8888:8780` |
-| 3000 端口被占用（内置网关起不来） | `.env` 设 `ST_NEWAPI_PORT=<空闲端口>` 后重新启动。该端口默认只绑 `127.0.0.1`；`api` 不再等网关健康，不会被这个卡住。 |
+| 18473 端口被占用（内置网关起不来） | `.env` 设 `ST_NEWAPI_PORT=<空闲端口>` 后重新启动。该端口默认只绑 `127.0.0.1`；`api` 不再等网关健康，不会被这个卡住。 |
 | 模型调用报错 | 确认网关可达、`*_MODEL` 名在网关后台存在 |
 
 ## 相关

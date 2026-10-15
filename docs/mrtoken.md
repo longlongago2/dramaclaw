@@ -39,7 +39,7 @@
 
 渠道能力声明用于下拉框筛选，不等同于所有生成协议已经适配。当前实现复用
 Chat Completions 和 OpenAI 风格 `/v1/images/generations`、`/v1/images/edits`。
-Qwen 的 `input/parameters` 图片形态、H3/Seedance 2.0 以外的视频模型、音乐和 3D 接口仍需适配。
+Qwen 的 `input/parameters` 图片形态、音乐和 3D 接口仍需适配。视频已接入 H3、Seedance 2.0、HappyHorse 生成及下述 Wan 生成型号；目录发现不等于逐型号真实生成已验证。
 
 ## MiniMax H3 视频
 
@@ -94,5 +94,41 @@ Fast/Mini 为 480p、720p；基础型号的 1080p 仅适用于文生/首帧输�
 四图输入由契约测试覆盖。Seedance 三个型号均能在模型发现中列出，但真实创建
 返回上游“模型不存在或无权访问”，未产生可验证的视频；需 MrToken 侧检查权限
 或模型映射。配置和协议转换测试已完成，此限制不应被描述为真实生成通过。
+
+## Wan 2.7 / 3.0 视频
+
+更新并重启相邻的 `dramaclaw-gateway` 后，将
+[Wan 2.7 示例](../examples/mrtoken-wan27-media-models.json)和
+[Wan 3.0 示例](../examples/mrtoken-wan3-media-models.json)合并进已有媒体目录，再保存配置。
+保存 API 会替换完整媒体列表，必须保留原模型。渠道继续使用 MrToken 的 type 1 和平台根地址。
+
+| 模型 | UI 输入模式 | 固定时长 | 分辨率 |
+| --- | --- | --- | --- |
+| `wan2.7-t2v` | 文生 | 2–15 秒 | 720p / 1080p |
+| `wan2.7-i2v` | 首帧、首尾帧、图生 | 2–15 秒 | 720p / 1080p |
+| `wan2.7-r2v` | 1–5 张参考图 | 2–15 秒 | 720p / 1080p |
+| `wan3.0-video` / `wan3.0-video-prime` | 文生、首帧、首尾帧、图片参考 | 2–30 秒 | 480p / 720p / 1080p |
+
+通用 UI 发送 DC-Media 请求，由网关转换至平台的原生 `input/parameters` 协议。
+网关保留上游任务 ID，成功查询返回平台提供的结果 URL；沿用项目原有的下载和存储
+逻辑，由 DramaClaw 下载器不携带平台 Key 下载并原子写入项目存储，不要求 MrToken 转存。
+网关内容代理保持原有 SSRF 防护。本地生成目录暂不开放视频编辑和 Wan 3.0 视频参考，后者需要输入与输出
+时长合并计费。API 的其他媒体组合、限制和验收记录见网关的
+`docs/providers/mrtoken-wan-assessment.md`。
+
+2026-10-15 本机验收：`wan2.7-r2v` 原生创建一条 2 秒、720p、单图参考任务并成功生成。
+复用同一任务完成本地网关恢复轮询、DramaClaw 下载和 UI 导入播放，输出 H.264/AAC、
+1280×720、2.02 秒。随后从 UI 单次提交 2 秒、720p、单图 R2V 验收任务，网关成功获得并
+保存上游任务 ID，但平台查询该任务持续返回 HTTP 500，直接查询 MrToken 也复现。
+该任务未重提，页面新建至自动保存的完整闭环仍受平台查询错误阻塞；其他型号的
+真实生成权限尚未验证，其余模式由契约测试覆盖。示例不包含定价，按 MrToken 实际价格配置；
+CE 本地不计费设置不影响供应商收费。
+
+后续页面故障定位：上述 UI 任务和用户的 4 秒 R2V 任务均已在网关生成成功。
+页面使用的 DC-Media 查询曾遗漏 Wan 原生结果分支，仍返回签名下载代理，导致本机
+Fake IP 网络环境下持续 403；API 重启后页面显示任务中断。现已修复 DC-Media 的
+`result_url` 与 `results[].url`，保持原生结果地址，与 Ali、Doubao 的既有交付一致。
+复用用户原 4 秒任务，修复后的查询及原下载器已通过验证，H.264/AAC、1280×720、
+4.04 秒，完整解码通过，未重提收费任务。根因和任务关联见网关评估文档。
 
 接口依据：[MrToken AI API 完整文档](https://www.mrtoken.cn/mrtoken/docs/ai-api/all.md)。

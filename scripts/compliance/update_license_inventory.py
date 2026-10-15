@@ -14,7 +14,9 @@ import sys
 from scripts.compliance.generate_p0b_artifacts import render_license_inventory
 
 
-def update_inventory(root: Path, *, check: bool = False) -> int:
+def update_inventory(root: Path, *, check: bool = False, stage: bool = False) -> int:
+    if check and stage:
+        raise ValueError("check and stage are mutually exclusive")
     def git(*args: str) -> bytes:
         return subprocess.check_output(["git", "-C", str(root), *args])
 
@@ -40,10 +42,23 @@ def update_inventory(root: Path, *, check: bool = False) -> int:
         return 1
 
     current = inventory_path.read_text(encoding="utf-8") if inventory_path.exists() else ""
+    if stage and "license-inventory.csv" not in files:
+        print("Stage license-inventory.csv before automatic maintenance; its deletion was preserved.", file=sys.stderr)
+        return 1
+    if stage and staged == expected:
+        return 0
     if current == expected:
         if "license-inventory.csv" not in files:
             print("Stage license-inventory.csv before committing: git add license-inventory.csv")
             return 1
+        if stage and staged != expected:
+            staged_rows = {row["path"]: row for row in csv.DictReader(io.StringIO(staged))}
+            expected_rows = {row["path"]: row for row in csv.DictReader(io.StringIO(expected))}
+            if any(staged_rows[path] != expected_rows[path] for path in staged_rows.keys() & expected_rows.keys()):
+                print("Staged license metadata differs from generator rules; preserved without overwriting.", file=sys.stderr)
+                return 1
+            git("add", "--", "license-inventory.csv")
+            print("Staged generated license-inventory.csv.")
         return 0
 
     if current != staged:
@@ -72,16 +87,22 @@ def update_inventory(root: Path, *, check: bool = False) -> int:
         return 1
 
     inventory_path.write_bytes(expected.encode("utf-8"))
+    if stage:
+        git("add", "--", "license-inventory.csv")
+        print("Updated and staged generated license-inventory.csv from the Git index.")
+        return 0
     print("Updated license-inventory.csv from the Git index. Run git add license-inventory.csv, then retry the commit.")
     return 1
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="Check the Git index without modifying files.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="Check the Git index without modifying files.")
+    mode.add_argument("--stage", action="store_true", help="Safely update and stage generated inventory before pre-commit hides unstaged edits.")
     args = parser.parse_args()
     root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
-    return update_inventory(root, check=args.check)
+    return update_inventory(root, check=args.check, stage=args.stage)
 
 
 if __name__ == "__main__":
