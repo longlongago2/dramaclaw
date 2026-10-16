@@ -115,7 +115,7 @@ def test_compose_pins_env_file_long_syntax_ports_and_volumes() -> None:
     assert api["env_file"] == [{"path": ".env", "required": False}]
     assert api["ports"] == ["${ST_API_PORT:-8780}:8780"]
     assert compose["services"]["newapi"]["ports"] == [
-        "${ST_NEWAPI_BIND:-127.0.0.1}:${ST_NEWAPI_PORT:-3000}:3000"
+        "${ST_NEWAPI_BIND:-127.0.0.1}:${ST_NEWAPI_PORT:-18473}:3000"
     ]
     assert compose["services"]["web"]["ports"] == ["${ST_WEB_PORT:-8080}:80"]
     assert set(compose["volumes"]) == {"ce-data", "newapi-data"}

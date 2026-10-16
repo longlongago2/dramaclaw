@@ -184,6 +184,7 @@ async def test_new_projects_are_structured_and_carry_no_embedding_binding(
     from types import SimpleNamespace
 
     from novelvideo.api.routes import projects
+    from novelvideo.api.schemas import ProjectCreate
     from novelvideo.embedding_models import (
         PROJECT_EMBEDDING_DIMENSION_KEY,
         PROJECT_EMBEDDING_MODEL_KEY,
@@ -230,7 +231,7 @@ async def test_new_projects_are_structured_and_carry_no_embedding_binding(
     )
 
     response = await projects.create_project(
-        body=SimpleNamespace(name="fresh"),
+        body=ProjectCreate(name="fresh"),
         user={"username": "someone"},
     )
     assert response["ok"] is True

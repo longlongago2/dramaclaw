@@ -1603,7 +1603,7 @@ def test_newapi_db_defaults_to_managed_ce_sqlite_and_does_not_create_empty_file(
 
     cfg = model_gateway.get_provisioner_config()
 
-    assert cfg.admin_base_url == "http://127.0.0.1:3000"
+    assert cfg.admin_base_url == "http://127.0.0.1:18473"
     assert cfg.sql_dsn == "local"
     assert cfg.sqlite_path == str(tmp_path / "state" / "newapi" / "one-api.db")
     with pytest.raises(RuntimeError, match="does not exist"):
