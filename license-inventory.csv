@@ -1991,7 +1991,7 @@ scripts/convert_canvas_voice_refs.py,Elastic-2.0,2026 SuperTale contributors,REU
 scripts/fetch_browser_models.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 scripts/frontend_i18n_allowlist.json,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 scripts/generate_workflow_contract.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
-scripts/init-shared-skills.ps1,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+scripts/init-shared-skills.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 scripts/install_commit_hooks.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 scripts/lint_banned_words.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 scripts/lint_ce_imports.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation

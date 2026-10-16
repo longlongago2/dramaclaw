@@ -26,21 +26,25 @@ cp .env.example .env      # 按文档配置模型网关
 uv run novelvideo api --port 8780
 ```
 
-### Windows 工作区共享技能
+### 跨平台共享技能与项目技能
 
-子仓库只提交 `.agents/.gitkeep`；内部文件全部忽略，`skills` 由本地 Junction 连接到
-工作区根目录的 `.agents/skills`。先从已有工作区或备份恢复该技能源，再在每个子仓库执行：
+子仓库默认只提交 `.agents/.gitkeep`，内部文件全部忽略。`.agents/skills/` 本身必须是
+普通目录：共享技能的子目录分别链接到工作区根目录的同名技能，项目专属技能使用自己的普通目录。
+需要 Python 3.11+ 和 Git；Windows 使用 CPython 创建逐项 Junction，Linux/macOS 创建符号链接。
+先从已有工作区或备份恢复根目录的 `.agents/skills` 技能源，再在每个子仓库执行：
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/init-shared-skills.ps1
+```bash
+python scripts/init-shared-skills.py
 ```
 
-默认技能源为 `../.agents/skills`，其他位置可传 `-SharedSkillsPath <目录>`。脚本可重复运行；
-源目录缺失、技能仍被 Git 跟踪、目标已有文件或指向其他位置时会报错并保留内容。
-不要将 `.gitkeep` 放进 Junction，也不要重新提交共享技能。历史分支若仍跟踪这些文件，
-须先同步本修复，或在不建立 Junction 的独立 worktree 中操作；忽略规则不保护已跟踪文件。
+默认技能源为 `../.agents/skills`，其他位置可传 `--shared-skills-path <目录>`。脚本可重复运行，
+后续新增共享技能时再次运行即可补建链接。原有整个 `skills` 目录的链接若指向正确技能源，
+会安全迁移为普通目录加逐项链接；不修改共享源文件，不覆盖项目技能。
+重名冲突、共享路径仍被 Git 跟踪或链接指向其他位置时会先报错，不覆盖已有内容。
+不要重新提交共享链接。历史分支若仍跟踪共享技能，须先同步本修复，或在不建立这些链接的
+独立 worktree 中操作；忽略规则不保护已跟踪文件。
 
-Windows 回归验证：`python scripts/test_init_shared_skills.py`。
+跨平台回归验证：`python scripts/test_init_shared_skills.py`。
 
 ### 流程
 
