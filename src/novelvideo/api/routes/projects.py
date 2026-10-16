@@ -27,6 +27,7 @@ from novelvideo.api.schemas import (
     NarratorVoiceCopyRequest,
     NarratorVoiceTrimRequest,
     ProjectCreate,
+    ProjectDisplayNameUpdate,
     ProjectStatusFilter,
     ProjectSummary,
     ProjectUpdate,
@@ -150,6 +151,7 @@ def _summary_for_record_sync(
         return ProjectSummary(
             id=record.id,
             name=record.name,
+            display_name=record.display_name or record.name,
             owner_type=record.owner_type,
             owner_id=record.owner_id,
             owner_username=record.owner_username,
@@ -174,6 +176,7 @@ def _summary_for_record_sync(
     return ProjectSummary(
         id=record.id,
         name=record.name,
+        display_name=record.display_name or record.name,
         owner_type=record.owner_type,
         owner_id=record.owner_id,
         owner_username=record.owner_username,
@@ -183,7 +186,7 @@ def _summary_for_record_sync(
         archived_at=config.get("archived_at"),
         deleted_at=config.get("deleted_at"),
         purged_at=record.purged_at,
-        updated_at=_project_updated_at(paths),
+        updated_at=max(filter(None, (_project_updated_at(paths), record.updated_at)), default=None),
         episode_count=episode_count,
         beat_count=beat_count,
     )
@@ -658,6 +661,7 @@ async def list_projects(user: dict = Depends(get_api_user)):
             {
                 "id": record.id,
                 "name": record.name,
+                "display_name": record.display_name or record.name,
                 "owner_username": record.owner_username,
                 "owner_type": record.owner_type,
                 "owner_id": record.owner_id,
@@ -708,26 +712,33 @@ async def create_project(
     body: ProjectCreate, user: dict = Depends(require_scope("projects:write"))
 ):
     """创建新项目。"""
-    logger.info("create_project: %s", body.name)
-    validate_project_name(body.name)
+    title = body.display_name if body.display_name is not None else body.name
+    logger.info("create_project: %s", title)
+    if body.name is not None:
+        validate_project_name(body.name)
     user_id = await user_id_from_api_user(user)
     registry = get_project_registry()
+    if body.display_name is not None and not callable(
+        getattr(registry, "update_project_display_name", None)
+    ):
+        raise HTTPException(501, "Project registry must be upgraded to support display names")
     try:
         record = await registry.create_project(
             owner_user_id=user_id,
             owner_username=user["username"],
             name=body.name,
+            **({"display_name": body.display_name} if body.display_name is not None else {}),
         )
     except asyncpg.exceptions.UniqueViolationError as exc:
         raise HTTPException(
             status_code=409,
-            detail=f"Project '{body.name}' already exists",
+            detail=f"Project '{title}' already exists",
         ) from exc
     except ValueError as exc:
         if "already exists" in str(exc):
             raise HTTPException(
                 status_code=409,
-                detail=f"Project '{body.name}' already exists",
+                detail=f"Project '{title}' already exists",
             ) from exc
         raise
     try:
@@ -780,7 +791,48 @@ async def create_project(
             logger.warning("failed to compensate uncommitted project registry row", exc_info=True)
         raise
     _delete_quarantined_project_dirs(orphaned_dirs)
-    return {"ok": True, "data": {"id": record.id, "project_id": record.id, "name": body.name}}
+    return {
+        "ok": True,
+        "data": {
+            "id": record.id,
+            "project_id": record.id,
+            "name": record.name,
+            "display_name": record.display_name or record.name,
+        },
+    }
+
+
+@router.patch("/projects/{project}/display-name")
+async def update_project_display_name(
+    project: str,
+    body: ProjectDisplayNameUpdate,
+    user: dict = Depends(require_scope("projects:write")),
+):
+    """Rename the title in the registry without moving any project data."""
+    ctx = await resolve_project_context(user=user, project_id=project, required_role="admin")
+    registry = get_project_registry()
+    update_title = getattr(registry, "update_project_display_name", None)
+    if not callable(update_title):
+        raise HTTPException(501, "Project registry must be upgraded to support display names")
+    try:
+        record = await update_title(project, body.display_name)
+    except asyncpg.exceptions.UniqueViolationError as exc:
+        raise HTTPException(409, f"Project '{body.display_name}' already exists") from exc
+    except ValueError as exc:
+        if "already exists" in str(exc):
+            raise HTTPException(409, f"Project '{body.display_name}' already exists") from exc
+        raise
+    if record is None:
+        raise HTTPException(404, "Project not found")
+    await emit_project_audit(
+        action="project.rename",
+        ctx=ctx,
+        metadata={"display_name": record.display_name},
+    )
+    return {
+        "ok": True,
+        "data": {"id": record.id, "name": record.name, "display_name": record.display_name},
+    }
 
 
 @router.get("/projects/{project}")
@@ -799,6 +851,7 @@ async def get_project(project: str, user: dict = Depends(get_api_user)):
         {
             "project_id": ctx.project_id,
             "name": ctx.project_name,
+            "display_name": (record.display_name if record is not None else "") or ctx.project_name,
             "owner_username": ctx.owner_username,
             "effective_role": ctx.effective_role,
             "home_node_id": ctx.home_node_id,
@@ -881,6 +934,20 @@ async def update_project(
                     ),
                 },
             )
+
+    from novelvideo.services.style_service import StyleService
+
+    selected_style = updates.get("visual_style", current_config.get("visual_style"))
+    theme_was_set = "visual_style_theme" in body.model_fields_set
+    if theme_was_set:
+        style_config = StyleService.get_style(selected_style, state_dir=ctx.state_dir)
+        if body.visual_style_theme and (
+            style_config is None or body.visual_style_theme not in style_config.theme_options
+        ):
+            raise HTTPException(400, "Selected style does not support this theme")
+        updates["visual_style_theme"] = body.visual_style_theme
+    elif "visual_style" in updates and selected_style != current_config.get("visual_style"):
+        updates["visual_style_theme"] = None
 
     if updates:
         save_project_config_in_state_dir(ctx.state_dir, config=updates)

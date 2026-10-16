@@ -28,6 +28,7 @@ from pypinyin import pinyin, Style
 from novelvideo.config import get_style_preset, IMAGE_DEFAULT_STYLE
 from novelvideo.models import beat_scene_id, real_detected_identities, real_detected_props
 from novelvideo.services.style_service import StyleService
+from novelvideo.styles.stickman import canonical_theme, theme_rules
 
 
 StyleRef: TypeAlias = "StyleConfig | str | None"
@@ -43,6 +44,20 @@ def _style_family(style_ref: StyleRef) -> str:
 
 def _is_animation_style(style_ref: StyleRef) -> bool:
     return _style_family(style_ref) == "animation"
+
+
+def _is_stick_figure(style_ref: StyleRef) -> bool:
+    direct = getattr(style_ref, "character_representation", "")
+    if direct:
+        return direct == "stick_figure"
+    return StyleService.get_character_representation(
+        getattr(style_ref, "style_name", style_ref) or IMAGE_DEFAULT_STYLE,
+        project_dir=getattr(style_ref, "project_dir", "") or None,
+    ) == "stick_figure"
+
+
+def _stickman_rules(style_ref: StyleRef):
+    return theme_rules(getattr(style_ref, "style_theme", None))
 
 
 def _animation_subtype(style_ref: StyleRef) -> str:
@@ -158,6 +173,8 @@ class StyleConfig:
     project_dir: str = ""
     style_family: str = ""
     animation_subtype: str = ""
+    character_representation: str = ""
+    style_theme: str | None = None
     style_keywords: str = ""
     avoid_keywords: str = ""
     color_palette: str = ""
@@ -178,6 +195,9 @@ class StyleConfig:
                 self.style_family = preset.get("style_family", "")
             if not self.animation_subtype:
                 self.animation_subtype = preset.get("animation_subtype", "")
+            if not self.character_representation:
+                self.character_representation = preset.get("character_representation", "standard")
+            self.style_theme = preset.get("style_theme", self.style_theme)
 
 
 @dataclass
@@ -854,6 +874,13 @@ class PromptComponents:
 
     @staticmethod
     def build_asset_identity_lock(ctx: PromptContext) -> str:
+        if _is_stick_figure(ctx.style):
+            return (
+                "SCENE / PROP IDENTITY LOCK: Keep the same locations, necessary objects, "
+                "silhouettes and identifying details across panels, translated into the selected "
+                "theme's drawing grammar. Express material cues using the selected theme rather than photographic textures. "
+                "Internal prop marker colors are identification only, not final colors."
+            )
         scene_seen: set[tuple[str, str]] = set()
         prop_seen: set[str] = set()
         scene_lines: list[str] = []
@@ -1063,6 +1090,9 @@ PANEL SHAPE CONSTRAINT (CRITICAL):
 
         total = ctx.grid.total_panels
 
+        if _is_stick_figure(ctx.style):
+            return _stickman_rules(ctx.style).identity
+
         if compact:
             return (
                 f"CHARACTER IDENTITY LOCK:\n"
@@ -1172,6 +1202,30 @@ ONE continuous image. ZERO visible boundaries between regions."""
         lines = ["REFERENCE IMAGES:"]
         img_idx = 1
         plan = PromptComponents.build_reference_image_plan(ctx, ordered_chars)
+        if _is_stick_figure(ctx.style):
+            if include_sketch and ctx.mode == PromptMode.RENDER:
+                lines.append("Image 1 = SKETCH: the only source of layout, crop and poses.")
+                img_idx += 1
+            for entry in plan:
+                kind = entry.get("kind")
+                if kind == "combined_composite":
+                    label = entry["combined_desc"]
+                elif kind == "scene":
+                    ref = entry["ref"]
+                    label = f"Scene {getattr(ref, 'base_id', '')}"
+                    if PromptComponents._is_material_only_scene_ref(ref):
+                        label += " (appearance cues only, never geometry or layout)"
+                elif kind == "prop":
+                    label = f"Prop {getattr(entry.get('ref'), 'base_id', '')}"
+                else:
+                    label = str(entry.get("tag") or entry.get("char_name") or kind)
+                lines.append(
+                    f"Image {img_idx} = {label}: semantic identity reference. "
+                    "Keep identifying silhouettes and accessories in the selected theme; "
+                    "do not copy photographic faces, materials or the reference sheet layout."
+                )
+                img_idx += 1
+            return "\n".join(lines)
         sketch_first = include_sketch and ctx.mode == PromptMode.RENDER
         if sketch_first:
             lines.append(
@@ -1778,6 +1832,8 @@ ONE continuous image. ZERO visible boundaries between regions."""
     @staticmethod
     def build_fusion_rules(ctx: PromptContext = None, ordered_chars: List[str] = None) -> str:
         """融合规则（强化否定，防止 Sketch 风格泄漏）。"""
+        if ctx and _is_stick_figure(ctx.style):
+            return _stickman_rules(ctx.style).render
         # 收集当前 grid 中出现的参考模式
         has_composite = False
         has_portrait = False
@@ -1882,6 +1938,11 @@ ONE continuous image. ZERO visible boundaries between regions."""
             ctx: 提示词上下文
             include_face_reminder: 是否包含脸部身份提醒行（Render 模式设为 False 避免重复）
         """
+        if _is_stick_figure(ctx.style):
+            return "\n".join([
+                "CONSTRAINTS:", _stickman_rules(ctx.style).render, _stickman_rules(ctx.style).identity,
+                f"AVOID: {ctx.style.avoid_keywords}",
+            ])
         lines = [
             "CONSTRAINTS:",
             "- No overlay text, subtitles, labels, or watermarks on image",
@@ -1933,6 +1994,12 @@ ONE continuous image. ZERO visible boundaries between regions."""
     @staticmethod
     def build_time_of_day_rules(ctx: PromptContext) -> str:
         """Render-only lighting rule for scene anchor images."""
+        if _is_stick_figure(ctx.style):
+            if canonical_theme(ctx.style.style_theme) == "1b":
+                return "TIME OF DAY: Retain narrative time cues symbolically; keep the canvas pitch-black and unshaded."
+            if canonical_theme(ctx.style.style_theme) in {"2a", "2b", "3"}:
+                return "TIME OF DAY: Honor narrative time cues using the selected theme's palette and lighting."
+            return "TIME OF DAY: Retain narrative time cues symbolically; keep the canvas white and unshaded."
         if ctx.mode != PromptMode.RENDER:
             return ""
         has_scene_ref = bool(ctx and any(ctx.scene_refs.get(k) for k in ctx.scene_refs))
@@ -2188,6 +2255,8 @@ Show the STARTING pose, NOT the ending result."""
 
         def _appearance_source(cfg, suffix: str = "") -> str:
             """根据参考模式返回外观来源提示。"""
+            if _is_stick_figure(ctx.style):
+                return "Use identity cues as simplified head shape, relative height and key accessories."
             identity_ref = cfg.identity_ref_images.get(suffix, "") if suffix else ""
             if identity_ref or (cfg.reference_mode == "composite" and cfg.reference_path):
                 return "Apply face, body build, and costume from reference image."
@@ -2315,6 +2384,9 @@ Show the STARTING pose, NOT the ending result."""
             "Do NOT infer gender, age, or body type from pose, kneeling posture, weakness, camera angle, or scene context. "
             "Color identity overrides pose-based assumptions."
         )
+        if _is_stick_figure(ctx.style):
+            lines.append(_stickman_rules(ctx.style).render)
+            return "\n".join(lines)
         lines.append(
             "⚠️ CRITICAL: Sketch colors are ONLY identification markers — they carry NO information about the character's actual appearance. "
             "The sketch colors are fluorescent ID markers only, not final colors. "
@@ -2398,6 +2470,12 @@ Show the STARTING pose, NOT the ending result."""
 
             scene_lines = []
             for ref in ctx.scene_refs.get(i, []):
+                if _is_stick_figure(ctx.style):
+                    scene_lines.append(
+                        f"Scene {getattr(ref, 'base_id', '')}: preserve location identity as simple outlines; "
+                        "keep storyboard geometry and the selected theme palette."
+                    )
+                    continue
                 scene_lines.append(PromptComponents._format_render_scene_anchor_line(ref))
                 if panel_tods[i - 1]:
                     scene_lines.append(f"Time of day: {panel_tods[i - 1]}")
@@ -2413,7 +2491,10 @@ Show the STARTING pose, NOT the ending result."""
             prop_lines = []
             for ref in PromptComponents._filter_panel_prop_asset_refs(ctx, i):
                 prop_id = str(getattr(ref, "base_id", "") or "").strip()
-                prop_lines.append(PromptComponents._format_prop_anchor_line(ref))
+                if _is_stick_figure(ctx.style):
+                    prop_lines.append(f"Prop {prop_id}: preserve object identity as simplified outlines.")
+                else:
+                    prop_lines.append(PromptComponents._format_prop_anchor_line(ref))
                 marker_color = str(ctx.prop_marker_colors.get(prop_id, "") or "").strip()
                 if marker_color:
                     prop_tag = PromptComponents.compute_prop_tag(prop_id)
@@ -2509,6 +2590,8 @@ Show the STARTING pose, NOT the ending result."""
                 "- If this text contains color words or sketch marker colors, they are semantic/ID hints only; final character and prop material colors still come from identity/prop references.",
             ]
         )
+        if _is_stick_figure(ctx.style):
+            lines[-1] = "- Internal marker colors are identification only; final art follows the selected stick-figure theme."
         return "\n".join(lines)
 
     @staticmethod
@@ -2557,6 +2640,8 @@ Regions must touch edge-to-edge with ZERO borders, frames, or dividing lines."""
             if _is_animation_style(ctx.style)
             else "Cinematic lighting, consistent color grading."
         )
+        if _is_stick_figure(ctx.style):
+            finish_line = _stickman_rules(ctx.style).render
         return f"""
 STYLE: {ctx.style.style_keywords}
 {finish_line}
@@ -2586,9 +2671,17 @@ class RenderModeStrategy:
             "Composite / identity-sheet and portrait-only references lock character identity and appearance details only: face identity, facial geometry, hair identity, silhouette, and costume details. "
             "Do NOT inherit or preserve a reference image's CG, beauty-filter, illustrated, or over-retouched rendering look; re-render the same person in the project's scene preset."
         )
+        if _is_stick_figure(ctx.style):
+            preset_scope = f"{_stickman_rules(ctx.style).identity}\n{_stickman_rules(ctx.style).render}"
+
+        rendering_target = "a full-color"
+        if _is_stick_figure(ctx.style):
+            variant = canonical_theme(ctx.style.style_theme)
+            if variant in {"1a", "1b"}:
+                rendering_target = "a black-line-on-white" if variant == "1a" else "a white-line-on-black"
 
         # Render 专用开头：一句话讲清任务 + 对象 + 比例
-        render_opening = f"""Colorize this {rows}×{cols} storyboard SKETCH (first attached image / Image 1) into a full-color continuous image with {total} seamless regions. Each panel MUST be {panel_hint}.
+        render_opening = f"""Colorize this {rows}×{cols} storyboard SKETCH (first attached image / Image 1) into {rendering_target} continuous image with {total} seamless regions. Each panel MUST be {panel_hint}.
 
 STYLE: {ctx.style.style_keywords}
 {preset_scope}

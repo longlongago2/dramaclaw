@@ -181,12 +181,47 @@ def _client():
     return TestClient(app)
 
 
+def test_stickman_preset_has_one_list_entry_detail_and_preview():
+    client = _client()
+    listed = client.get("/styles").json()["data"]
+    assert len([style for style in listed if style["id"] == "stickman"]) == 1
+    detail = client.get("/styles/stickman").json()["data"]
+    assert detail["is_preset"] is True
+    assert detail["character_representation"] == "stick_figure"
+    preview = client.get("/styles/stickman/preview")
+    assert preview.status_code == 200
+    assert preview.headers["content-type"] == "image/png"
+    assert preview.content.startswith(b"\x89PNG\r\n\x1a\n")
+
+
 def test_style_preview_get_returns_image_without_generation():
     response = _client().get("/styles/anime/preview")
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("image/png")
     assert response.content.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+@pytest.mark.parametrize("theme, variant", [
+    ("1a", "1a"), ("1b", "1b"), ("2a", "2a"), ("2b", "2b"), ("3", "3"),
+    ("classic", "1a"), ("modern", "2b"), ("prehistoric", "3"),
+])
+def test_stickman_preview_matches_selected_upstream_frame(theme, variant):
+    from novelvideo.services.style_service import StyleService
+
+    response = _client().get("/styles/stickman/preview", params={"theme": theme})
+    assert response.status_code == 200
+    assert response.content == (StyleService.PRESETS_DIR / "stickman-previews" / f"{variant}.png").read_bytes()
+
+
+def test_preview_rejects_unsupported_variants_and_reuses_supplied_2b_cover():
+    from novelvideo.services.style_service import StyleService
+
+    client = _client()
+    assert client.get("/styles/stickman/preview", params={"theme": "../../secret"}).status_code == 400
+    assert client.get("/styles/anime/preview", params={"theme": "1a"}).status_code == 400
+    assert client.get("/styles/stickman/preview").content == client.get("/styles/stickman/preview?theme=2b").content
+    assert (StyleService.PRESETS_DIR / "stickman.png").is_file()
 
 
 def test_custom_style_list_includes_project_media_preview_url(monkeypatch, tmp_path):

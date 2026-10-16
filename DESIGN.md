@@ -489,6 +489,19 @@ hover 行用 shadcn 的 `accent`（#0e333c）——刻意不用画布的蓝强�
 `design.md lint` 只校验本文件自身，不读 CSS，所以这一节是靠 review 执行的约定，不是靠工具。
 评审落地页时看这一节；评审其余界面时，这一节不适用。
 
+## 画布分组底色
+
+`--group-node-bg` 为未指定配色的画布分组提供默认底色，与 `frontend/src/index.css`
+保持一致：暗色主题为 `rgba(255, 255, 255, 0.1)`，亮色主题为
+`rgba(15, 23, 42, 0.09)`。分组已有自定义配色时继续使用自定义颜色。
+
+## 开关
+
+布尔滑动开关统一使用 `frontend/src/components/ui/switch.tsx`，通过 `size` 调整尺寸：
+`sm` 为 28×16px（圆点 12px），默认 36×20px（圆点 16px），`lg` 为 44×24px
+（圆点 20px）。圆点始终垂直居中，上下和两端各留 2px；开启使用 `primary`，
+关闭使用 `input`，焦点使用 `ring`。业务组件不再各自绘制轨道或覆盖开启色。
+
 ## Linting
 
 ```bash

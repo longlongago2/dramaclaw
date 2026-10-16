@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { HTTPError } from "ky";
 import {
   ArchiveRestore,
   BookOpen,
@@ -15,6 +16,7 @@ import {
   Loader2,
   MoreHorizontal,
   Plus,
+  Pencil,
   Search,
   Share2,
   Trash2,
@@ -66,6 +68,12 @@ import {
 } from "@/lib/queries/projects";
 import { ProjectFolder } from "@/components/projects/project-folder";
 import { ShareProjectDialog } from "@/components/projects/share-project-dialog";
+import { RenameProjectDialog } from "@/components/projects/rename-project-dialog";
+import {
+  getProjectDisplayName,
+  getProjectNameValidationKey,
+  normalizeProjectDisplayName,
+} from "@/lib/project-name";
 import { getProjectCover, NOISE_DATA_URI } from "@/lib/project-cover";
 import { openFreezoneProject } from "@/lib/freezone-url";
 import { formatRelativeTime } from "@/lib/relative-time";
@@ -74,8 +82,10 @@ import {
   canManageProjectGrants,
   isSharedProject,
   projectRole,
+  roleAllows,
 } from "@/lib/project-permissions";
 import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { cn } from "@/lib/utils";
 import type { DashboardView } from "@/stores/app-store";
 import type { ProjectStatus, ProjectSummary } from "@/types/project";
@@ -86,6 +96,8 @@ import {
 } from "@/stores/episode-workbench-store";
 import { useProjectNavStore } from "@/stores/project-nav-store";
 import { surfaceAccess, useProductSurfaces } from "@/lib/queries/product-surfaces";
+
+export { PROJECT_NAME_MAX_LENGTH, getProjectNameValidationKey } from "@/lib/project-name";
 
 type PendingAction =
   | { kind: "archive"; project: string; name: string }
@@ -101,14 +113,6 @@ const SORT_OPTIONS: { value: SortKey; labelKey: string }[] = [
   { value: "name-desc", labelKey: "project.sort.nameDesc" },
 ];
 
-const PROJECT_NAME_PATTERN = /^[a-zA-Z0-9_]+$/;
-export const PROJECT_NAME_MAX_LENGTH = 64;
-
-export function getProjectNameValidationKey(name: string): string | null {
-  if (name.length > PROJECT_NAME_MAX_LENGTH) return "project.nameTooLong";
-  return !PROJECT_NAME_PATTERN.test(name) ? "project.nameInvalid" : null;
-}
-
 const PROJECT_CARD_MIN_HEIGHT_CLASS = "min-h-[12.75rem]";
 const RECENTLY_CREATED_PROJECT_KEY = "supertale-dashboard-recent-created-project";
 
@@ -122,7 +126,8 @@ function prioritizeRecentlyCreatedProject(
   name: string | null,
 ): ProjectSummary[] {
   if (!name) return list;
-  const index = list.findIndex((p) => p.name === name);
+  // Accept the previous name-based localStorage value during the transition.
+  const index = list.findIndex((p) => p.id === name || p.name === name);
   if (index <= 0) return list;
   const next = [...list];
   const [project] = next.splice(index, 1);
@@ -146,19 +151,19 @@ function sortSummaries(list: ProjectSummary[], key: SortKey): ProjectSummary[] {
         const at = getUpdatedAt(a);
         const bt = getUpdatedAt(b);
         if (at !== bt) return at < bt ? 1 : -1;
-        return a.name.localeCompare(b.name);
+        return getProjectDisplayName(a).localeCompare(getProjectDisplayName(b));
       });
     case "updated-asc":
       return arr.sort((a, b) => {
         const at = getUpdatedAt(a);
         const bt = getUpdatedAt(b);
         if (at !== bt) return at > bt ? 1 : -1;
-        return a.name.localeCompare(b.name);
+        return getProjectDisplayName(a).localeCompare(getProjectDisplayName(b));
       });
     case "name-asc":
-      return arr.sort((a, b) => a.name.localeCompare(b.name));
+      return arr.sort((a, b) => getProjectDisplayName(a).localeCompare(getProjectDisplayName(b)));
     case "name-desc":
-      return arr.sort((a, b) => b.name.localeCompare(a.name));
+      return arr.sort((a, b) => getProjectDisplayName(b).localeCompare(getProjectDisplayName(a)));
   }
 }
 
@@ -176,13 +181,13 @@ function ProjectCard({
   onPreload?: () => void;
   onShare: () => void;
   onAction: (
-    action: "archive" | "unarchive" | "delete" | "restore" | "purge",
+    action: "rename" | "archive" | "unarchive" | "delete" | "restore" | "purge",
   ) => void;
 }) {
   const { t } = useTranslation();
   const { initial, primary } = useMemo(
-    () => getProjectCover(summary.name),
-    [summary.name],
+    () => getProjectCover(getProjectDisplayName(summary)),
+    [summary.name, summary.displayName],
   );
   const isActive = summary.status === "active";
   const isArchived = summary.status === "archived";
@@ -268,9 +273,9 @@ function ProjectCard({
         <div className="flex w-full items-start justify-between gap-1">
           <h3
             className="ml-[5%] min-w-0 truncate text-sm font-semibold text-foreground"
-            title={summary.name}
+            title={getProjectDisplayName(summary)}
           >
-            {summary.name}
+            {getProjectDisplayName(summary)}
           </h3>
           <div
             data-project-menu
@@ -296,6 +301,12 @@ function ProjectCard({
                 className="w-32 rounded-md p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item]:focus]:text-current [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
               >
                 <DropdownMenuGroup>
+                  {!isDeleted && roleAllows(projectRole(summary), "admin") && (
+                    <DropdownMenuItem onClick={() => onAction("rename")}>
+                      <Pencil className="size-4" />
+                      {t("project.actions.rename")}
+                    </DropdownMenuItem>
+                  )}
                   {isActive && (
                     <>
                       <DropdownMenuItem onClick={onOpen}>
@@ -525,13 +536,13 @@ function ProjectRow({
   onPreload?: () => void;
   onShare: () => void;
   onAction: (
-    action: "archive" | "unarchive" | "delete" | "restore" | "purge",
+    action: "rename" | "archive" | "unarchive" | "delete" | "restore" | "purge",
   ) => void;
 }) {
   const { t } = useTranslation();
   const { gradient, initial } = useMemo(
-    () => getProjectCover(summary.name),
-    [summary.name],
+    () => getProjectCover(getProjectDisplayName(summary)),
+    [summary.name, summary.displayName],
   );
   const isActive = summary.status === "active";
   const isArchived = summary.status === "archived";
@@ -614,9 +625,9 @@ function ProjectRow({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <h3
           className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground"
-          title={summary.name}
+          title={getProjectDisplayName(summary)}
         >
-          {summary.name}
+          {getProjectDisplayName(summary)}
         </h3>
         <span className="hidden shrink-0 rounded-full bg-background/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
           {sourceLabel}
@@ -687,6 +698,12 @@ function ProjectRow({
             className="w-32 rounded-md p-1 shadow-xl shadow-black/20 [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item]:focus]:text-current [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-white/8 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
           >
             <DropdownMenuGroup>
+              {!isDeleted && roleAllows(projectRole(summary), "admin") && (
+                <DropdownMenuItem onClick={() => onAction("rename")}>
+                  <Pencil className="size-4" />
+                  {t("project.actions.rename")}
+                </DropdownMenuItem>
+              )}
               {isActive && (
                 <>
                   <DropdownMenuItem onClick={onOpen}>
@@ -1084,6 +1101,9 @@ function ProjectDashboard() {
   const [sort, setSort] = useState<SortKey>("updated-desc");
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [createServerError, setCreateServerError] = useState<string | null>(null);
+  const [renameProject, setRenameProject] = useState<ProjectSummary | null>(null);
+  const username = useAuthStore((state) => state.username);
   const [recentlyCreatedProject, setRecentlyCreatedProject] = useState<
     string | null
   >(() => readRecentlyCreatedProject());
@@ -1138,7 +1158,7 @@ function ProjectDashboard() {
   // project list grows beyond ~500 items.
   const matchesSearch = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (p: ProjectSummary) => (q ? p.name.toLowerCase().includes(q) : true);
+    return (p: ProjectSummary) => (q ? getProjectDisplayName(p).toLowerCase().includes(q) : true);
   }, [search]);
 
   const all = allSummaries.data ?? [];
@@ -1169,15 +1189,19 @@ function ProjectDashboard() {
       ),
     [all, matchesSearch, sort],
   );
-  const trimmedNewName = newName.trim();
+  const trimmedNewName = normalizeProjectDisplayName(newName);
   const existingProject = useMemo(
-    () => (trimmedNewName ? all.find((p) => p.name === trimmedNewName) : null),
-    [all, trimmedNewName],
+    () => (trimmedNewName ? all.find((p) =>
+      getProjectDisplayName(p) === trimmedNewName &&
+      (!p.ownerUsername || p.ownerUsername === username) &&
+      (!p.ownerType || p.ownerType === "user")
+    ) : null),
+    [all, trimmedNewName, username],
   );
   const projectNameValidationKey = trimmedNewName
     ? getProjectNameValidationKey(trimmedNewName)
     : null;
-  const createNameError = projectNameValidationKey
+  const createNameError = createServerError ?? (projectNameValidationKey
     ? t(projectNameValidationKey)
     : existingProject?.status === "active"
       ? t("project.nameExistsActive")
@@ -1185,19 +1209,23 @@ function ProjectDashboard() {
         ? t("project.nameExistsArchived")
         : existingProject?.status === "deleted"
           ? t("project.nameExistsDeleted")
-          : null;
+          : null);
   const handleCreate = async () => {
     const name = trimmedNewName;
-    if (!name || createNameError) return;
+    if (!name || createNameError || createProject.isPending) return;
     try {
       const res = await createProject.mutateAsync(name);
-      const createdName = res.data.name || name;
-      setRecentlyCreatedProject(createdName);
-      window.localStorage.setItem(RECENTLY_CREATED_PROJECT_KEY, createdName);
+      const createdId = res.data.id;
+      setRecentlyCreatedProject(createdId);
+      window.localStorage.setItem(RECENTLY_CREATED_PROJECT_KEY, createdId);
       setNewName("");
       setCreateOpen(false);
-    } catch {
-      toast.error(t("project.toasts.createFailed"));
+    } catch (cause) {
+      if (cause instanceof HTTPError && cause.response.status === 409) {
+        setCreateServerError(t("project.nameExistsActive"));
+      } else {
+        toast.error(t("project.toasts.createFailed"));
+      }
     }
   };
 
@@ -1248,10 +1276,11 @@ function ProjectDashboard() {
 
   const onAction = (
     summary: ProjectSummary,
-    action: "archive" | "unarchive" | "delete" | "restore" | "purge",
+    action: "rename" | "archive" | "unarchive" | "delete" | "restore" | "purge",
   ) => {
     const project = projectRouteParam(summary);
-    const { name } = summary;
+    const name = getProjectDisplayName(summary);
+    if (action === "rename") return setRenameProject(summary);
     if (action === "archive") return setPending({ kind: "archive", project, name });
     if (action === "delete") return setPending({ kind: "delete", project, name });
     if (action === "purge") return setPending({ kind: "purge", project, name });
@@ -1342,15 +1371,16 @@ function ProjectDashboard() {
                   <Input
                     id="project-name"
                     value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    onChange={(e) => { setNewName(e.target.value); setCreateServerError(null); }}
                     placeholder={t("project.namePlaceholder")}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                         e.preventDefault();
                         handleCreate();
                       }
                     }}
                     aria-invalid={!!createNameError || undefined}
+                    aria-label={t("project.name")}
                     aria-describedby={createNameError ? "project-name-error" : undefined}
                     autoFocus
                     className="h-11 rounded-[8px] border-white/12 bg-white/[0.04] px-3 pr-10 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]"
@@ -1358,7 +1388,7 @@ function ProjectDashboard() {
                   {newName && (
                     <button
                       type="button"
-                      onClick={() => setNewName("")}
+                      onClick={() => { setNewName(""); setCreateServerError(null); }}
                       className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
                       aria-label={t("project.clearName")}
                     >
@@ -1374,6 +1404,7 @@ function ProjectDashboard() {
                     {createNameError}
                   </p>
                 )}
+                <p className="text-xs text-muted-foreground">{t("project.folderNameAutomatic")}</p>
               </div>
               <DialogFooter className="-mx-7 -mb-7 border-t-0 bg-transparent p-7 pt-3 sm:flex-row sm:justify-end">
                 <Button
@@ -1580,6 +1611,9 @@ function ProjectDashboard() {
       )}
 
       {/* Dialogs */}
+      {renameProject && (
+        <RenameProjectDialog key={renameProject.id} project={renameProject} onClose={() => setRenameProject(null)} />
+      )}
       <ArchiveDialog
         name={pending?.kind === "archive" ? pending.name : ""}
         open={pending?.kind === "archive"}

@@ -1015,6 +1015,15 @@ class VolcengineImageGenerator:
                 "仅锁定角色身份与外貌，不要磨皮，不要CG质感，不要插画质感，"
                 "保持真实皮肤纹理和自然五官比例"
             )
+            if style_preset.get("character_representation") == "stick_figure":
+                from novelvideo.styles.stickman import character_reference_prompt
+
+                prompt = character_reference_prompt(
+                    character_name=character_name, character_tag=character_name,
+                    description=appearance_prompt, style=style_keywords, avoid=negative_prompt,
+                    layout=f"A single full-body character reference, view: {view}.",
+                    theme=style_preset.get("style_theme"),
+                )
 
             output_path = os.path.join(output_dir, f"reference_{i + 1:02d}.png")
 

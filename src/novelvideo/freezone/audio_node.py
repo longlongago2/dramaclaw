@@ -715,7 +715,7 @@ def _newapi_audio_endpoint(base_url: str | None = None) -> str:
         _api_key, resolved_base_url = get_newapi_runtime_credentials()
     else:
         resolved_base_url = base_url
-    endpoint = str(resolved_base_url or "http://localhost:3000/v1").rstrip("/")
+    endpoint = str(resolved_base_url or "http://localhost:18473/v1").rstrip("/")
     if not endpoint.endswith("/audio/speech"):
         endpoint = f"{endpoint}/audio/speech"
     return endpoint

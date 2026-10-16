@@ -12,7 +12,7 @@ from pathlib import Path
 import aiosqlite
 from ulid import ULID
 
-from novelvideo.ports.project import Principal, ProjectRecord
+from novelvideo.ports.project import Principal, ProjectRecord, normalize_project_display_name
 from novelvideo.shared.project_dirs import default_project_dirs
 
 
@@ -31,6 +31,7 @@ def _row_to_record(row: aiosqlite.Row) -> ProjectRecord:
         owner_id=str(row["owner_id"]),
         owner_username=str(row["owner_username"]),
         name=str(row["name"]),
+        display_name=str(row["display_name"] or row["name"]),
         home_node_id=str(row["home_node_id"]),
         output_dir=str(row["output_dir"]),
         state_dir=str(row["state_dir"]),
@@ -99,6 +100,7 @@ class SQLiteProjectRegistry:
                         owner_id TEXT NOT NULL,
                         owner_username TEXT NOT NULL,
                         name TEXT NOT NULL,
+                        display_name TEXT NOT NULL DEFAULT '',
                         home_node_id TEXT NOT NULL,
                         output_dir TEXT NOT NULL,
                         state_dir TEXT NOT NULL,
@@ -118,11 +120,28 @@ class SQLiteProjectRegistry:
                         ON projects(home_node_id);
                     """
                 )
+                # Serialize additive migration across processes as well as
+                # registry instances. Existing names and paths never change.
+                await db.execute("BEGIN IMMEDIATE")
+                columns = await _fetchall(db, "PRAGMA table_info(projects)")
+                if "display_name" not in {column[1] for column in columns}:
+                    await db.execute(
+                        "ALTER TABLE projects ADD COLUMN display_name TEXT NOT NULL DEFAULT ''"
+                    )
+                await db.execute("UPDATE projects SET display_name = name WHERE display_name = ''")
+                await db.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS projects_owner_display_name_idx "
+                    "ON projects(owner_type, owner_id, COALESCE(NULLIF(display_name, ''), name))"
+                )
                 await db.execute(
                     """
                     INSERT OR IGNORE INTO schema_migrations(version, applied_at)
                     VALUES (1, ?)
                     """,
+                    (_now_iso(),),
+                )
+                await db.execute(
+                    "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, ?)",
                     (_now_iso(),),
                 )
                 await db.commit()
@@ -167,18 +186,25 @@ class SQLiteProjectRegistry:
         *,
         owner_user_id: str,
         owner_username: str,
-        name: str,
+        name: str | None = None,
+        display_name: str | None = None,
         home_node_id: str | None = None,
         output_dir: str | None = None,
         state_dir: str | None = None,
         runtime_dir: str | None = None,
     ) -> ProjectRecord:
-        if not owner_user_id or not name:
-            raise ValueError("owner_user_id and name are required")
+        if not owner_user_id or (name is None and display_name is None):
+            raise ValueError("owner_user_id and a project name are required")
+        project_id = str(ULID())
+        if name is None:
+            name = f"p_{project_id}"
+        # Titles stay out of all storage and authorization identifiers.
+        display_name = normalize_project_display_name(
+            display_name if display_name is not None else name
+        )
         owner_username = owner_username.strip() if owner_username else _local_username()
         default_output, default_state, default_runtime = default_project_dirs(owner_username, name)
         now = _now_iso()
-        project_id = str(ULID())
         db = await self._connect()
         try:
             try:
@@ -186,15 +212,16 @@ class SQLiteProjectRegistry:
                 await db.execute(
                     """
                     INSERT INTO projects (
-                        id, owner_type, owner_id, owner_username, name, home_node_id,
+                        id, owner_type, owner_id, owner_username, name, display_name, home_node_id,
                         output_dir, state_dir, runtime_dir, status, created_at, updated_at
                     )
-                    VALUES (?, 'user', 'local', ?, ?, 'local', ?, ?, ?, 'active', ?, ?)
+                    VALUES (?, 'user', 'local', ?, ?, ?, 'local', ?, ?, ?, 'active', ?, ?)
                     """,
                     (
                         project_id,
                         owner_username,
                         name,
+                        display_name,
                         output_dir or default_output,
                         state_dir or default_state,
                         runtime_dir or default_runtime,
@@ -210,13 +237,37 @@ class SQLiteProjectRegistry:
                 await db.commit()
             except sqlite3.IntegrityError as exc:
                 await db.rollback()
-                raise ValueError(f"Project '{name}' already exists") from exc
+                raise ValueError(f"Project '{display_name}' already exists") from exc
             except Exception:
                 await db.rollback()
                 raise
         finally:
             await db.close()
         return _row_to_record(row)
+
+    async def update_project_display_name(
+        self,
+        project_id: str,
+        display_name: str,
+    ) -> ProjectRecord | None:
+        display_name = normalize_project_display_name(display_name)
+        db = await self._connect()
+        try:
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                await db.execute(
+                    "UPDATE projects SET display_name = ?, updated_at = ? "
+                    "WHERE id = ? AND purged_at IS NULL",
+                    (display_name, _now_iso(), project_id),
+                )
+                row = await _fetchone(db, "SELECT * FROM projects WHERE id = ?", (project_id,))
+                await db.commit()
+            except sqlite3.IntegrityError as exc:
+                await db.rollback()
+                raise ValueError(f"Project '{display_name}' already exists") from exc
+        finally:
+            await db.close()
+        return _row_to_record(row) if row else None
 
     async def list_accessible_projects(
         self,

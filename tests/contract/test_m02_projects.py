@@ -97,6 +97,7 @@ def test_ce_project_create_list_detail_and_project_context_contract(
             {
                 "id": project_id,
                 "name": "demo",
+                "display_name": "demo",
                 "owner_username": "alice",
                 "owner_type": "user",
                 "owner_id": "local",

@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -672,6 +672,12 @@ class StyleConfig(BaseModel):
         default="",
         description="动画子类：2d | 3d | hybrid；真人风格为空",
     )
+    character_representation: Literal["standard", "stick_figure"] = Field(
+        default="standard",
+        description="角色造型规则，与动画媒介及配色主题独立",
+    )
+    theme_options: list[Literal["classic", "modern", "prehistoric", "1a", "1b", "2a", "2b", "3"]] = Field(default_factory=list)
+    style_theme: Optional[Literal["classic", "modern", "prehistoric", "1a", "1b", "2a", "2b", "3"]] = None
 
     # 元数据
     is_preset: bool = Field(
@@ -692,6 +698,8 @@ class StyleConfig(BaseModel):
             "avoid_instructions": self.avoid_instructions,
             "style_family": self.style_family,
             "animation_subtype": self.animation_subtype,
+            "character_representation": self.character_representation,
+            "style_theme": self.style_theme,
             "label": self.label or self.name,
         }
         if self.style_tag:
@@ -719,6 +727,9 @@ class StyleConfig(BaseModel):
             label=data.get("label", name or style_id),
             style_family=data.get("style_family", "live_action"),
             animation_subtype=data.get("animation_subtype", ""),
+            character_representation=data.get("character_representation", "standard"),
+            theme_options=data.get("theme_options", []),
+            style_theme=data.get("style_theme"),
             is_preset=True,
         )
 
@@ -840,6 +851,7 @@ class VisualBeat(BaseModel):
     beat_number: int = Field(description="节拍序号（从1开始）")
     narration_segment: str = Field(description="这段解说词（中文）")
     visual_description: str = Field(description="对应画面描述（中文，创意意图描述）")
+    source_text_sha256: str = Field(default="", description="生成镜头时实际输入文本的 SHA256")
 
     time_of_day: str = Field(
         default="",
@@ -1418,6 +1430,7 @@ class NovelVisualBeat(BaseModel):
     episode_number: int = Field(..., description="所属集数")
     narration: str = Field(default="", description="TTS 文本（旁白或台词，用于嵌入索引）")
     visual_description: str = Field(default="", description="画面描述（创意意图）")
+    source_text_sha256: str = Field(default="", description="生成镜头时实际输入文本的 SHA256")
 
     time_of_day: str = Field(
         default="",

@@ -107,6 +107,12 @@ vi.mock("@/lib/queries/model-gateway", () => ({
   useSaveProviderChannels: () => ({ mutateAsync: modelGatewayMocks.saveProviderChannels, isPending: false }),
   useSaveMediaRelayConfig: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSyncProviderChannel: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useChannelModels: () => ({
+    data: undefined,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 
 vi.mock("sonner", () => ({

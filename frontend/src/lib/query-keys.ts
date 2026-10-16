@@ -130,7 +130,7 @@ export const queryKeys = {
     ["projects", p, "freezone", "beat-context", episode ?? null, beat ?? null] as const,
   styles: (p?: string) =>
     p ? (["styles", p] as const) : (["styles"] as const),
-  style: (id: string) => ["styles", "detail", id] as const,
+  style: (id: string, project?: string) => ["styles", "detail", project ?? "", id] as const,
   ttsVoices: (p: string) => ["projects", p, "tts", "voices"] as const,
   modelGateway: () => ["model-gateway", "config"] as const,
   releaseNotifications: (locale: string) => ["release-notifications", locale] as const,

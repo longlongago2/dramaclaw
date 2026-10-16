@@ -13,6 +13,7 @@
 export const BUILTIN_VISUAL_STYLES: readonly { value: string; labelKey: string }[] = [
   { value: "chinese_period_drama", labelKey: "ingest.visualStyles.chinesePeriodDrama" },
   { value: "anime", labelKey: "ingest.visualStyles.anime" },
+  { value: "stickman", labelKey: "ingest.visualStyles.stickman" },
   { value: "guoman_fantasy", labelKey: "ingest.visualStyles.guomanFantasy" },
   { value: "post_apocalyptic", labelKey: "ingest.visualStyles.postApocalyptic" },
   { value: "realistic", labelKey: "ingest.visualStyles.realistic" },

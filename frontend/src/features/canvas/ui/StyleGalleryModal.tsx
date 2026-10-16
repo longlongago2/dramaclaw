@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import type { FreezoneStyleTemplate } from '@/api/ops';
 import type { TFn } from '@/lib/i18n-types';
 import { StyleAssetImage } from '@/features/canvas/ui/StyleAssetImage';
+import { useStyleViewTransition, type StyleViewBounds } from '@/features/canvas/ui/useStyleViewTransition';
 
 const STYLE_GALLERY_MODAL_CLASS =
   'relative flex w-[min(1120px,92vw)] flex-col overflow-hidden rounded-[10px] border border-white/[0.12] bg-[#15161b]/96 shadow-[0_18px_48px_rgba(0,0,0,0.45)] backdrop-blur-md';
@@ -56,6 +57,8 @@ export interface StyleGalleryModalProps {
   /** 只回调,不自己关闭;关闭由调用方决定。 */
   onSelect: (id: string | null) => void;
   onClose: () => void;
+  viewControls?: ReactNode;
+  transitionFrom?: StyleViewBounds | null;
 }
 
 export function StyleGalleryModal({
@@ -65,8 +68,15 @@ export function StyleGalleryModal({
   isLoading = false,
   onSelect,
   onClose,
+  viewControls,
+  transitionFrom,
 }: StyleGalleryModalProps) {
   const { t } = useTranslation();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useStyleViewTransition(dialogRef, transitionFrom);
+  useEffect(() => {
+    dialogRef.current?.querySelector<HTMLButtonElement>('[data-style-view="grid"]')?.focus({ preventScroll: true });
+  }, []);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>(ALL_CATEGORIES);
   const detail = detailId
@@ -85,6 +95,8 @@ export function StyleGalleryModal({
     // 一次 Esc（退回图墙），第二次才关整个弹层。
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.isComposing) return;
+      // 在冒泡阶段消费本层 Esc，避免继续传到 window 关闭下层故事板详情。
+      event.stopPropagation();
       if (detailId) setDetailId(null);
       else onClose();
     };
@@ -100,6 +112,8 @@ export function StyleGalleryModal({
       }}
     >
       <div
+        ref={dialogRef}
+        data-style-picker-panel="grid"
         className={`${STYLE_GALLERY_MODAL_CLASS} ${
           detail ? STYLE_GALLERY_DETAIL_SIZE_CLASS : STYLE_GALLERY_LIST_SIZE_CLASS
         }`}
@@ -110,6 +124,11 @@ export function StyleGalleryModal({
         }
         onMouseDown={(event) => event.stopPropagation()}
       >
+        {viewControls && (
+          <div className="flex shrink-0 justify-center border-b border-white/[0.06] px-4 py-2.5">
+            {viewControls}
+          </div>
+        )}
         {detail ? (
           <div className="flex h-12 shrink-0 items-center justify-between px-4">
             <div className="flex items-center gap-2">
@@ -123,20 +142,22 @@ export function StyleGalleryModal({
               </button>
               <span className="text-sm font-medium text-text-dark">{detail.label}</span>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t('common.close')}
-              className="flex size-7 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
-            >
-              <X className="size-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t('common.close')}
+                className="flex size-7 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
           </div>
         ) : null}
 
         {detail ? (
-          <div className="flex min-h-0 gap-4 overflow-hidden p-4">
-            <div className="ui-scrollbar grid min-h-0 flex-1 auto-rows-max grid-cols-2 content-start gap-2 overflow-y-auto">
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto p-4 sm:flex-row sm:overflow-hidden">
+            <div className="ui-scrollbar grid shrink-0 auto-rows-max grid-cols-2 content-start gap-2 sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
               {/* 同一条风格里出现两张同名示例图并非不可能（外部清单是运维自己写的），
                   用路径当 key 会撞车，索引才是这里稳定的身份。 */}
               {detail.samples.map((sample, index) => (
@@ -153,7 +174,7 @@ export function StyleGalleryModal({
                 />
               ))}
             </div>
-            <div className="w-[320px] shrink-0">
+            <div className="w-full shrink-0 sm:w-[320px]">
               <div className="flex max-h-[min(420px,calc(82vh-96px))] flex-col gap-4 rounded-[8px] border border-white/[0.08] bg-white/[0.03] p-3">
                 <p className="ui-scrollbar min-h-0 overflow-y-auto whitespace-pre-line text-xs leading-relaxed text-text-dark/80">
                   {detail.style_prompt}
@@ -170,7 +191,17 @@ export function StyleGalleryModal({
           </div>
         ) : (
           <div className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pr-12 pt-4">
+            {viewControls && (
+              <div className="flex h-12 shrink-0 items-center justify-between border-b border-white/[0.06] px-4">
+                <span className="text-sm font-medium text-text-dark">{t('canvas.style.chip')}</span>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={onClose} aria-label={t('common.close')} className="flex size-7 items-center justify-center rounded-md text-text-muted hover:bg-white/[0.08] hover:text-text-dark">
+                    <X className="size-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className={`flex shrink-0 items-center gap-2 px-4 pb-2 pt-4 ${viewControls ? '' : 'pr-12'}`}>
               {categories.length > 1 ? (
                 <div className="ui-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
                   {[
@@ -206,14 +237,16 @@ export function StyleGalleryModal({
                   {t('canvas.style.clear')}
                 </button>
               ) : null}
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label={t('common.close')}
-                className="absolute right-4 top-2.5 flex size-7 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
-              >
-                <X className="size-4" />
-              </button>
+              {!viewControls && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label={t('common.close')}
+                  className="absolute right-4 top-2.5 flex size-7 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:bg-white/[0.08] hover:text-text-dark"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
             </div>
             {/* 空态和网格是二选一：以前两块都挂 flex-1 同时渲染，
                 「加载中」被挤到上半屏，下半屏是一片空白网格。 */}
@@ -223,7 +256,7 @@ export function StyleGalleryModal({
               </div>
             ) : (
               <div className="ui-scrollbar flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable]">
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {visible.map((item) => {
                     const isActive = item.id === selectedId;
                     return (
@@ -231,7 +264,7 @@ export function StyleGalleryModal({
                         key={item.id}
                         className={`group relative overflow-hidden rounded-[12px] border bg-white/[0.04] shadow-[0_14px_34px_rgba(0,0,0,0.22)] transition-[border-color,box-shadow] duration-300 ease-out hover:border-cyan-100/40 hover:shadow-[0_20px_44px_rgba(0,0,0,0.34),0_0_24px_rgba(103,232,249,0.08)] focus-within:border-cyan-100/40 ${
                           isActive
-                            ? 'border-white/[0.30] ring-1 ring-white/24'
+                            ? 'border-primary/60 ring-1 ring-primary/30'
                             : 'border-white/[0.10]'
                         }`}
                       >
@@ -252,24 +285,23 @@ export function StyleGalleryModal({
                           />
                         </button>
                         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-white/[0.04] opacity-80 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100" />
-                        <div className="pointer-events-none absolute bottom-2.5 left-3 right-16 truncate text-xs font-medium text-white/92">
-                          {item.label}
-                        </div>
-                        {isActive && (
-                          <Check className="pointer-events-none absolute right-2 top-2 size-4 text-[rgb(var(--accent-rgb))]" />
-                        )}
                         {/* 快路径：已经知道要哪套的人不该被逼着走一趟详情。常驻可见而不是
                             hover 才出 —— opacity-0 没有 focus 变体时，键盘 Tab 聚焦上去
                             按钮照样透明，这个入口对键盘用户等于不存在。绝对定位盖在标题行
                             上，没嵌进上面那颗 button：button 里套 button 是非法结构。 */}
-                        <button
-                          type="button"
-                          onClick={() => onSelect(item.id)}
-                          aria-label={t('canvas.styleGallery.useAria', { label: item.label })}
-                          className="absolute bottom-2 right-2 h-6 rounded-[6px] bg-white/[0.16] px-2 text-[11px] font-medium text-white transition-colors hover:bg-white/[0.28] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))]"
-                        >
-                          {t('common.use')}
-                        </button>
+                        <div className="pointer-events-none absolute bottom-2 left-3 right-2 flex items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate text-xs font-medium text-white/92">{item.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => onSelect(item.id)}
+                            aria-label={t(isActive ? 'canvas.styleGallery.usedAria' : 'canvas.styleGallery.useAria', { label: item.label })}
+                            aria-pressed={isActive}
+                            className={`pointer-events-auto flex h-6 shrink-0 items-center gap-1 rounded-[6px] border px-2 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? 'border-primary/40 bg-background/90 text-primary hover:bg-background' : 'border-transparent bg-white/[0.16] text-white hover:bg-white/[0.28]'}`}
+                          >
+                            {isActive && <Check aria-hidden="true" className="size-3 shrink-0 text-primary" />}
+                            {t(isActive ? 'canvas.styleGallery.used' : 'common.use')}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}

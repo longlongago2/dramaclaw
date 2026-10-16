@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import {
   memo,
   useEffect,
@@ -1523,30 +1524,15 @@ export const SkillNode = memo(({ id, data, width, selected }: SkillNodeProps) =>
                           <div className="min-w-0 text-xs font-medium text-white">
                             {parameterLabel}
                           </div>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={isSelected}
+                          <Switch
+                            checked={isSelected}
                             disabled={isBusy}
                             onClick={(event) => {
                               event.stopPropagation();
                               handleParameterChange(entry.key, !isSelected);
                             }}
-                            className={[
-                              'relative h-6 w-11 shrink-0 rounded-full border transition',
-                              isSelected
-                                ? 'border-cyan-300 bg-cyan-300'
-                                : 'border-white/15 bg-black/30 hover:bg-white/10',
-                              isBusy ? 'cursor-not-allowed opacity-60' : '',
-                            ].join(' ')}
-                          >
-                            <span
-                              className={[
-                                'absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow transition-transform',
-                                isSelected ? 'translate-x-5' : 'translate-x-0.5',
-                              ].join(' ')}
-                            />
-                          </button>
+                            size="lg"
+                          />
                         </div>
                       </div>
                     );

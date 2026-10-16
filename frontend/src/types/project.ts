@@ -6,6 +6,7 @@ export interface ProjectConfig {
   spine_template?: SpineTemplate;
   aspect_ratio?: "2:3" | "9:16" | "16:9";
   visual_style?: string;
+  visual_style_theme?: string | null;
   narration_style?: string;
   ethnicity?: string;
   rhythm?: string;
@@ -40,7 +41,9 @@ export type ProjectRole = "viewer" | "editor" | "admin" | "owner";
 
 export interface ProjectSummary {
   id: string;
+  // Stable internal directory name; never use the display title as identity.
   name: string;
+  displayName?: string;
   status: ProjectStatus;
   ownerUsername?: string;
   ownerId?: string;

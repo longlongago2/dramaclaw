@@ -23,6 +23,7 @@ import { normalizeLastEpisodeLocation, useEpisodeWorkbenchStore } from "@/stores
 import { isRememberedSection, useProjectNavStore } from "@/stores/project-nav-store";
 import { useAllProjectSummaries } from "@/lib/queries/projects";
 import { getProjectCover } from "@/lib/project-cover";
+import { getProjectDisplayName } from "@/lib/project-name";
 import { beginRouteSwitch } from "@/lib/route-switch-transition";
 import { cn } from "@/lib/utils";
 import { surfaceAccess, useProductSurfaces } from "@/lib/queries/product-surfaces";
@@ -82,13 +83,12 @@ export function ProjectSwitcher({ current }: { current: string }) {
     () =>
       (summaries ?? [])
         .filter((project) => project.status === "active")
-        .map((project) => ({ id: project.id || project.name, name: project.name })),
+        .map((project) => ({ id: project.id, name: getProjectDisplayName(project) })),
     [summaries],
   );
   const currentSummary = useMemo(
     () =>
-      projects.find((project) => project.id === current) ??
-      projects.find((project) => project.name === current),
+      projects.find((project) => project.id === current),
     [current, projects],
   );
   const currentName = currentSummary?.name ?? current;

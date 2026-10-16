@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -659,29 +660,16 @@ export function PetGalleryDialog({
           )}
           <div className="flex translate-x-1 translate-y-[2px] items-center gap-2 pt-2">
             {mode === "gallery" ? (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!companionHidden}
-                onClick={() => setCompanionHidden(!companionHidden)}
-                title={t("myBuddy.companion.toggleVisibility")}
-                className="flex h-7 items-center gap-2 rounded-full px-2.5 text-[11px] text-text-dark/88 transition-colors hover:bg-white/[0.08] hover:text-white"
-              >
+              <label className="flex h-7 items-center gap-2 rounded-full px-2.5 text-[11px] text-text-dark/88 transition-colors hover:bg-white/[0.08] hover:text-white">
                 <span>{t("myBuddy.companion.toggleVisibility")}</span>
-                <span
-                  className={cn(
-                    "relative inline-flex h-3.5 w-6 shrink-0 items-center rounded-full transition-colors",
-                    companionHidden ? "bg-white/20" : "bg-[rgb(var(--accent-rgb))]",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute h-2.5 w-2.5 rounded-full bg-white transition-transform",
-                      companionHidden ? "translate-x-0.5" : "translate-x-[13px]",
-                    )}
-                  />
-                </span>
-              </button>
+                <Switch
+                  checked={!companionHidden}
+                  onClick={() => setCompanionHidden(!companionHidden)}
+                  title={t("myBuddy.companion.toggleVisibility")}
+                  size="sm"
+                  aria-label={t("myBuddy.companion.toggleVisibility")}
+                />
+              </label>
             ) : null}
             {mode === "gallery" ? (
               <Button

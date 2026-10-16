@@ -266,6 +266,18 @@ export interface SyncProviderChannelInput {
   baseUrl?: string;
 }
 
+export interface ChannelModelsInput {
+  newApiBaseUrl: string;
+  database?: NewApiDatabaseConfigInput;
+  provider: string;
+}
+
+export interface ChannelModelsResult {
+  provider: string;
+  channelId: number | string;
+  models: string[];
+}
+
 export interface SaveMediaModelsInput {
   newApiBaseUrl: string;
   database?: NewApiDatabaseConfigInput;
@@ -594,6 +606,7 @@ export function useSaveProviderChannels() {
         >(),
     onSuccess: async (response) => {
       if (response.ok === true) {
+        await qc.resetQueries({ queryKey: CHANNEL_MODELS_QUERY_KEY });
         await qc.cancelQueries({ queryKey: queryKeys.modelGateway() });
         qc.setQueryData<OkResponse<ModelGatewayConfig>>(
           queryKeys.modelGateway(),
@@ -643,7 +656,32 @@ export function useClearComfyUIConfig() {
   });
 }
 
-/** 更新 NewAPI 中已存在的供应商渠道 key / Base URL，不改模型映射。 */
+const CHANNEL_MODELS_QUERY_KEY = ["newapi-channel-models"] as const;
+
+/** Fetch explicitly; all model inputs for this gateway/provider share the list. */
+export function useChannelModels(input: ChannelModelsInput) {
+  return useQuery({
+    queryKey: [
+      ...CHANNEL_MODELS_QUERY_KEY,
+      input.newApiBaseUrl.trim().replace(/\/v1\/?$/, ""),
+      input.provider,
+    ],
+    queryFn: ({ signal }) =>
+      api
+        .post("api/v1/model-gateway/custom/newapi/provider-channel/models", {
+          json: input,
+          signal,
+          timeout: 60_000,
+          retry: 0,
+        })
+        .json<OkResponse<ChannelModelsResult>>(),
+    enabled: false,
+    retry: false,
+    staleTime: Infinity,
+  });
+}
+
+/** 首次创建供应商渠道，后续更新 key / Base URL 并保留模型映射。 */
 export function useSyncProviderChannel() {
   const qc = useQueryClient();
   return useMutation({
@@ -655,8 +693,9 @@ export function useSyncProviderChannel() {
           throwHttpErrors: false,
         })
         .json<OkResponse<SyncProviderChannelResult> | ErrorResponse | FastApiErrorResponse>(),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.ok === true) {
+        await qc.resetQueries({ queryKey: CHANNEL_MODELS_QUERY_KEY });
         qc.invalidateQueries({ queryKey: queryKeys.modelGateway() });
       }
     },

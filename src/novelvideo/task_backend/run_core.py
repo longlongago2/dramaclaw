@@ -106,6 +106,7 @@ _PROJECT_TASK_RESOURCE_KINDS = {
     "freezone_image_vectorize": "ffmpeg",
     "freezone_analyze": "video",
     "freezone_video_story": "video",
+    "freezone_video_breakdown": "video",
     "freezone_image_reverse_prompt": "script",
     "freezone_text_generate": "script",
     "freezone_story_script": "script",
@@ -586,7 +587,7 @@ def _project_task_timeout_seconds() -> int:
             logger.warning(
                 "Invalid ST_PROJECT_TASK_TIMEOUT_S=%r; using default", raw_value
             )
-    return 30 * 60
+    return 120 * 60
 
 
 def _project_task_failure_for_exception(
@@ -618,7 +619,7 @@ def _project_task_failure_for_exception(
         return str(exc), {"error_code": exc.error_code}, True
 
     if isinstance(exc, TaskTimedOut):
-        timeout_seconds = int(getattr(exc, "timeout_seconds", None) or 30 * 60)
+        timeout_seconds = int(getattr(exc, "timeout_seconds", None) or _project_task_timeout_seconds())
         timeout_minutes = max(round(timeout_seconds / 60), 1)
         return (
             f"任务超过 {timeout_minutes} 分钟未完成，已自动放弃",
@@ -987,7 +988,11 @@ def run_project_task_core_sync(
                 # 唯一派发点，绑定本次投递的身份，使闸门总有一个请求作用域的
                 # 身份可读——否则「平台任务，允许」与「调用点漏传参数」都是 None。
                 # 5 个 runner 在自己函数体内另有绑定，嵌套安全（set/reset 成对）。
-                with model_gateway_scope_for_runner(envelope):
+                from novelvideo.styles.runtime import style_snapshot_scope
+
+                with model_gateway_scope_for_runner(envelope), style_snapshot_scope(
+                    (envelope.get("payload") or {}).get("style_snapshot")
+                ):
                     result = runner(envelope, ctx)
                 if task_type == "freezone_text_generate" and isinstance(result, dict):
                     result = dict(result)

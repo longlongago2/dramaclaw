@@ -198,6 +198,13 @@ def test_codex_sandbox_binaries_are_not_marked_project_license() -> None:
     )
 
 
+def test_stickman_upstream_previews_keep_mit_license() -> None:
+    prefix = "src/novelvideo/styles/presets/stickman-previews/"
+    for name in ("1a.png", "1b.png", "2a.png", "3.png", "LICENSE"):
+        assert generator._inventory_row(prefix + name)["license_expression"] == "MIT"
+    assert generator._inventory_row(prefix + "2b.png")["license_expression"] == generator.PROJECT_LICENSE
+
+
 def test_write_sbom_is_idempotent_for_same_inputs(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(generator, "ROOT", tmp_path)
     (tmp_path / "pyproject.toml").write_text(

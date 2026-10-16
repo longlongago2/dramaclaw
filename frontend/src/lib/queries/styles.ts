@@ -23,7 +23,7 @@ export function useStyles(project?: string) {
 
 export function useStyleDetail(project: string, id: string | null) {
   return useQuery({
-    queryKey: queryKeys.style(id ?? "__none__"),
+    queryKey: queryKeys.style(id ?? "__none__", project),
     queryFn: ({ signal }) =>
       api
         .get(p`api/v1/styles/${id}`, {

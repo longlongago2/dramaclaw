@@ -140,6 +140,16 @@ COMMON_REVERSE_ENV_ALLOWLIST: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 CE_REVERSE_ENV_ALLOWLIST: tuple[tuple[re.Pattern[str], str], ...] = (
     (
+        re.compile(r"^PORT$"),
+        "scripts/local_gateway.py reads the sibling gateway's PORT override; "
+        "the gateway owns this setting, not the DramaClaw application template.",
+    ),
+    (
+        re.compile(r"^ProgramFiles$"),
+        "Windows-provided installation directory used to locate Go in the local "
+        "gateway launcher; not an application configuration variable.",
+    ),
+    (
         re.compile(r"^ST_MEDIA_ARCHIVE_COPY_ENABLED$"),
         "EE-only archive copy switch checked by shared CE delivery code; "
         "CE does not expose it as operator configuration.",

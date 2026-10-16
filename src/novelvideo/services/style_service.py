@@ -244,6 +244,17 @@ class StyleService:
             return None
 
     @classmethod
+    def _inherit_preset_branch(cls, config: StyleConfig) -> StyleConfig:
+        """Resolve omitted representation metadata without overriding explicit choices."""
+        if config.base and "character_representation" not in config.model_fields_set:
+            base = cls.get_preset(config.base)
+            if base:
+                for field in ("character_representation", "style_family", "animation_subtype", "theme_options"):
+                    if field not in config.model_fields_set:
+                        setattr(config, field, getattr(base, field))
+        return config
+
+    @classmethod
     def get_custom_style(
         cls,
         style_id: str,
@@ -270,7 +281,7 @@ class StyleService:
             config_data = styles.get(style_id)
             if config_data:
                 config_data["is_preset"] = False
-                return StyleConfig(**config_data)
+                return cls._inherit_preset_branch(StyleConfig(**config_data))
         except Exception as e:
             print(f"[StyleService] 加载自定义风格失败: {style_id}, {e}")
 
@@ -299,6 +310,7 @@ class StyleService:
             # 确保 ID 一致
             config.id = style_id
             config.is_preset = False
+            cls._inherit_preset_branch(config)
             if not config.created_at:
                 config.created_at = datetime.now()
             styles = cls._load_project_custom_style_map(
@@ -415,6 +427,12 @@ class StyleService:
         Returns:
             StyleConfig 实例，如果不存在返回 None
         """
+        from novelvideo.styles.runtime import active_style_snapshot
+
+        snapshot = active_style_snapshot()
+        if snapshot and snapshot.get("id") == style_id:
+            return StyleConfig.model_validate(snapshot)
+
         # 优先查找自定义风格（允许覆盖预设）
         custom = cls.get_custom_style(
             style_id,
@@ -423,15 +441,33 @@ class StyleService:
             project_dir=project_dir,
             state_dir=state_dir,
         )
-        if custom:
-            return custom
+        config = custom or cls.get_preset(style_id)
+        if config is None or not config.theme_options:
+            return config
+        if state_dir is not None:
+            project_config = load_project_config_file_from_state_dir(state_dir)
+        else:
+            owner, project_name = cls._resolve_project_context(username, project, project_dir)
+            project_config = load_project_config_file(owner, project_name) if owner and project_name else {}
+        theme = project_config.get("visual_style_theme") if project_config.get("visual_style") == style_id else None
+        if theme not in config.theme_options:
+            theme = None
+        return cls.resolve_theme(config, theme)
 
-        # 回退到系统预设
-        preset = cls.get_preset(style_id)
-        if preset:
-            return preset
+    @classmethod
+    def resolve_theme(cls, config: StyleConfig, theme: str | None) -> StyleConfig:
+        if theme is not None and theme not in config.theme_options:
+            raise ValueError(f"Style '{config.id}' does not support theme '{theme}'")
+        resolved = config.model_copy(deep=True)
+        resolved.style_theme = theme
+        if theme and theme not in {"classic", "1a"}:
+            from novelvideo.styles.stickman import theme_rules
 
-        return None
+            rules = theme_rules(theme)
+            resolved.style_instructions = f"{rules.identity}\n{rules.render}"
+            resolved.avoid_instructions = rules.avoid
+            resolved.style_tag = rules.tag
+        return resolved
 
     @classmethod
     def get_style_or_default(
@@ -488,6 +524,8 @@ class StyleService:
                         "type": "preset",
                         "style_family": config.style_family,
                         "animation_subtype": config.animation_subtype,
+                        "character_representation": config.character_representation,
+                        "theme_options": list(config.theme_options),
                     })
         return styles
 
@@ -532,9 +570,24 @@ class StyleService:
                     "preview_path": config.preview_path,
                     "style_family": config.style_family,
                     "animation_subtype": config.animation_subtype,
+                    "character_representation": config.character_representation,
+                    "theme_options": list(config.theme_options),
                 })
 
         return styles
+
+    @classmethod
+    def get_character_representation(
+        cls,
+        style_id: str,
+        *,
+        project_dir: str | Path | None = None,
+        state_dir: str | Path | None = None,
+    ) -> str:
+        config = cls.get_style(
+            style_id, project_dir=project_dir, state_dir=state_dir,
+        )
+        return config.character_representation if config else "standard"
 
     @classmethod
     def get_style_family(

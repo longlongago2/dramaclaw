@@ -436,6 +436,15 @@ def run_project_subprocess(
         context=egress_context,
         policy=restricted_policy,
     )
+    from novelvideo.styles.runtime import STYLE_SNAPSHOT_ENV, active_style_snapshot
+
+    style_snapshot = active_style_snapshot()
+    if style_snapshot:
+        # Non-secret render settings, copied per child rather than mutating worker env.
+        import json
+
+        env = dict(os.environ if env is None else env)
+        env[STYLE_SNAPSHOT_ENV] = json.dumps(style_snapshot)
     scope = _scope_from_envelope(envelope)
     task_id = str(scope.get("task_id") or "")
     deadline = _deadline_for(scope, timeout)

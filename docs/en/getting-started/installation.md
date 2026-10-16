@@ -159,7 +159,7 @@ Official mode needs nothing else. In `auto` mode, source launchers start the sib
 
 ```bash
 mkdir -p state/newapi
-docker run -d --name dramaclaw-gateway -p 127.0.0.1:3000:3000 \
+docker run -d --name dramaclaw-gateway -p 127.0.0.1:18473:3000 \
   -v "$PWD/state/newapi:/data" \
   claymorelab/dramaclaw-gateway:v1.0.0-rc.24-dramaclaw.1
 ```

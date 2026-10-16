@@ -48,9 +48,10 @@ def is_text_target(path: Path) -> bool:
 
 def tracked_files() -> list[Path]:
     out = subprocess.run(
-        ["git", "ls-files"], capture_output=True, text=True, check=True
-    ).stdout.splitlines()
-    return [Path(p) for p in out]
+        ["git", "ls-files", "-z"], capture_output=True, text=True,
+        encoding="utf-8", check=True,
+    ).stdout.split("\0")
+    return [Path(p) for p in out if p]
 
 
 def collect_targets(argv: list[str]) -> list[Path]:
@@ -78,6 +79,13 @@ def scan(path: Path) -> list[tuple[int, str, str]]:
 
 
 def main(argv: list[str]) -> int:
+    # Git/IDE hooks capture pipes on Windows, where Python otherwise defaults
+    # to the system code page. Both successful and failing reports contain
+    # Unicode, including filenames and source snippets.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="backslashreplace")
     total = 0
     for path in collect_targets(argv):
         for lineno, label, snippet in scan(path):

@@ -1,0 +1,30 @@
+{
+  "repository": "https://github.com/kaomei/stickman-video-director",
+  "commit": "61064554e6227f48ff717a35d43e22fa69c2c031",
+  "previews": {
+    "1a": {
+      "source": "assets/readme/light-theme-demo.gif",
+      "frame_index": 10,
+      "sha256": "5fa8fe3e93b16f90d71fb4526fd3ef4cb8982467d66f156be772f8f92587a763"
+    },
+    "1b": {
+      "source": "assets/readme/dark-theme-demo.gif",
+      "frame_index": 70,
+      "sha256": "53b3066d1bfa5b7c866f86713943c711504049b3e56c27a3e9ddd9cc9c546927"
+    },
+    "2a": {
+      "source": "assets/readme/style-2a-demo.gif",
+      "frame_index": 50,
+      "sha256": "7ba3d97e8cf6b906e46df0ce09d0eca4857e39fb794f6f50945ad7eaf7987c11"
+    },
+    "3": {
+      "source": "assets/readme/style-3-demo.gif",
+      "frame_index": 32,
+      "sha256": "be6c669085d7a2b257861d997f086420ccc1b26c07508b5fabd00015f3fba924"
+    },
+    "2b": {
+      "source": "User-provided static frame from Style 2B; reused unchanged",
+      "sha256": "3865809890a501998a6275fbd9ef6accc6712484e01ba844ed1ae55db596a550"
+    }
+  }
+}

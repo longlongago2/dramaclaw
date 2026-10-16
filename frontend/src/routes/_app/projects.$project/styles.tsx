@@ -47,6 +47,8 @@ import { SidebarListSkeleton, DetailPaneSkeleton } from "@/components/skeletons"
 import type { Style } from "@/types/style";
 import { stylePreviewUrl } from "@/lib/style-preview-url";
 import { BUILTIN_STYLE_LABEL_KEYS } from "@/lib/visual-styles";
+import { StyleThemeSelect } from "@/components/style-theme-select";
+import { concreteStickmanTheme } from '@/lib/stickman-themes';
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   backendErrorToastMessage,
@@ -339,7 +341,7 @@ function StyleListItem({
 
 // ─── Preview box ────────────────────────────────────────────────────────────
 
-function PreviewBox({ style }: { style: Style }) {
+function PreviewBox({ style, theme }: { style: Style; theme?: string | null }) {
   const { t } = useTranslation();
   const [hasError, setHasError] = useState(false);
   const preset = isPreset(style);
@@ -347,7 +349,7 @@ function PreviewBox({ style }: { style: Style }) {
   // Reset error state when style switches.
   useEffect(() => {
     setHasError(false);
-  }, [style.id]);
+  }, [style.id, theme]);
 
   if (!preset && !style.preview_url) {
     return (
@@ -370,7 +372,7 @@ function PreviewBox({ style }: { style: Style }) {
 
   return (
     <img
-      src={preset ? stylePreviewUrl(style.id) : style.preview_url ?? undefined}
+      src={preset ? stylePreviewUrl(style.id, theme) : style.preview_url ?? undefined}
       alt={`${style.name} preview`}
       loading="lazy"
       decoding="async"
@@ -386,11 +388,13 @@ function StyleDetailPanel({
   style,
   project,
   isProjectDefault,
+  projectTheme,
   onClearSelection,
 }: {
   style: Style;
   project: string;
   isProjectDefault: boolean;
+  projectTheme?: string | null;
   onClearSelection: () => void;
 }) {
   const { t } = useTranslation();
@@ -411,6 +415,10 @@ function StyleDetailPanel({
     [presetLabel, stored],
   );
   const [fields, setFields] = useState<StyleConfig>(original);
+  const [theme, setTheme] = useState<string | null>(isProjectDefault ? concreteStickmanTheme(projectTheme) : null);
+  useEffect(() => {
+    setTheme(isProjectDefault ? concreteStickmanTheme(projectTheme) : null);
+  }, [isProjectDefault, projectTheme, style.id]);
   const [editingName, setEditingName] = useState(style.name);
   const [nameEditOpen, setNameEditOpen] = useState(false);
   const [nameEditValue, setNameEditValue] = useState(style.name);
@@ -469,7 +477,10 @@ function StyleDetailPanel({
 
   const handleApplyToProject = async () => {
     try {
-      await updateProject.mutateAsync({ visual_style: style.id });
+      await updateProject.mutateAsync({
+        visual_style: style.id,
+        ...(style.theme_options?.length ? { visual_style_theme: theme } : {}),
+      });
       toast.success(t("styles.setAsDefault", { name: style.label || style.name }));
     } catch {
       toast.error(t("common.error"));
@@ -608,7 +619,7 @@ function StyleDetailPanel({
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {/* Preview */}
         <div className="mb-6 w-full max-w-[240px]">
-          <PreviewBox style={style} />
+          <PreviewBox style={style} theme={theme} />
         </div>
 
         {/* Editor */}
@@ -622,6 +633,7 @@ function StyleDetailPanel({
             />
           </Field>
 
+          <StyleThemeSelect options={style.theme_options} value={theme} onChange={setTheme} disabled={updateProject.isPending} />
           <Section title={t("styles.projectStyleSection")} defaultOpen={false}>
             <Field label={t("styles.styleDirective")}>
               <Textarea
@@ -700,7 +712,7 @@ function StyleDetailPanel({
           variant="outline"
           size="sm"
           onClick={handleApplyToProject}
-          disabled={updateProject.isPending || isProjectDefault}
+          disabled={updateProject.isPending || (isProjectDefault && theme === concreteStickmanTheme(projectTheme))}
           className="h-7 gap-1.5 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent"
         >
           {updateProject.isPending ? (
@@ -708,7 +720,7 @@ function StyleDetailPanel({
           ) : (
             <Check className="size-3" />
           )}
-          {isProjectDefault ? t("styles.alreadyDefault") : t("styles.applyToProject")}
+          {isProjectDefault && theme === concreteStickmanTheme(projectTheme) ? t("styles.alreadyDefault") : t("styles.applyToProject")}
         </Button>
         {!preset && (
           <Button
@@ -1135,6 +1147,7 @@ function StylesPage() {
               style={selectedStyle}
               project={project}
               isProjectDefault={isProjectDefault}
+              projectTheme={projectRes?.data?.visual_style_theme}
               onClearSelection={() => setSelectedId(null)}
             />
           ) : detailFetching ? (

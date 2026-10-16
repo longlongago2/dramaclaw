@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Check, X } from 'lucide-react';
 
 import type { FreezoneStyleTemplate } from '@/api/ops';
@@ -11,12 +11,14 @@ interface StylePickerPopoverProps {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onClose: () => void;
+  viewControls?: ReactNode;
 }
 
 export function StylePickerPopover({
   selectedId,
   onSelect,
   onClose,
+  viewControls,
 }: StylePickerPopoverProps) {
   const { templates, isLoading } = useFreezoneStyleTemplates();
 
@@ -45,6 +47,11 @@ export function StylePickerPopover({
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
+      {viewControls && (
+        <div className="flex shrink-0 justify-center border-b border-white/[0.06] px-3 py-2.5">
+          {viewControls}
+        </div>
+      )}
       <div className="flex h-11 shrink-0 items-center justify-between px-4">
         <span className="text-sm font-medium text-text-dark">风格</span>
         <div className="flex items-center gap-1">
@@ -100,7 +107,7 @@ export function StylePickerPopover({
                     }`}
                   >
                     <span className="truncate">{item.label}</span>
-                    {isActive && <Check className="size-3.5 shrink-0 text-[rgb(var(--accent-rgb))]" />}
+                    {isActive && <Check className="size-3.5 shrink-0 text-primary" />}
                   </button>
                 );
               })}

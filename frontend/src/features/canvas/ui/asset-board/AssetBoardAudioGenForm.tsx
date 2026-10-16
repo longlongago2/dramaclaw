@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import { useCallback, useMemo, useState, type ReactElement } from 'react';
 import { ArrowUp, Loader2, Music2, Settings2, SlidersHorizontal } from 'lucide-react';
 
@@ -72,26 +73,12 @@ function SettingToggle({
   ariaLabel: string;
 }): ReactElement {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
+    <Switch
+      checked={checked}
       aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
-      className="inline-flex shrink-0 items-center"
-    >
-      <span
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
-          checked ? 'bg-[rgb(var(--accent-rgb))]' : 'bg-white/15'
-        }`}
-      >
-        <span
-          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-3.5' : 'translate-x-0.5'
-          }`}
-        />
-      </span>
-    </button>
+      size="sm"
+    />
   );
 }
 

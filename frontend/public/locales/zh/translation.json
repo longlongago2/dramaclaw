@@ -2379,8 +2379,7 @@
     "name": "项目名称",
     "namePlaceholder": "请输入你的项目名称",
     "clearName": "清空项目名称",
-    "nameNoChinese": "项目名称不能包含中文字符",
-    "nameInvalid": "项目名称只能包含英文字母、数字和下划线",
+    "nameInvalid": "请输入项目名称，不能包含换行或控制字符",
     "nameExistsActive": "已存在同名项目，请更换名称",
     "nameExistsArchived": "归档中已有同名项目，请先取消归档或更换名称",
     "nameExistsDeleted": "回收站中已有同名项目，请永久删除后再创建",
@@ -2456,7 +2455,8 @@
       "unarchive": "取消归档",
       "delete": "移到回收站…",
       "restore": "恢复",
-      "purge": "永久删除…"
+      "purge": "永久删除…",
+      "rename": "重命名"
     },
     "archiveDialog": {
       "title": "归档「{{name}}」？",
@@ -2482,7 +2482,9 @@
       "restored": "已恢复「{{name}}」",
       "purged": "已永久删除「{{name}}」",
       "purgeFailed": "未能永久删除「{{name}}」，项目数据仍保留",
-      "undo": "撤销"
+      "undo": "撤销",
+      "renamed": "项目已重命名",
+      "renameFailed": "重命名项目失败"
     },
     "title": "项目管理",
     "newProject": "新建项目",
@@ -2553,10 +2555,15 @@
       "editor": "编辑者",
       "admin": "管理员",
       "owner": "所有者"
-    }
+    },
+    "folderName": "文件夹名称",
+    "folderNameAutomatic": "项目名称支持中文等语言，文件夹名称由系统自动生成。",
+    "renameDescription": "修改项目名称后，文件夹和已有文件保持原样。"
   },
   "assets": {
     "common": {
+      "renameTitle": "资产改名",
+      "confirmRename": "修改名称会改变资产 ID。已有规划、分镜及生成结果不会自动迁移，保存后可能需要重新规划并生成。是否继续？",
       "edit": "编辑",
       "delete": "删除",
       "generated": "已生成",
@@ -2965,7 +2972,8 @@
       "guomanFantasy": "3D玄幻国漫",
       "postApocalyptic": "末日废土",
       "realistic": "现代写实",
-      "republicanEraDrama": "民国年代剧"
+      "republicanEraDrama": "民国年代剧",
+      "stickman": "火柴人"
     },
     "ethnicities": {
       "chinese": "中国人",
@@ -4597,57 +4605,68 @@
     "action": "动作镜头"
   },
   "styles": {
+    "aiAnalyze": "AI 分析参考图(可选)",
+    "aiExtractedHint": "AI 提取的参数(创建后可继续编辑)",
+    "alreadyDefault": "已是项目默认",
+    "analyzingPreview": "正在解析参考图…",
+    "applyToProject": "应用到项目",
+    "avoidDirective": "避免指令",
+    "configJson": "配置 (JSON)",
+    "confirmDelete": "确定删除自定义风格「{{name}}」?",
+    "createHint": "上传参考图 AI 分析参数，或手动填写项目风格指令。",
     "createStyle": "创建风格",
-    "projectDefault": "项目默认",
-    "preset": "预设",
+    "createTitle": "创建自定义风格",
     "custom": "自定义",
     "customPreviewEmpty": "暂无上传的参考图",
-    "uploadedPreview": "已上传参考图预览",
-    "analyzingPreview": "正在解析参考图…",
-    "styleIdRequiredBeforeUpload": "请先填写风格 ID，再上传参考图",
-    "unsupportedPreviewType": "请上传 PNG、JPEG、WebP 或 GIF 图片。",
-    "jsonFormatError": "JSON 格式错误",
-    "jsonChangesApplied": "JSON 改动已应用",
-    "styleSaved": "风格已保存",
-    "setAsDefault": "已将「{{name}}」设为项目默认风格",
-    "confirmDelete": "确定删除自定义风格「{{name}}」?",
+    "delete": "删除",
     "deleted": "已删除",
-    "unsaved": "未保存",
+    "idNameRequired": "请输入 ID 和名称",
+    "jsonChangesApplied": "JSON 改动已应用",
+    "jsonEdit": "JSON 编辑",
+    "jsonFormatError": "JSON 格式错误",
     "labelField": "UI 标签 (label)",
     "labelPlaceholder": "如:动漫风格",
+    "nameField": "名称",
+    "namePlaceholder": "赛博朋克",
+    "noStyles": "还没有风格",
+    "noStylesAvailable": "没有可用的风格。点击右上角创建。",
+    "noStylesHint": "点击「创建风格」从参考图自动分析或手动配置项目风格指令。",
+    "paramsExtracted": "风格参数已提取",
+    "preset": "预设",
+    "projectDefault": "项目默认",
     "projectStyleSection": "项目风格配置",
-    "styleDirective": "风格指令",
-    "avoidDirective": "避免指令",
-    "styleTag": "风格 Tag",
-    "styleTagHint": "渲染 模式按面板注入的样式短标识",
-    "styleTagPlaceholder": "如:ANIME",
-    "configJson": "配置 (JSON)",
-    "structuredEdit": "结构化编辑",
-    "jsonEdit": "JSON 编辑",
+    "renameTitle": "重命名风格",
+    "reupload": "重新上传",
     "save": "保存",
-    "alreadyDefault": "已是项目默认",
-    "applyToProject": "应用到项目",
-    "delete": "删除",
     "selectStyle": "选择一个风格",
     "selectStyleHint": "从左侧选择风格查看或编辑配置；预设只读，自定义可编辑/删除。",
-    "noStyles": "还没有风格",
-    "noStylesHint": "点击「创建风格」从参考图自动分析或手动配置项目风格指令。",
-    "createTitle": "创建自定义风格",
-    "createHint": "上传参考图 AI 分析参数，或手动填写项目风格指令。",
+    "setAsDefault": "已将「{{name}}」设为项目默认风格",
+    "structuredEdit": "结构化编辑",
+    "styleCreated": "风格已创建",
+    "styleDirective": "风格指令",
     "styleId": "风格 ID",
     "styleIdHint": "小写英文+下划线",
     "styleIdPlaceholder": "cyberpunk_v1",
-    "nameField": "名称",
-    "namePlaceholder": "赛博朋克",
-    "aiAnalyze": "AI 分析参考图(可选)",
-    "reupload": "重新上传",
-    "uploadRef": "上传参考图",
-    "aiExtractedHint": "AI 提取的参数(创建后可继续编辑)",
-    "noStylesAvailable": "没有可用的风格。点击右上角创建。",
-    "paramsExtracted": "风格参数已提取",
-    "idNameRequired": "请输入 ID 和名称",
-    "styleCreated": "风格已创建",
-    "renameTitle": "重命名风格"
+    "styleIdRequiredBeforeUpload": "请先填写风格 ID，再上传参考图",
+    "styleSaved": "风格已保存",
+    "styleTag": "风格 Tag",
+    "styleTagHint": "渲染 模式按面板注入的样式短标识",
+    "styleTagPlaceholder": "如:ANIME",
+    "theme1A": "风格 1A · 白底黑线",
+    "theme1B": "风格 1B · 黑底白线",
+    "theme2A": "风格 2A · 极简科技",
+    "theme2B": "风格 2B · 彩色故事",
+    "themeClassic": "基础黑白",
+    "themeDefault": "跟随预设",
+    "themeHint": "仅作用于后续生成；已有素材需重新生成才能匹配新主题。",
+    "themeLabel": "画风主题（可选）",
+    "themeModern": "现代潮酷",
+    "themePrehistoric": "史前手绘",
+    "themeVariantLabel": "具体画风",
+    "unsaved": "未保存",
+    "unsupportedPreviewType": "请上传 PNG、JPEG、WebP 或 GIF 图片。",
+    "uploadedPreview": "已上传参考图预览",
+    "uploadRef": "上传参考图"
   },
   "identityPicker": {
     "title": "选择角色身份",
@@ -5017,7 +5036,8 @@
         "placeholder": "请输入文件夹名称",
         "createHint": "创建后可立即用于归档和上传资产",
         "renameHint": "修改后会同步更新资产库中的显示名称"
-      }
+      },
+      "commitDragHint": "按住拖到左侧素材库,替换同类型素材"
     },
     "referencePick": {
       "kind": {
@@ -5428,7 +5448,12 @@
       "detailAria": "查看{{label}}详情",
       "useAria": "使用{{label}}",
       "loading": "加载中…",
-      "empty": "暂无风格模板"
+      "empty": "暂无风格模板",
+      "viewMode": "风格展示方式",
+      "listView": "列表",
+      "gridView": "网格",
+      "used": "已使用",
+      "usedAria": "已使用{{label}}"
     },
     "commitHint": {
       "title": "生成后的产物在 commit 时如何写回主线槽位",
@@ -5461,16 +5486,19 @@
       "gray": "灰"
     },
     "videoClip": {
-      "exit": "退出剪辑",
+      "exit": "退出片段截取",
       "subtitleTodo": "字幕（待实现）",
       "extractingFrames": "提取画面帧中…",
       "framesFailed": "画面帧加载失败",
-      "dragStart": "拖动以调整起点",
-      "dragEnd": "拖动以调整终点",
+      "dragStart": "拖动或用方向键调整起点",
+      "dragEnd": "拖动或用方向键调整终点",
       "muteTodo": "静音（待实现）",
       "loopTodo": "循环（待实现）",
-      "submitting": "剪辑中…",
-      "submit": "提交剪辑"
+      "submitting": "截取中…",
+      "submit": "提交截取",
+      "retryExtract": "重新提取画面帧",
+      "startHandle": "截取起点",
+      "endHandle": "截取终点"
     },
     "mentionReplace": {
       "empty": "没有可替换的素材",
@@ -5555,7 +5583,8 @@
     "mentionChip": {
       "doubleClickReplace": "双击替换引用",
       "clickToPlay": "{{label}} · 点击播放",
-      "replace": "替换引用"
+      "replace": "替换引用",
+      "removePrefix": "删除前缀"
     },
     "naming": {
       "copySuffix": "{{name}} - 副本",
@@ -5660,6 +5689,21 @@
       "close": "关闭",
       "free": "免费",
       "generate": "生成"
+    },
+    "videoExtend": {
+      "boundMin": "所选视频最短不小于 {{seconds}} 秒",
+      "boundMax": "所选视频最长不大于 {{seconds}} 秒",
+      "defaultSourceName": "原视频",
+      "defaultLabel": "视频",
+      "promptPrefix": "对 {{name}} 的 {{start}}-{{end}} 片段进行续写：",
+      "promptPrefixTrimmed": "对 {{name}} 进行续写：",
+      "nodeDisplayName": "续写 {{name}}",
+      "durationSeconds": "{{seconds}} 秒",
+      "exit": "退出续写截取",
+      "startHandle": "续写片段起点",
+      "endHandle": "续写片段终点",
+      "tooShort": "视频不足 {{seconds}} 秒，无法续写",
+      "confirm": "确认续写"
     }
   },
   "tool": {
@@ -5740,17 +5784,28 @@
       }
     },
     "video": {
-      "clip": "剪辑",
       "hd": "高清",
       "analyze": "解析",
+      "frameAnalysis": "逐帧拉片",
+      "segmentExtract": "片段截取",
+      "frameCrop": "画面裁切",
+      "motionCapture": "深度动作捕捉",
+      "extend": "智能续写",
       "separateAudioVideo": "分离音视频",
+      "frameEdit": "画面编辑",
+      "frameEditSubjectRemove": "主体消除",
+      "frameEditSubjectModify": "主体修改",
+      "frameEditSubjectReplace": "主体替换",
+      "frameEditMatte": "智能抠像",
       "subtitleRemoval": "智能去字幕",
       "subtitleRemovalTip": "AI一键去除视频字幕，仅只支持中英文字幕",
       "subtitleRemovalSmart": "智能擦除",
       "subtitleRemovalBox": "框选擦除",
       "fullscreen": "全屏播放",
       "notImplementedYet": "该功能暂未上线",
-      "requiresVideo": "请先上传视频"
+      "requiresVideo": "请先上传视频",
+      "extendRequiresSeedance25": "智能续写仅支持 Seedance 2.5，当前项目未开放该模型",
+      "extendPickHint": "请截取续写前置视频"
     },
     "audio": {
       "requiresAudio": "请先准备音频",
@@ -5993,7 +6048,8 @@
       "placeholderScript": "脚本",
       "betaTag": "Beta",
       "videoCompose": "视频合成",
-      "htmlArtifact": "网页"
+      "htmlArtifact": "网页",
+      "videoBreakdown": "逐帧拉片"
     },
     "imageNode": {
       "title": "图片节点",
@@ -6013,7 +6069,10 @@
       "requestId": "请求ID",
       "copyRequestId": "复制请求ID",
       "requestIdCopied": "已复制",
-      "resolution": "图片分辨率"
+      "resolution": "图片分辨率",
+      "replace": "替换图片",
+      "replaceTypeError": "请上传图片文件",
+      "replaceFailed": "图片替换失败"
     },
     "directorControlBundle": {
       "badge": "导演合成",
@@ -6263,6 +6322,7 @@
       "noVideo": "暂无视频",
       "upload": "上传视频",
       "clickToUpload": "点击或拖拽上传视频",
+      "replace": "替换视频",
       "resolution": "视频分辨率",
       "tabs": {
         "textToVideo": "文生视频",
@@ -6288,7 +6348,8 @@
       },
       "aspect": {
         "title": "比例",
-        "auto": "Auto"
+        "auto": "Auto",
+        "followsSource": "跟随原片"
       },
       "quality": {
         "title": "清晰度"
@@ -6378,13 +6439,38 @@
         "allReferenceGroup": "全能参考组",
         "firstLastFrameGroup": "首尾帧生成视频组"
       },
+      "crop": {
+        "displayName": "{{name}}_裁剪",
+        "cancel": "退出裁剪",
+        "abort": "取消裁剪",
+        "submit": "生成裁剪",
+        "ratioGroup": "裁剪比例",
+        "ratio": {
+          "free": "自由",
+          "original": "原始"
+        },
+        "boxLabel": "裁剪框，方向键移动，Shift 加速，Alt 加方向键调整大小，Esc 退出",
+        "processing": "正在裁剪视频，请稍候…",
+        "success": "裁剪完成",
+        "canceled": "已取消裁剪",
+        "busy": "视频正在裁剪中，可在底部浮条上取消",
+        "errors": {
+          "noProject": "未找到当前项目，无法保存结果",
+          "fetchFailed": "读取源视频失败（{{detail}}）",
+          "cannotDecode": "当前浏览器无法解码此视频（常见于 HEVC 源视频），请换用 Chrome 或先转码",
+          "noVideoTrack": "源视频没有可用的画面",
+          "tooLarge": "视频过大（{{detail}}），暂不支持裁剪",
+          "failed": "裁剪失败：{{detail}}"
+        }
+      },
       "clip": {
-        "displayName": "剪辑",
-        "noUrl": "剪辑完成但未返回视频地址",
-        "failed": "剪辑失败：{{detail}}"
+        "displayName": "片段截取",
+        "noUrl": "截取完成但未返回视频地址",
+        "failed": "截取失败：{{detail}}"
       },
       "videoEdit": {
-        "imageLimit": "视频编辑最多支持 {{limit}} 张参考图，已使用前 {{limit}} 张（忽略其余 {{ignored}} 张）"
+        "imageLimit": "视频编辑最多支持 {{limit}} 张参考图，已使用前 {{limit}} 张（忽略其余 {{ignored}} 张）",
+        "followsSourceHint": "视频编辑的画面比例与时长由原片决定，不可指定。"
       },
       "allReference": {
         "happyHorseUnsupported": "HappyHorse 不支持全能参考模式，请切换为文生视频或图生视频。",
@@ -6417,7 +6503,23 @@
       "emptyState": {
         "tryLabel": "试试："
       },
-      "videoLoadFailed": "视频加载失败"
+      "videoLoadFailed": "视频加载失败",
+      "depthCapture": {
+        "failed": "深度动作捕捉失败",
+        "interrupted": "处理已中断（页面刷新或关闭），可重新捕捉",
+        "retry": "重新捕捉",
+        "noWebGpu": "当前浏览器不支持 WebGPU，深度动作捕捉会比较慢",
+        "queued": "已有深度动作捕捉在处理，本次已排队，轮到后自动开始",
+        "errors": {
+          "tooLong": "视频超过 {{seconds}} 秒，暂不支持深度动作捕捉",
+          "noVideoTrack": "源视频没有可用的画面",
+          "cannotDecode": "浏览器无法解码该视频格式",
+          "cancelled": "处理已取消",
+          "failed": "处理出错",
+          "noProject": "未找到当前项目，无法保存结果",
+          "alreadyRunning": "这条视频的深度动作捕捉还在处理中，请等它完成"
+        }
+      }
     },
     "pano360": {
       "captureGroup2x2": "全景截图组 (4 张)",
@@ -6796,7 +6898,10 @@
         "videoUpstreamAllRefOnly": "上游含视频素材时只能用「全能参考」",
         "hasImageOrAudioRefs": "已引用图片/音频素材时不可用",
         "moreThanTwoImages": "上游图片超过 2 张时不可用"
-      }
+      },
+      "extendLockReason": "智能续写固定使用 Seedance 2.5，不能切换模型或模式",
+      "extendPlaceholder": "请输入需要续写的内容",
+      "modeRestrictedDefault": "该节点不支持切换生成模式"
     },
     "threeDWorld": {
       "upstreamNodeFallback": "上游节点",
@@ -7630,6 +7735,16 @@
           "media": "保存媒体模型"
         }
       },
+      "channelModels": {
+        "fetch": "获取模型列表",
+        "select": "选择渠道模型",
+        "inputLabel": "上游模型名称",
+        "loading": "正在获取渠道模型列表…",
+        "manualHint": "输入关键词搜索，也可直接填写模型名称。",
+        "empty": "没有匹配的模型，可继续手动填写。",
+        "fetchFailed": "未能获取模型列表，请确认渠道已同步且上游支持模型列表接口；也可手动填写。",
+        "syncFirst": "请先同步渠道的 Key 和 Base URL，再获取模型列表。"
+      },
       "featureModels": {
         "discoverModels": "获取可用模型",
         "mrtokenHint": "使用平台 API Key。保存渠道前会通过 GET /v1/models 验证可用模型；请将返回的原始模型 ID 填入模型映射。MrToken 模型列表包含文本、视觉、图片、视频和音乐/翻唱模型，未发现 Embedding 模型。音频能力不代表 TTS。更新本地网关后可使用 MiniMax H3 文生、图生、首尾帧、参考图及 MAX，以及 Seedance 2.0、Fast、Mini 视频模型；其他视频、音乐、3D 及 Qwen input 格式图片的专用协议尚未适配。SDK 地址为 https://api.mrtoken.cn/v1，渠道地址为 https://api.mrtoken.cn。",
@@ -8018,6 +8133,38 @@
     "openRouterConfigMessage": "当前模型需要 OpenRouter 服务，但后端还没有配置 API Key。请联系管理员处理。",
     "stillRunningTitle": "仍在生成中",
     "stillRunningMessage": "本次生成耗时较长，页面已停止等待，但任务仍在后台继续。可稍后刷新页面查看结果，或到任务中心查看进度。"
+  },
+  "canvasPick": {
+    "title": "从画布选择参考",
+    "hint": "点击画布中的视频节点",
+    "backToNode": "返回节点",
+    "cancel": "取消选择",
+    "selectNode": "选择【{{name}}】"
+  },
+  "videoBreakdown": {
+    "sourceLabel": "视频素材",
+    "emptyHint": "上传视频后开始",
+    "uploading": "上传中…",
+    "uploadFailed": "视频上传失败",
+    "uploadVideo": "上传视频",
+    "pickFromCanvas": "从画布选择",
+    "replace": "更换",
+    "attached": "已选素材",
+    "dimensionsLabel": "拆解维度",
+    "dimension": {
+      "storyboard": "分镜",
+      "motion": "动态",
+      "music": "音乐"
+    },
+    "start": "开始拉片",
+    "running": "拉片中…",
+    "failed": "拉片失败",
+    "emptyResult": "这条视频没有拆出任何可用内容",
+    "groups": {
+      "storyboard": "分镜组{{index}}",
+      "motion": "动态｜运镜动作参考",
+      "music": "音乐｜BGM参考片段"
+    }
   },
   "videoCompose": {
     "title": "视频合成",

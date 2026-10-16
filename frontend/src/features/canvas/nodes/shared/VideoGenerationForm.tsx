@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import {
   memo,
   useCallback,
@@ -53,6 +54,8 @@ import {
 import {
   isVideoModeSupportedByModel,
   videoModelReferenceDisabledReason,
+  videoModeMissingInputReason,
+  type VideoModeInputCounts,
 } from "@/features/canvas/nodes/shared/videoModelCapabilities";
 import {
   PromptMentionEditor,
@@ -142,14 +145,14 @@ interface GenModeSelectProps {
   value: VideoGenMode;
   modelId: string | null | undefined;
   supportedModes?: string[];
-  upstreamCounts: { videos: number; images: number; audios: number };
+  upstreamCounts: VideoModeInputCounts;
   onChange: (next: VideoGenMode) => void;
 }
 
 export function videoModeDisabledReason(
   mode: VideoGenMode,
   modelId: string | null | undefined,
-  upstreamCounts: { videos: number; images: number; audios: number },
+  upstreamCounts: VideoModeInputCounts,
   t: TFn,
   supportedModes?: string[],
 ): string | null {
@@ -230,7 +233,8 @@ export function videoModeDisabledReason(
   if (mode === "firstLastFrame" && upstreamCounts.images > 2) {
     return "上游图片超过 2 张时不可用";
   }
-  return null;
+  const missingInputReason = videoModeMissingInputReason(mode, upstreamCounts);
+  return missingInputReason ? t(missingInputReason) : null;
 }
 
 function GenModeSelect({
@@ -363,7 +367,7 @@ function GenModeSelect({
               t,
               supportedModes,
             );
-            const isDisabled = disabledReason != null && !isActive;
+            const isDisabled = disabledReason != null;
             // 禁用按钮在多数浏览器里不触发 mouse 事件，hover 提示挂在外层 div 上；
             // 提示气泡定位到菜单右侧，与设计稿一致。
             return (
@@ -386,10 +390,10 @@ function GenModeSelect({
                     setIsOpen(false);
                   }}
                   className={`block w-full rounded-[6px] px-3 py-1.5 text-left text-xs transition-colors ${
-                    isActive
-                      ? VIDEO_PARAM_ACTIVE_BUTTON_CLASS
-                      : isDisabled
-                        ? "cursor-not-allowed text-text-muted/40"
+                    isDisabled
+                      ? "cursor-not-allowed text-text-muted/40"
+                      : isActive
+                        ? VIDEO_PARAM_ACTIVE_BUTTON_CLASS
                         : "text-text-muted/95 hover:bg-white/[0.11] hover:text-text-dark"
                   }`}
                 >
@@ -644,24 +648,11 @@ function VideoConfigChip({
                 ? t("node.videoNode.audio.on")
                 : t("node.videoNode.audio.off")}
             </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={generateAudio}
+            <Switch
+              checked={generateAudio}
               aria-label={t("node.videoNode.audio.title")}
               onClick={() => onChange({ generateAudio: !generateAudio })}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
-                generateAudio
-                  ? "border-white/24 bg-white/[0.18]"
-                  : "border-white/10 bg-white/[0.08]"
-              }`}
-            >
-              <span
-                className={`h-4 w-4 rounded-full bg-text-dark shadow-[0_2px_8px_rgba(0,0,0,0.35)] transition-transform ${
-                  generateAudio ? "translate-x-[18px]" : "translate-x-0.5"
-                }`}
-              />
-            </button>
+            />
           </div>
         </div>
       )}
@@ -1388,7 +1379,7 @@ export interface VideoGenerationFormProps {
    * 模式由上游节点类型（含未填图的空节点）决定，其余模型按已解析素材 URL 计数，
    * 该条件判断留在宿主（VideoNode）里，本组件只负责显示。
    */
-  genModeUpstreamCounts: { videos: number; images: number; audios: number };
+  genModeUpstreamCounts: VideoModeInputCounts;
   upstreamTextContents: readonly UpstreamContent[];
   onDetachUpstream: (sourceNodeId: string) => void;
   /** 已按引用顺序排好、并补过「同类型序号 + 是否在模式上限内」的引用素材。 */
@@ -1633,12 +1624,13 @@ export const VideoGenerationForm = memo((props: VideoGenerationFormProps) => {
             onChange={onModelChange}
             domain="video"
             popoverPlacement="top"
-            getOptionDisabledReason={(model) =>
-              videoModelReferenceDisabledReason(
+            getOptionDisabledReason={(model) => {
+              const reason = videoModelReferenceDisabledReason(
                 model,
                 modelUpstreamCounts,
-              )
-            }
+              );
+              return reason ? t(reason) : null;
+            }}
           />
           <VideoConfigChip
             aspectRatio={aspectRatio}
@@ -1659,36 +1651,24 @@ export const VideoGenerationForm = memo((props: VideoGenerationFormProps) => {
             onChange={(next) => updateNodeData(nodeId, { modelParams: next })}
           />
           {showHumanReview && (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={humanReview}
-              title="素材含真实人脸时开启，可能增加审核时间，不保证通过。"
-              onClick={(event) => {
-                event.stopPropagation();
-                updateNodeData(nodeId, { humanReview: !humanReview });
-              }}
-              className={`nodrag inline-flex h-7 items-center gap-1.5 rounded px-1 text-xs font-medium transition-colors ${
+            <label className={`nodrag inline-flex h-7 items-center gap-1.5 rounded px-1 text-xs font-medium transition-colors ${
                 humanReview
                   ? "text-text-dark"
                   : "text-text-dark/72 hover:text-text-dark"
-              }`}
-            >
-              <span>真人验证</span>
-              <span
-                className={`relative inline-flex h-3.5 w-6 shrink-0 items-center rounded-full transition-colors ${
-                  humanReview
-                    ? "bg-[rgb(var(--accent-rgb))]"
-                    : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${
-                    humanReview ? "translate-x-3" : "translate-x-0.5"
-                  }`}
-                />
-              </span>
-            </button>
+              }`}>
+              <span>{t("node.videoOps.humanReviewLabel")}</span>
+              <Switch
+                checked={humanReview}
+                title={t("node.videoOps.humanReviewTitle")}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  updateNodeData(nodeId, { humanReview: !humanReview });
+                }}
+                size="sm"
+                className="nodrag"
+                aria-label={t("node.videoOps.humanReviewLabel")}
+              />
+            </label>
           )}
           <CountPicker
             value={count}

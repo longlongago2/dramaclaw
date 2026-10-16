@@ -126,6 +126,7 @@ async def get_style_preview(
     style_id: str,
     project: str | None = Query(None, description="项目名"),
     user: dict = Depends(get_api_user),
+    theme: str | None = Query(None, description="可选的具体主题预览"),
 ):
     """返回预设风格的参考预览图。"""
     from novelvideo.services.style_service import StyleService
@@ -159,6 +160,13 @@ async def get_style_preview(
         return {"ok": False, "error": f"Style '{style_id}' not found"}
 
     preview_path = StyleService.PRESETS_DIR / f"{style_id}.png"
+    if theme:
+        preset = StyleService.get_preset(style_id)
+        if theme not in preset.theme_options:
+            raise HTTPException(400, "Selected style does not support this theme")
+        from novelvideo.styles.stickman import canonical_theme
+
+        preview_path = StyleService.PRESETS_DIR / "stickman-previews" / f"{canonical_theme(theme)}.png"
     if not preview_path.exists():
         return {"ok": False, "error": f"预设风格 '{style_id}' 暂无参考图"}
 

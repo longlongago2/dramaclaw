@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Elastic-2.0
 // Copyright (c) 2026 ClaymoreLab
+import { Switch } from "@/components/ui/switch";
 import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
@@ -83,7 +84,7 @@ function MetaDot() {
   return <span className="text-muted-foreground/40">·</span>;
 }
 
-// ── InlineSwitch — lightweight toggle switch ────────────────────────
+// ── InlineSwitch — labeled shared switch ────────────────────────
 
 function InlineSwitch({
   checked,
@@ -98,16 +99,7 @@ function InlineSwitch({
 }) {
   return (
     <label className="inline-flex cursor-pointer items-center gap-1.5">
-      <span className="relative inline-flex h-4 w-7 shrink-0 items-center">
-        <input
-          type="checkbox"
-          className="peer sr-only"
-          checked={checked}
-          onChange={onChange}
-        />
-        <span className="absolute inset-0 rounded-full bg-white/[0.1] transition-colors peer-checked:bg-primary/40" />
-        <span className="absolute left-[2px] top-[2px] h-3 w-3 rounded-full bg-white/60 transition-all peer-checked:translate-x-3" />
-      </span>
+      <Switch size="sm" checked={checked} onCheckedChange={onChange} aria-label={label} />
       <span className={cn(
         "flex items-center gap-1 text-[12px] transition-colors",
         checked ? "text-foreground" : "text-muted-foreground",

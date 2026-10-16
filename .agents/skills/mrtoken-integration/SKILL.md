@@ -1,6 +1,6 @@
 ---
 name: mrtoken-integration
-description: Configure MrToken API access and video models, adapt MiniMax H3 or Seedance protocols, and verify model discovery and delivery in DramaClaw or another client. Use for MrToken onboarding, channel configuration, video-provider integration, and related troubleshooting.
+description: Configure MrToken API access and video models, adapt MiniMax H3, Seedance or HappyHorse protocols, and verify model discovery and delivery in DramaClaw or another client. Use for MrToken onboarding, channel configuration, video-provider integration, and related troubleshooting.
 ---
 
 # MrToken integration
@@ -26,11 +26,20 @@ The default credential is `PLATFORM_API_KEY`; a key file must contain a string `
 
 Read [references/video-protocols.md](references/video-protocols.md) when integrating video models. H3's OpenImgVideo `/v1/videos` and Seedance's `/v1/video-generation/seedance` are different protocols. Reusing an OpenAI-compatible channel type alone does not adapt either request or polling format. Chat and image compatibility does not establish video compatibility.
 
+For HappyHorse, read [references/happyhorse.md](references/happyhorse.md). It uses the platform's generic video-synthesis and task-query endpoints with native `input.media` fields. [assets/happyhorse-media-models.json](assets/happyhorse-media-models.json) contains six generation-mode examples; merge only models returned by current discovery. Video editing requires separate duration and billing support and is not enabled by those examples.
+
 For H3, query `GET /v1/models/{exact-model-id}/schema` to refresh limits. The same schema endpoint can reject native Seedance models with `requires providerCode OpenImgVideo`; use the Seedance documentation instead, without renaming the model or treating the rejection as a missing model.
 
 For DramaClaw channel setup, media catalog merge, gateway build, browser configuration, and local troubleshooting, read [references/dramaclaw.md](references/dramaclaw.md). [assets/media-models.json](assets/media-models.json) supplies secret-free example entries; filter them against current discovery and merge with the existing catalog. For other clients, use the protocol reference directly; the skill does not require Codex-specific browser APIs.
 
 ## Verify the requested outcome
+
+The helper's offline regression tests live in `tests/test_mrtoken_skill_helper.py`.
+Run them with an interpreter containing `pytest` and `httpx`:
+
+```text
+python -m pytest tests/test_mrtoken_skill_helper.py -q
+```
 
 Run contract tests for canonical conversion, mapped model identity, input limits, optional zero/false values, task IDs, terminal errors, and secret redaction. A saved channel or accepted task is not evidence of a playable video.
 
