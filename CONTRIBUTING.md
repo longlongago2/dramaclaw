@@ -26,6 +26,22 @@ cp .env.example .env      # 按文档配置模型网关
 uv run novelvideo api --port 8780
 ```
 
+### Windows 工作区共享技能
+
+子仓库只提交 `.agents/.gitkeep`；内部文件全部忽略，`skills` 由本地 Junction 连接到
+工作区根目录的 `.agents/skills`。先从已有工作区或备份恢复该技能源，再在每个子仓库执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/init-shared-skills.ps1
+```
+
+默认技能源为 `../.agents/skills`，其他位置可传 `-SharedSkillsPath <目录>`。脚本可重复运行；
+源目录缺失、技能仍被 Git 跟踪、目标已有文件或指向其他位置时会报错并保留内容。
+不要将 `.gitkeep` 放进 Junction，也不要重新提交共享技能。历史分支若仍跟踪这些文件，
+须先同步本修复，或在不建立 Junction 的独立 worktree 中操作；忽略规则不保护已跟踪文件。
+
+Windows 回归验证：`python scripts/test_init_shared_skills.py`。
+
 ### 流程
 
 首次克隆后安装提交前检查（需要 Python 3.11+）：

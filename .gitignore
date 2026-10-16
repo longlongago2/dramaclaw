@@ -1,4 +1,8 @@
 __pycache__/
+# Workspace-owned skills are linked locally; keep the marker outside the Junction.
+/.agents/*
+!/.agents/.gitkeep
+
 *.pyc
 .pytest_cache/
 .DS_Store

@@ -13,6 +13,16 @@ This repository contains the SuperTale Community Edition backend and video pipel
 - `scripts/acceptance/run.sh`: run acceptance checks when validating broader API behavior.
 - `pre-commit run --all-files`: run repository hooks, currently including `gitleaks` secret scanning.
 
+## Workspace-owned Agent Skills
+
+Only `.agents/.gitkeep` belongs in Git. `.agents/skills` is an ignored local
+Windows Junction to `../.agents/skills`, the workspace-owned source directory.
+After restoring that source, run `scripts/init-shared-skills.ps1` in PowerShell.
+Do not commit files through the Junction.
+The initializer preserves existing files and refuses tracked skills or conflicting
+links. Before checking out an older branch that still tracks skills, use a separate
+worktree without a Junction; ignore rules do not protect already-tracked files.
+
 ## Publishing and Deploying Docker Images with Harbor
 
 When asked to upload, push, or sync this project's Docker images to Harbor, read
