@@ -28,8 +28,8 @@ uv run novelvideo api --port 8780
 
 ### 跨平台共享技能与项目技能
 
-子仓库默认只提交 `.agents/.gitkeep`，内部文件全部忽略。`.agents/skills/` 本身必须是
-普通目录：共享技能的子目录分别链接到工作区根目录的同名技能，项目专属技能使用自己的普通目录。
+子仓库默认只提交 `.agents/skills/.gitkeep`，不忽略 `skills/` 目录本身，仅忽略其余内部内容。
+该目录必须是普通目录：共享技能的子目录分别链接到工作区根目录的同名技能，项目专属技能使用自己的普通目录。
 需要 Python 3.11+ 和 Git；Windows 使用 CPython 创建逐项 Junction，Linux/macOS 创建符号链接。
 先从已有工作区或备份恢复根目录的 `.agents/skills` 技能源，再在每个子仓库执行：
 

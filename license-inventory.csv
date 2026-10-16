@@ -1,5 +1,5 @@
 path,license_expression,copyright,evidence
-.agents/.gitkeep,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+.agents/skills/.gitkeep,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .dockerignore,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .env.example,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 .gitattributes,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
