@@ -2,10 +2,12 @@
 // Copyright (c) 2026 ClaymoreLab
 import { Combobox } from "@base-ui/react/combobox";
 import { ChevronDown, Loader2, RotateCw } from "lucide-react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChannelModels, type ChannelModelsInput } from "@/lib/queries/model-gateway";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +27,7 @@ export function ChannelModelInput(props: ChannelModelInputProps) {
     database: props.database,
   });
   const models = query.data?.data.models ?? [];
+  const isBuiltin = props.provider === "doubao_audio" || query.data?.data.source === "builtin";
   const canFetch = Boolean(props.provider && props.newApiBaseUrl && props.provider !== "comfyui");
 
   return (
@@ -68,7 +71,7 @@ export function ChannelModelInput(props: ChannelModelInputProps) {
         <Combobox.Positioner sideOffset={4} align="start" className="z-50">
           <Combobox.Popup className="w-(--anchor-width) min-w-48 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md">
             <div className="border-b border-border px-3 py-2 text-[11px] text-muted-foreground">
-              {t("settings.modelConfig.channelModels.manualHint")}
+              {t(isBuiltin ? "settings.modelConfig.channelModels.builtinHint" : "settings.modelConfig.channelModels.manualHint")}
             </div>
             <Combobox.Empty className="px-3 py-3 text-xs text-muted-foreground" role={query.isError ? "alert" : "status"}>
               {query.isFetching
@@ -98,26 +101,41 @@ export function ChannelModelInput(props: ChannelModelInputProps) {
 
 export function ChannelModelsButton(props: ChannelModelsInput & { disabled?: boolean }) {
   const { t } = useTranslation();
+  const hintId = useId();
   const query = useChannelModels({
     provider: props.provider,
     newApiBaseUrl: props.newApiBaseUrl,
     database: props.database,
   });
+  const isBuiltin = props.provider === "doubao_audio" || query.data?.data.source === "builtin";
   return (
     <div className="min-w-0">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-9 whitespace-nowrap px-2 text-[11px]"
-        disabled={props.disabled || query.isFetching}
-        title={props.disabled ? t("settings.modelConfig.channelModels.syncFirst") : t("settings.modelConfig.channelModels.manualHint")}
-        onClick={() => void query.refetch()}
-      >
-        {query.isFetching ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCw className="size-3.5" />}
-        {t("settings.modelConfig.channelModels.fetch")}
-        {query.data ? ` (${query.data.data.models.length})` : ""}
-      </Button>
+      <TooltipProvider delay={80}>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 whitespace-nowrap px-2 text-[11px]"
+                disabled={props.disabled || query.isFetching}
+                aria-describedby={hintId}
+                onClick={() => void query.refetch()}
+              />
+            }
+          >
+            {query.isFetching ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCw className="size-3.5" />}
+            {t("settings.modelConfig.channelModels.fetch")}
+            {query.data ? ` (${query.data.data.models.length})` : ""}
+          </TooltipTrigger>
+          <TooltipContent id={hintId} role="tooltip" className="max-w-64 leading-relaxed">
+            {props.disabled
+              ? t("settings.modelConfig.channelModels.syncFirst")
+              : t(isBuiltin ? "settings.modelConfig.channelModels.builtinHint" : "settings.modelConfig.channelModels.manualHint")}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       {query.isError ? (
         <p role="alert" className="mt-1 max-w-56 text-[11px] text-destructive">
           {t("settings.modelConfig.channelModels.fetchFailed")}

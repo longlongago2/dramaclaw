@@ -100,7 +100,13 @@ def _client(monkeypatch, tmp_path, store: _CharacterStore):
     return TestClient(app)
 
 
-def test_create_character_accepts_react_extra_payload(monkeypatch, tmp_path):
+@pytest.mark.parametrize("gender, canonical", [
+    ("男", "male"), ("male", "male"), ("female", "female"),
+    ("雌", "female"), ("雄性", "male"), ("母", "female"), ("公", "male"),
+    ("无性别", "agender"), ("agender", "agender"), ("非二元", "non_binary"),
+    ("non_binary", "non_binary"), ("", ""), ("未设定", ""),
+])
+def test_create_character_accepts_react_extra_payload(monkeypatch, tmp_path, gender, canonical):
     store = _CharacterStore()
     client = _client(monkeypatch, tmp_path, store)
 
@@ -110,7 +116,7 @@ def test_create_character_accepts_react_extra_payload(monkeypatch, tmp_path):
             "name": "秦昭",
             "role": "主角",
             "is_main": True,
-            "gender": "男",
+            "gender": gender,
             "age_group": "middle",
             "description": "冷静的捕快",
             "face_prompt": "sharp eyes, stern face",
@@ -124,19 +130,47 @@ def test_create_character_accepts_react_extra_payload(monkeypatch, tmp_path):
             "name": "秦昭",
             "role": "主角",
             "is_main": True,
-            "gender": "男",
+            "gender": canonical,
             "age_group": "middle",
             "description": "冷静的捕快",
             "face_prompt": "sharp eyes, stern face",
+            "voice_description": "",
         },
     }
     saved = store.get_character("秦昭")
     assert saved is not None
     assert saved.is_main is True
-    assert saved.gender == "男"
+    assert saved.gender == canonical
     assert saved.age_group == "middle"
     assert saved.description == "冷静的捕快"
     assert saved.face_prompt == "sharp eyes, stern face"
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("雌性", "female"), ("雄", "male"), ("genderless", "agender"),
+    ("Non-binary", "non_binary"), ("未设定", ""),
+])
+def test_edit_character_normalizes_and_persists_extended_gender(monkeypatch, tmp_path, value, expected):
+    store = _CharacterStore([NovelCharacter(name="丁丁", gender="male")])
+    client = _client(monkeypatch, tmp_path, store)
+    response = client.patch("/projects/demo/characters/丁丁", json={"gender": value})
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert store.get_character("丁丁").gender == expected
+    listed = client.get("/projects/demo/characters").json()["data"]
+    assert next(item for item in listed if item["name"] == "丁丁")["gender"] == expected
+
+
+@pytest.mark.parametrize("value", ["unrecognized_gender", [], False])
+def test_unsupported_gender_is_rejected_without_clearing_saved_value(monkeypatch, tmp_path, value):
+    store = _CharacterStore([NovelCharacter(name="丁丁", gender="agender")])
+    client = _client(monkeypatch, tmp_path, store)
+    response = client.patch("/projects/demo/characters/丁丁", json={"gender": value})
+    assert response.status_code == 422
+    assert store.get_character("丁丁").gender == "agender"
+    created = client.post("/projects/demo/characters", json={"name": "新角色", "gender": value})
+    assert created.status_code == 422
+    assert store.get_character("新角色") is None
 
 
 def test_create_main_character_unsets_previous_main(monkeypatch, tmp_path):

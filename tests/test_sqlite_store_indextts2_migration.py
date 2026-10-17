@@ -74,6 +74,7 @@ async def test_characters_voice_columns_added(initialized_store):
     assert "reference_audio_path" in cols
     assert "reference_audio_sha256" in cols
     assert "voice_samples_by_age_group_json" in cols
+    assert "voice_description" in cols
 
 
 @pytest.mark.asyncio
@@ -105,6 +106,30 @@ async def test_idempotent_reinit_does_not_error(tmp_path):
         assert "seedance2_voice_audio_records" in _tables(db_path)
     finally:
         await store2.close()
+
+
+@pytest.mark.asyncio
+async def test_legacy_project_migrates_voice_description_without_replacing_character(tmp_path):
+    from novelvideo.sqlite_store import SQLITE_SCHEMA_SQL, SQLiteStore
+    from novelvideo.sqlite_schema import mark_schema_component
+
+    kwargs = {"output_dir": str(tmp_path / "output"), "state_dir": str(tmp_path / "state")}
+    state_dir = Path(kwargs["state_dir"])
+    state_dir.mkdir()
+    with sqlite3.connect(state_dir / "data.db") as conn:
+        conn.executescript(SQLITE_SCHEMA_SQL.replace("    voice_description TEXT DEFAULT '',\n", ""))
+        conn.execute("INSERT INTO characters (name, face_prompt) VALUES (?, ?)", ("秦", "已保存的面部设定"))
+        mark_schema_component(conn, "project_store", 5)
+    restored = SQLiteStore("local/legacy_voice", **kwargs)
+    await restored.initialize()
+    await restored.load_graph_state()
+    try:
+        assert restored.get_character("秦").face_prompt == "已保存的面部设定"
+        assert restored.get_character("秦").voice_description == ""
+        await restored.update_character("秦", voice_description="低沉清晰的男声")
+        assert (await restored.list_characters())[0].voice_description == "低沉清晰的男声"
+    finally:
+        await restored.close()
 
 
 def test_add_column_if_missing_ignores_duplicate_column_race():

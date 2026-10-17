@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS characters (
     fish_voice_id     TEXT DEFAULT '',
     description       TEXT DEFAULT '',
     face_prompt       TEXT DEFAULT '',
+    voice_description TEXT DEFAULT '',
     appearance_details TEXT DEFAULT '',
     identities_json   TEXT DEFAULT '[]',
     created_at        TEXT DEFAULT (datetime('now')),
@@ -399,7 +400,7 @@ _PROJECT_STORE_SCHEMA_COMPONENT = "project_store"
 # MIGRATION CONTRACT: increment this whenever SQLITE_SCHEMA_SQL or any
 # _ensure_*_columns migration above changes. Existing databases skip the
 # initializer after this version has been recorded.
-_PROJECT_STORE_SCHEMA_VERSION = 5
+_PROJECT_STORE_SCHEMA_VERSION = 6
 
 
 def _table_columns(db: sqlite3.Connection, table: str) -> set[str]:
@@ -565,7 +566,7 @@ class SQLiteStore:
             _add_column_if_missing(db, "scenes", name, "TEXT DEFAULT ''")
 
     def _ensure_indextts2_columns(self, db: sqlite3.Connection) -> None:
-        """Add IndexTTS2 / Seedance 2.0 voice columns introduced in Stage A."""
+        """Add voice sample metadata and stable character voice descriptions."""
         _add_column_if_missing(
             db,
             "beats",
@@ -574,6 +575,7 @@ class SQLiteStore:
         )
 
         char_columns = {
+            "voice_description": "TEXT DEFAULT ''",
             "reference_audio_path": "TEXT DEFAULT ''",
             "reference_audio_sha256": "TEXT DEFAULT ''",
             "reference_audio_updated_at": "TEXT DEFAULT ''",
@@ -803,8 +805,8 @@ class SQLiteStore:
             """INSERT INTO characters (name, aliases_json, role, is_main, gender, age_group,
                body_type, fish_voice_id, description, face_prompt, appearance_details, identities_json,
                reference_audio_path, reference_audio_sha256, reference_audio_updated_at,
-               voice_samples_by_age_group_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               voice_samples_by_age_group_json, voice_description)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(name) DO UPDATE SET
                aliases_json=excluded.aliases_json, role=excluded.role,
                is_main=excluded.is_main, gender=excluded.gender,
@@ -816,6 +818,7 @@ class SQLiteStore:
                reference_audio_sha256=excluded.reference_audio_sha256,
                reference_audio_updated_at=excluded.reference_audio_updated_at,
                voice_samples_by_age_group_json=excluded.voice_samples_by_age_group_json,
+               voice_description=excluded.voice_description,
                updated_at=datetime('now')""",
             (
                 character.name,
@@ -834,6 +837,7 @@ class SQLiteStore:
                 character.reference_audio_sha256,
                 character.reference_audio_updated_at,
                 character.voice_samples_by_age_group_json,
+                character.voice_description,
             ),
         )
         await db.commit()
@@ -877,8 +881,8 @@ class SQLiteStore:
                     """INSERT INTO characters
                        (name, aliases_json, role, is_main, gender, age_group,
                         body_type, fish_voice_id, description, face_prompt,
-                        appearance_details, identities_json)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        appearance_details, identities_json, voice_description)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                        ON CONFLICT(name) DO NOTHING""",
                     (
                         character.name,
@@ -893,6 +897,7 @@ class SQLiteStore:
                         character.face_prompt,
                         character.appearance_details,
                         character.identities_json,
+                        character.voice_description,
                     ),
                 )
             await db.commit()
@@ -2303,6 +2308,7 @@ class SQLiteStore:
                 fish_voice_id=row["fish_voice_id"] if "fish_voice_id" in row.keys() else "",
                 description=row["description"] or "",
                 face_prompt=row["face_prompt"] or "",
+                voice_description=row["voice_description"] or "",
                 appearance_details=row["appearance_details"] or "",
                 identities_json=row["identities_json"] or "[]",
                 reference_audio_path=(

@@ -892,8 +892,14 @@ def get_fish_voice_id(age_group: str, gender: str) -> str:
     structured_v1 的抽取器要的是 ``male``/``female``。只认中文会把每一个
     structured 项目的女性角色都配成男声，所以两种写法都要认。
     """
+    from novelvideo.utils.character_gender import normalize_character_gender
+
+    normalized = normalize_character_gender(gender)
+    if normalized in {"agender", "non_binary"}:
+        # The legacy preset table has no gender-independent voice entry.
+        return ""
     text = str(gender or "").strip().lower()
-    gender_key = "female" if ("女" in text or "female" in text) else "male"
+    gender_key = "female" if (normalized == "female" or "女" in text or "female" in text) else "male"
     return FISH_VOICE_PRESETS.get(f"{age_group}_{gender_key}", "")
 
 

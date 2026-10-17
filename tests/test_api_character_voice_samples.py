@@ -106,6 +106,23 @@ async def test_update_character_accepts_age_group(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_character_voice_description_can_be_edited_without_changing_face(tmp_path, monkeypatch):
+    from novelvideo.api.routes import characters
+
+    character = NovelCharacter(name="秦", face_prompt="已有面部设定", voice_description="自动声音设定")
+    store = _CharacterStore([character])
+    _patch_project(monkeypatch, characters, tmp_path, store)
+    response = await characters.update_character(
+        project="demo", name="秦", body=CharacterUpdate(voice_description="用户修改的温暖低音"),
+        user={"username": "admin"},
+    )
+    assert response["ok"] is True
+    assert character.voice_description == "用户修改的温暖低音"
+    assert character.face_prompt == "已有面部设定"
+    assert store.updates == [("秦", {"voice_description": "用户修改的温暖低音"})]
+
+
+@pytest.mark.asyncio
 async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypatch):
     from novelvideo.api.routes import characters
 
@@ -114,6 +131,7 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
     voice_path.write_bytes(b"default voice")
     character = NovelCharacter(
         name="秦",
+        voice_description="青年男性，音色清亮，普通话清晰",
         fish_voice_id="legacy-fish-id",
         reference_audio_path="assets/characters/秦/voices/voice_default.wav",
         reference_audio_sha256="default-sha",
@@ -138,6 +156,7 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
     assert response["ok"] is True
     asset = response["data"][0]
     assert "fish_voice_id" not in asset
+    assert asset["voice_description"] == "青年男性，音色清亮，普通话清晰"
     assert asset["reference_audio_path"] == "assets/characters/秦/voices/voice_default.wav"
     assert asset["reference_audio_url"] == (
         "/static/projects/proj_demo/assets/characters/%E7%A7%A6/voices/voice_default.wav"

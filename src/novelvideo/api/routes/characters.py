@@ -44,6 +44,9 @@ from novelvideo.api.schemas import (
     IdentityImageGenRequest,
     CharacterVoiceRecordRequest,
     CharacterVoiceTrimRequest,
+    CharacterVoiceSourceRequest,
+    CharacterVoiceGenerateRequest,
+    CharacterVoiceSavePreviewRequest,
 )
 from novelvideo.config import (
     image_generation_selection_options,
@@ -89,6 +92,8 @@ from novelvideo.sqlite_store import SQLiteStore
 logger = logging.getLogger("novelvideo.api.characters")
 
 router = APIRouter()
+
+CHARACTER_VOICE_MODEL_CONFIG_KEY = "character_voice_model"
 
 CHARACTER_IMAGE_SELECTION_CONFIG_KEY = "character_image_selection"
 ASSET_IMAGE_SELECTION_CONFIG_KEYS = {
@@ -785,6 +790,7 @@ async def list_characters(
             "age_group": getattr(c, "age_group", ""),
             "body_type": getattr(c, "body_type", ""),
             "face_prompt": getattr(c, "face_prompt", ""),
+            "voice_description": getattr(c, "voice_description", ""),
             "is_main": c.is_main if hasattr(c, "is_main") else False,
             "portrait_path": abs_portrait,
             "portrait_url": (
@@ -877,6 +883,7 @@ async def add_character(
         age_group=body.age_group,
         description=body.description,
         face_prompt=body.face_prompt,
+        voice_description=body.voice_description,
     )
     await store.add_character(char)
 
@@ -891,6 +898,7 @@ async def add_character(
                 "age_group",
                 "description",
                 "face_prompt",
+                "voice_description",
             }
         ),
     }
@@ -940,6 +948,45 @@ async def get_project_character_image_selection(
         "ok": True,
         "data": _character_image_selection_payload(username, project_name),
     }
+
+
+@router.get("/projects/{project}/character-voice-selection")
+async def get_project_character_voice_selection(
+    project: str, user: dict = Depends(get_api_user)
+):
+    from novelvideo.audio.character_voice import character_voice_model_options
+    from novelvideo.project_config import load_project_config_file_from_state_dir
+
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
+    options = character_voice_model_options()
+    saved = load_project_config_file_from_state_dir(resolved.state_dir).get(
+        CHARACTER_VOICE_MODEL_CONFIG_KEY, ""
+    )
+    selection = saved if saved in options else next(iter(options), "")
+    return {"ok": True, "data": {"model": selection, "options": options}}
+
+
+@router.patch("/projects/{project}/character-voice-selection")
+async def update_project_character_voice_selection(
+    project: str,
+    body: CharacterVoiceSourceRequest,
+    user: dict = Depends(get_api_user),
+):
+    from novelvideo.audio.character_voice import character_voice_model_options
+    from novelvideo.project_config import update_project_config_file_in_state_dir
+
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    options = character_voice_model_options()
+    if body.model not in options:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "Unsupported character voice model"},
+        )
+    update_project_config_file_in_state_dir(
+        resolved.state_dir,
+        lambda config: config.update({CHARACTER_VOICE_MODEL_CONFIG_KEY: body.model}),
+    )
+    return {"ok": True, "data": {"model": body.model, "options": options}}
 
 
 @router.patch("/projects/{project}/character-image-selection")
@@ -1403,6 +1450,165 @@ async def upload_character_voice_sample(
         return {"ok": False, "error": str(exc)}
 
     return {"ok": True, "data": data}
+
+
+@router.get("/projects/{project}/characters/{name}/voice-samples/{slot}/previews")
+async def list_generated_character_voice_samples(
+    project: str,
+    name: str,
+    slot: str,
+    user: dict = Depends(get_api_user),
+):
+    from novelvideo.audio.character_voice import list_character_voice_previews
+
+    async with _character_project_scope(project, user, required_role="viewer") as (
+        ctx, _username, _project_name, project_dir, _output, store,
+    ):
+        if store.get_character(name) is None:
+            return JSONResponse(status_code=404, content={"ok": False, "error": "Character not found"})
+        if slot not in VOICE_SAMPLE_SLOTS:
+            return JSONResponse(status_code=400, content={"ok": False, "error": "Unsupported voice slot"})
+        previews = await run_voice_media_operation(
+            list_character_voice_previews, project_dir, name, slot,
+        )
+        for preview in previews:
+            preview["url"] = _convention_asset_url(ctx, project_dir, preview.pop("path"))
+        return {"ok": True, "data": previews}
+
+
+@router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/generate")
+async def generate_character_voice_sample(
+    project: str,
+    name: str,
+    slot: str,
+    body: CharacterVoiceGenerateRequest,
+    user: dict = Depends(get_api_user),
+):
+    from novelvideo.audio.character_voice import (
+        generate_character_voice_preview,
+        read_character_voice_preview,
+    )
+
+    async with _character_project_scope(project, user) as (
+        ctx,
+        _username,
+        _project_name,
+        project_dir,
+        _output,
+        store,
+    ):
+        character = store.get_character(name)
+        if character is None:
+            return JSONResponse(
+                status_code=404, content={"ok": False, "error": "Character not found"}
+            )
+        if slot not in VOICE_SAMPLE_SLOTS:
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "error": "Unsupported voice slot"},
+            )
+        voice_prompt = str(getattr(character, "voice_description", "") or "").strip()
+        if not voice_prompt:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "ok": False,
+                    "code": "character_voice_prompt_required",
+                    "error": "请先在角色资料中填写声音提示词",
+                },
+            )
+        selection = await get_project_character_voice_selection(project, user)
+        model = selection["data"]["model"]
+        try:
+            preview_id, _path, _duration = await generate_character_voice_preview(
+                project_dir=project_dir,
+                name=name,
+                slot=slot,
+                model=model,
+                description=voice_prompt,
+                text=body.text,
+                speaker=body.speaker,
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400, content={"ok": False, "error": str(exc)}
+            )
+        except Exception:
+            # Provider/transport exceptions may carry credentials; do not expose them.
+            return JSONResponse(
+                status_code=502,
+                content={
+                    "ok": False,
+                    "error": "Voice generation failed; check the audio channel and its permissions",
+                },
+            )
+        preview = await run_voice_media_operation(
+            read_character_voice_preview, project_dir, name, slot, preview_id,
+        )
+        preview["url"] = _convention_asset_url(ctx, project_dir, preview.pop("path"))
+        return {"ok": True, "data": preview}
+
+
+@router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/save-preview")
+async def save_generated_character_voice_sample(
+    project: str,
+    name: str,
+    slot: str,
+    body: CharacterVoiceSavePreviewRequest,
+    user: dict = Depends(get_api_user),
+):
+    from novelvideo.audio.character_voice import save_character_voice_preview
+
+    async with _character_project_scope(project, user) as (
+        ctx,
+        _username,
+        _project_name,
+        project_dir,
+        _output,
+        store,
+    ):
+        character = store.get_character(name)
+        if character is None:
+            return JSONResponse(
+                status_code=404, content={"ok": False, "error": "Character not found"}
+            )
+        if slot not in VOICE_SAMPLE_SLOTS:
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "error": "Unsupported voice slot"},
+            )
+
+        async def finalize(result):
+            path, sha256, updated_at = result
+            return await _apply_character_voice_update(
+                ctx=ctx,
+                project_dir=project_dir,
+                character=character,
+                store=store,
+                slot=slot,
+                path=path,
+                sha256=sha256,
+                updated_at=updated_at,
+            )
+
+        try:
+            key = character_voice_resource_key(
+                project_dir=project_dir, character_name=name, slot=slot
+            )
+            async with voice_resource_lock(key):
+                data = await run_voice_media_operation(
+                    save_character_voice_preview,
+                    project_dir=project_dir,
+                    name=name,
+                    slot=slot,
+                    preview_id=body.preview_id,
+                    finalize=finalize,
+                )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400, content={"ok": False, "error": str(exc)}
+            )
+        return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/record")

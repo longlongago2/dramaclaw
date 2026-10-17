@@ -15,6 +15,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Prot
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from novelvideo.i18n_message import MessageLike, lmsg
+from novelvideo.utils.character_gender import CharacterGender
 from novelvideo.shared.env_guard import preserve_st_env
 from novelvideo.config import get_newapi_structured_output_litellm_kwargs
 from novelvideo.utils.bounded_concurrency import (
@@ -280,7 +281,7 @@ class CharacterEnrichment(BaseModel):
     )
     role: str = Field(default="", description="角色定位")
     is_main: bool = Field(default=False, description="是否为主角/核心角色")
-    gender: str = Field(default="", description="性别")
+    gender: CharacterGender = Field(default="", description="male / female / agender / non_binary；空字符串仅表示未知或未设定")
     age_group: Literal["child", "youth", "middle", "elder"] = Field(
         default="youth", description="年龄段: child/youth/middle/elder"
     )
@@ -289,6 +290,9 @@ class CharacterEnrichment(BaseModel):
     face_prompt: str = Field(
         default="",
         description="纯面部特征描述（发型、眼睛、肤色），不含服装",
+    )
+    voice_description: str = Field(
+        default="", description="可用于纯人声生成的稳定声音提示词：发声质感、音域、共鸣、咬字、语速、口音，不含音效或单句情绪"
     )
 
 
@@ -403,7 +407,10 @@ async def extract_characters_from_graph(
 2. aliases: 该角色在原文中真实出现过的其他称呼/头衔/昵称（利用图谱关系发现的稳定别名）
 3. role: 角色定位（如：主角、闺蜜、前男友、皇后）
 4. is_main: 是否为解说主角/第一人称叙述者（整部小说只能有 1 个 is_main=True）
-5. gender: 性别（男/女）
+5. gender: 根据原文明确性别、稳定指代和人物关系填写 male / female / agender / non_binary。
+   动物的雄/雄性/公归为 male、雌/雌性/母归为 female。机器人、拟人角色按明确人设填写，不能因其类型默认无性别。
+   明确无性别才填 agender，明确非二元性别才填 non_binary；未说明或无法判断才填空字符串。
+   不根据姓名、职业、发型、服装或声线猜测。雌雄同体、间性等生物特征放入 description，不等同于非二元或无性别。
 6. age_group: 年龄段分类，必须是以下四个值之一: child（儿童）/ youth（青年）/ middle（中年）/ elder（老年）
 7. body_type: 体型描述（如：纤细高挑、健壮魁梧、娇小玲珑）
 8. description: 外貌和性格特征
@@ -412,6 +419,15 @@ async def extract_characters_from_graph(
    格式：[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型/骨骼]
    示例："女性，二十多岁，黑色长发马尾，黑色杏眼，小麦肤色，瓜子脸"
    ⚠️ 不要在 face_prompt 中描述服装！
+10. **voice_description**: 同时生成与角色设定一致的稳定声线描述，控制在1000字符以内。
+   写成可直接用于纯人声生成的声音提示词，建议80至180字。先明确声线年龄感和发声方式，
+   再描述音域、共鸣位置、明亮度、厚薄、气声或沙哑程度、咬字、停连、语速及口音。
+   用可听见的发声特征表现性格，不堆砌“好听、有魅力、充满好奇”等抽象词，不写互相矛盾的声音要求。
+   机器人等非人类角色通过窄幅音高变化、清脆偏薄的共鸣、清晰短促的咬字表现合成质感；
+   不要写机械提示音、滴滴声、电流声、混响、背景音乐或任何独立音效，也不写台词与场景动作。
+   示例：“少年感的中高音声线，音色清脆偏薄，带轻微金属感的共鸣，气声少，音高起伏较窄。
+   咬字清晰利落，字尾短促，语速轻快，短句间停顿明确，以干净的合成感说话。”优先依据原文，缺失处作保守设定。
+   与 face_prompt 分开保存；不要把具体台词的愤怒、悲伤或紧张等临时情绪写入稳定声线。
 
 规则：
 - face_prompt 必须是纯面部特征，绝对不能包含服装描述
@@ -444,6 +460,7 @@ async def extract_characters_from_graph(
                 fish_voice_id=fish_voice_id,
                 description=enriched.description,
                 face_prompt=enriched.face_prompt,
+                voice_description=enriched.voice_description,
             )
             char.ensure_tag()
             characters.append(char)

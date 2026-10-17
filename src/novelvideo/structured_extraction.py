@@ -32,6 +32,7 @@ from typing import Any, Callable, Iterable, Optional
 from pydantic import BaseModel, Field
 
 from novelvideo.story_analysis import SourceChunk
+from novelvideo.utils.character_gender import CharacterGender, normalize_character_gender
 from novelvideo.utils.bounded_concurrency import (
     default_llm_concurrency,
     map_bounded,
@@ -99,7 +100,7 @@ class CharacterCandidate(BaseModel):
         default_factory=list,
         description="本片段中用来称呼该角色的其他说法（昵称、职务、称号），必须逐字出现在本片段原文中",
     )
-    gender: str = Field(default="", description="male / female / 空字符串表示未知")
+    gender: CharacterGender = Field(default="", description="male / female / agender / non_binary；空字符串仅表示未知或未设定")
     description: str = Field(default="", description="本片段支持的简短描述")
     evidence: list[CharacterEvidence] = Field(default_factory=list)
 
@@ -123,6 +124,11 @@ CHARACTER_EXTRACTION_SYSTEM_PROMPT = """你是剧本/小说的角色抽取器。
   只有在本片段的上下文里能看出指向该角色时才填；看不出来就不要填。
 - 不确定两个称呼是不是同一个人时，分别输出两个角色，不要合并。
 - 旁白、画外音、镜头提示不是角色。
+- gender 使用规范值 male / female / agender / non_binary；只有未说明、无法判断时才填空字符串。
+  动物的雄/雄性/公归为 male，雌/雌性/母归为 female。机器人或拟人角色按明确的人设填写，不能因其类型而判为无性别。
+  明确设定无性别才填 agender，明确非二元性别才填 non_binary；“没有说明性别”不等于“无性别”。
+  依据原文明示的设定、稳定指代或人物关系，不要仅根据姓名、职业、发型、衣着或声线猜测。
+  雌雄同体、间性等生物特征不等于非二元或无性别，保留在 description 中，不硬塞进 gender 枚举。
 - 群体（众人、士兵们、村民们）不是角色。"""
 
 
@@ -566,8 +572,8 @@ def merge_character_candidates(
 
             entry.evidence.extend(verified)
             entry.chunk_ids.add(chunk.chunk_id)
-            if not entry.gender and candidate.gender in {"male", "female"}:
-                entry.gender = candidate.gender
+            if not entry.gender:
+                entry.gender = normalize_character_gender(candidate.gender)
             if not entry.description and candidate.description.strip():
                 entry.description = candidate.description.strip()
 
@@ -1000,6 +1006,7 @@ async def adjudicate_characters(
 
 class CharacterAppearance(BaseModel):
     name: str = Field(description="角色主名，必须与给出的角色名完全一致")
+    gender: CharacterGender = Field(description="male / female / agender / non_binary；未说明或无法判断时填空字符串，必须显式给出此字段")
     role: str = Field(default="", description="角色定位，如：主角、闺蜜、前男友、皇后")
     is_main: bool = Field(default=False, description="是否为解说主角/第一人称叙述者")
     age_group: str = Field(
@@ -1008,6 +1015,9 @@ class CharacterAppearance(BaseModel):
     body_type: str = Field(default="", description="体型描述，如：纤细高挑、健壮魁梧、娇小玲珑")
     face_prompt: str = Field(
         default="", description="纯面部特征描述（发型、眼睛、肤色、脸型），不含服装"
+    )
+    voice_description: str = Field(
+        default="", description="可直接用于纯人声生成的稳定声音提示词：发声质感、音域、共鸣、咬字、语速、口音，不含音效或单句情绪"
     )
 
 
@@ -1018,7 +1028,7 @@ class CharacterAppearanceList(BaseModel):
 CHARACTER_APPEARANCE_SYSTEM_PROMPT = """你是角色形象设定师。输入是一部作品中已经确认的角色，以及原文中关于他们的片段。
 
 为每个角色补全形象设定。这一步允许合理推断，但推断必须与给出的原文片段一致，不要与原文冲突。
-role、body_type、face_prompt 必须使用用户消息指定的输出语言。
+role、body_type、face_prompt、voice_description 必须使用用户消息指定的输出语言。
 
 对每个角色给出：
 1. name: 必须与输入给出的角色名逐字一致，不要改写、翻译或合并。
@@ -1026,11 +1036,24 @@ role、body_type、face_prompt 必须使用用户消息指定的输出语言。
 3. is_main: 是否为解说主角/第一人称叙述者。整批里最多只有一个 true；判断不了就全填 false。
 4. age_group: 必须是 child（儿童）/ youth（青年）/ middle（中年）/ elder（老年）之一。
    同一角色的幼年/老年形态不拆分，取他在故事中最主要时期对应的年龄段。
+   gender: 已给出的明确性别必须保持；未知时结合人物设定和原文中的明确指代、关系补全。
+   使用 male / female / agender / non_binary；动物的雄/公是 male、雌/母是 female。
+   机器人、拟人角色按明确人设填写，不能因其类型而默认无性别。明确无性别才填 agender，明确非二元才填 non_binary。
+   未说明、无法判断时填空字符串，不因姓名、发型、职业、服装或声线猜测，也不将雌雄同体或间性混同于非二元性别。
 5. body_type: 体型描述。
 6. face_prompt: 纯面部特征描述。
    格式：[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型/骨骼]
    示例："女性，二十多岁，黑色长发马尾，黑色杏眼，小麦肤色，瓜子脸"
    ⚠️ 绝对不要在 face_prompt 中描述服装、配饰或场景。服装由后续身份规划单独处理。
+7. voice_description: 可直接用于纯人声生成、长期复用的声音提示词，必须非空，建议80至180字，最多1000字符。
+   先明确主体的声线年龄感及发声方式，再描述音域、共鸣位置、明亮度、厚薄、气声/沙哑程度、咬字、停连、语速和口音。
+   用可听见的声学特征表现性格，不堆砌“好听、有魅力、充满好奇”等抽象形容词；特征之间不要互相矛盾。
+   机器人等非人类角色也只设计说话声线：可用偏高音域、窄幅音高变化、清脆偏薄的共鸣、清晰短促咬字表现合成质感，
+   不要用机械提示音、滴滴声、电流声、混响、背景音乐或任何独立音效代替音色；不要加入台词或场景动作。
+   普通角色示例："青年女性，中高音域，声音清亮偏薄，口腔前部共鸣明显，气声少，字头清晰、句尾轻收。普通话，语速适中，短句间有自然停顿，语调起伏柔和，表达亲切沉稳。"
+   机器人示例："少年感的中高音声线，音色清脆偏薄，带轻微金属感的共鸣，气声少，音高起伏范围较窄。咬字清晰利落，字尾收束短促，语速轻快，短句之间停顿明确，以干净的合成感说话。"
+   原文有声音或口音描写时优先采用；没有时作保守设定，不把推测表述为原文事实。
+   面部特征只写入 face_prompt；愤怒、悲伤、紧张等具体台词的临时情绪不写入稳定声线设定。
 
 不要新增角色，不要删除角色，不要合并角色。输入给几个就返回几个。"""
 
@@ -1064,7 +1087,7 @@ def _create_character_appearance_agent(agent: Any = None):
 # retires stored results rather than mixing two contracts.
 #
 # 2: ``is_main`` left the payload for the cast-level key below.
-CHARACTER_APPEARANCE_CACHE_VERSION = 3
+CHARACTER_APPEARANCE_CACHE_VERSION = 7
 
 CHARACTER_APPEARANCE_CACHE_TYPE = "character_appearance"
 
@@ -1155,10 +1178,12 @@ def appearance_to_cache_payload(appearance: CharacterAppearance) -> str:
     return json.dumps(
         {
             "name": appearance.name,
+            "gender": appearance.gender,
             "role": appearance.role,
             "age_group": appearance.age_group,
             "body_type": appearance.body_type,
             "face_prompt": appearance.face_prompt,
+            "voice_description": appearance.voice_description,
         },
         ensure_ascii=False,
     )
@@ -1186,10 +1211,11 @@ def appearance_from_cache_payload(payload: str) -> CharacterAppearance | None:
         data = json.loads(payload)
     except (TypeError, ValueError):
         return None
-    if not isinstance(data, dict):
+    if not isinstance(data, dict) or "gender" not in data:
         return None
     appearance = CharacterAppearance(
         name=str(data.get("name") or ""),
+        gender=data.get("gender", ""),
         role=str(data.get("role") or ""),
         # Stated rather than left to a missing key: a nomination never comes
         # from a per-character row, for the reason the payload docstring gives.
@@ -1197,8 +1223,10 @@ def appearance_from_cache_payload(payload: str) -> CharacterAppearance | None:
         age_group=normalize_age_group(data.get("age_group", "")),
         body_type=str(data.get("body_type") or ""),
         face_prompt=str(data.get("face_prompt") or ""),
+        voice_description=str(data.get("voice_description") or ""),
     )
-    return appearance if is_usable_appearance(appearance) else None
+    # A partial historical answer must not permanently prevent voice enrichment.
+    return appearance if is_usable_appearance(appearance) and appearance.voice_description.strip() else None
 
 
 CHARACTER_NARRATOR_CACHE_TYPE = "character_narrator"
@@ -1468,11 +1496,13 @@ async def enrich_character_appearances(
             # stored row is keyed by the settled name, which is a primary key.
             appearance = CharacterAppearance(
                 name=item.name,
+                gender=normalize_character_gender(item.gender) or entry.gender,
                 role=entry.role,
                 is_main=entry.is_main,
                 age_group=normalize_age_group(entry.age_group),
                 body_type=entry.body_type,
                 face_prompt=entry.face_prompt,
+                voice_description=entry.voice_description,
             )
             if is_usable_appearance(appearance):
                 produced[item.name] = appearance

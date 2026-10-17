@@ -33,6 +33,57 @@ function setup(props: Parameters<typeof Form>[0] = {}) {
 }
 
 describe("channel model input", () => {
+  it("identifies the speech catalog and lets users select its supported model", async () => {
+    server.use(http.post(endpoint, () => HttpResponse.json({
+      ok: true,
+      data: { provider: "doubao_audio", channelId: 62, source: "builtin", models: ["seed-audio-1.0"] },
+    })));
+    const { user } = setup({ provider: "doubao_audio" });
+    const button = screen.getByRole("button", { name: "获取模型" });
+    expect(screen.queryByText(/语音控制台/)).not.toBeInTheDocument();
+    await user.hover(button);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(/语音控制台/);
+    await user.unhover(button);
+    await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
+    await user.tab();
+    expect(button).toHaveFocus();
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(/语音控制台/);
+    expect(button).toHaveAccessibleDescription(/语音控制台/);
+    await user.tab();
+    await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
+    await user.click(button);
+    await screen.findByRole("button", { name: "获取模型 (1)" });
+    await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
+    await user.click(await screen.findByRole("option", { name: "seed-audio-1.0" }));
+    expect(screen.getByRole("combobox", { name: "上游模型" })).toHaveValue("seed-audio-1.0");
+    expect(screen.getAllByRole("button", { name: /获取模型/ })).toHaveLength(1);
+  });
+
+  it("refreshes one shared MrToken list without dropping model IDs containing spaces", async () => {
+    let models = ["Grok 4.5", "claude-opus- 4.7"];
+    let requests = 0;
+    server.use(http.post(endpoint, async ({ request }) => {
+      requests += 1;
+      expect(await request.json()).toMatchObject({ provider: "mrtoken", newApiBaseUrl: "http://127.0.0.1:3001" });
+      return HttpResponse.json({ ok: true, data: { provider: "mrtoken", channelId: 7, models } });
+    }));
+    const { user } = setup({ provider: "mrtoken" });
+    expect(screen.queryByRole("button", { name: "获取可用模型" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "获取模型" }));
+    await screen.findByRole("button", { name: "获取模型 (2)" });
+    await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
+    await user.click(await screen.findByRole("option", { name: "Grok 4.5" }));
+    expect(screen.getByRole("combobox", { name: "上游模型" })).toHaveValue("Grok 4.5");
+    models = ["Grok Imagine Image 2.0"];
+    await user.click(screen.getByRole("button", { name: "获取模型 (2)" }));
+    await screen.findByRole("button", { name: "获取模型 (1)" });
+    await user.clear(screen.getByRole("combobox", { name: "上游模型" }));
+    await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
+    expect(await screen.findByRole("option", { name: "Grok Imagine Image 2.0" })).toBeVisible();
+    expect(screen.queryByRole("option", { name: "Grok 4.5" })).not.toBeInTheDocument();
+    expect(requests).toBe(2);
+  });
+
   it("shares fetched models and filters/selects with the keyboard", async () => {
     let requests = 0;
     server.use(http.post(endpoint, () => {
@@ -40,8 +91,8 @@ describe("channel model input", () => {
       return HttpResponse.json({ ok: true, data: { provider: "openai", channelId: 7, models: ["gpt-4.1", "claude-sonnet", "gpt-image-1"] } });
     }));
     const { user } = setup();
-    await user.click(screen.getByRole("button", { name: "获取模型列表" }));
-    await screen.findByRole("button", { name: "获取模型列表 (3)" });
+    await user.click(screen.getByRole("button", { name: "获取模型" }));
+    await screen.findByRole("button", { name: "获取模型 (3)" });
     await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
     expect(await screen.findByRole("option", { name: "claude-sonnet" })).toBeVisible();
     const input = screen.getByRole("combobox", { name: "上游模型" });
@@ -55,8 +106,8 @@ describe("channel model input", () => {
   it("opens the full list when replacing an already selected model", async () => {
     server.use(http.post(endpoint, () => HttpResponse.json({ ok: true, data: { provider: "openai", channelId: 7, models: ["gpt-4.1", "gpt-image-1"] } })));
     const { user } = setup({ initial: "gpt-4.1" });
-    await user.click(screen.getByRole("button", { name: "获取模型列表" }));
-    await screen.findByRole("button", { name: "获取模型列表 (2)" });
+    await user.click(screen.getByRole("button", { name: "获取模型" }));
+    await screen.findByRole("button", { name: "获取模型 (2)" });
     await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
     await user.click(await screen.findByRole("option", { name: "gpt-image-1" }));
     expect(screen.getByRole("combobox", { name: "上游模型" })).toHaveValue("gpt-image-1");
@@ -83,8 +134,8 @@ describe("channel model input", () => {
   it("preserves manual input when fetching fails", async () => {
     server.use(http.post(endpoint, () => HttpResponse.json({ detail: "unsupported" }, { status: 502 })));
     const { user } = setup({ initial: "my-custom-model" });
-    await user.click(screen.getByRole("button", { name: "获取模型列表" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("未能获取模型列表");
+    await user.click(screen.getByRole("button", { name: "获取模型" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("未能获取模型");
     const input = screen.getByRole("combobox", { name: "上游模型" });
     expect(input).toHaveValue("my-custom-model");
     await user.clear(input);
@@ -95,8 +146,8 @@ describe("channel model input", () => {
   it("keeps an empty upstream list usable for manual names", async () => {
     server.use(http.post(endpoint, () => HttpResponse.json({ ok: true, data: { provider: "openai", channelId: 7, models: [] } })));
     const { user } = setup();
-    await user.click(screen.getByRole("button", { name: "获取模型列表" }));
-    await screen.findByRole("button", { name: "获取模型列表 (0)" });
+    await user.click(screen.getByRole("button", { name: "获取模型" }));
+    await screen.findByRole("button", { name: "获取模型 (0)" });
     await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
     expect(await screen.findByRole("status")).toHaveTextContent("没有匹配的模型");
     await user.type(screen.getByRole("combobox", { name: "上游模型" }), "unlisted-model");
@@ -109,8 +160,8 @@ describe("channel model input", () => {
       return HttpResponse.json({ ok: true, data: { provider: body.provider, channelId: 7, models: body.provider === "openai" ? ["gpt-4.1"] : ["qwen-plus"] } });
     }));
     const { user, rerender, client } = setup();
-    await user.click(screen.getByRole("button", { name: "获取模型列表" }));
-    await screen.findByRole("button", { name: "获取模型列表 (1)" });
+    await user.click(screen.getByRole("button", { name: "获取模型" }));
+    await screen.findByRole("button", { name: "获取模型 (1)" });
     rerender(<QueryClientProvider client={client}><Form provider="ali" /></QueryClientProvider>);
     await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
     expect(await screen.findByRole("option", { name: "qwen-plus" })).toBeVisible();
@@ -127,13 +178,13 @@ describe("channel model input", () => {
       }),
     );
     const { user, client } = setup({ initial: "gpt-4.1" });
-    await user.click(screen.getByRole("button", { name: "获取模型列表" }));
-    await screen.findByRole("button", { name: "获取模型列表 (1)" });
+    await user.click(screen.getByRole("button", { name: "获取模型" }));
+    await screen.findByRole("button", { name: "获取模型 (1)" });
     const { result } = renderHook(() => useSyncProviderChannel(), {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
     });
     await act(async () => { await result.current.mutateAsync({ provider: "openai", newApiBaseUrl: "http://127.0.0.1:3001" }); });
-    await screen.findByRole("button", { name: "获取模型列表" });
+    await screen.findByRole("button", { name: "获取模型" });
     expect(screen.getByRole("combobox", { name: "上游模型" })).toHaveValue("gpt-4.1");
     await user.click(screen.getByRole("button", { name: "选择渠道模型" }));
     const input = screen.getByRole("combobox", { name: "上游模型" });
@@ -144,7 +195,7 @@ describe("channel model input", () => {
 
   it("disables discovery and model editing when no channel is configured", () => {
     setup({ disabled: true });
-    expect(screen.getByRole("button", { name: "获取模型列表" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "获取模型" })).toBeDisabled();
     expect(screen.getByRole("combobox", { name: "上游模型" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "选择渠道模型" })).toBeDisabled();
   });

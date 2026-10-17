@@ -23,6 +23,7 @@ from novelvideo.project_config import load_project_config_file_from_state_dir
 import json
 
 from novelvideo.story_analysis import SourceChunk, chunk_source_text
+from novelvideo.utils.character_gender import normalize_character_gender
 from novelvideo.utils.source_language import AssetLanguage, detect_asset_language
 
 PROP_BUILD_DEFERRED_MESSAGE = "道具将在分集规划时按需生成"
@@ -286,11 +287,14 @@ def _apply_appearance(character: Any, appearance: Any, voice_for: Callable) -> N
     """Write an appearance answer onto a character about to be created."""
     if appearance is None:
         return
+    if not character.gender:
+        character.gender = appearance.gender
     character.role = appearance.role
     character.is_main = appearance.is_main
     character.age_group = appearance.age_group
     character.body_type = appearance.body_type
     character.face_prompt = appearance.face_prompt
+    character.voice_description = appearance.voice_description
     character.fish_voice_id = voice_for(appearance.age_group, character.gender)
 
 
@@ -299,8 +303,9 @@ async def _repair_missing_appearances(
     added: set,
     appearances: dict,
     voice_for: Callable,
+    candidates: list,
 ) -> int:
-    """Fill the appearance fields an existing character still lacks.
+    """Fill the appearance and voice fields an existing character still lacks.
 
     Every field is guarded on its own emptiness, and on nothing else. Gating
     the whole repair on a missing face was wrong: someone who typed a face by
@@ -309,15 +314,26 @@ async def _repair_missing_appearances(
     and overwrites nothing.
     """
     repaired = 0
-    for name, appearance in appearances.items():
+    for candidate in candidates:
+        name = candidate.name
         if name in added:
             continue
         existing = store.get_character(name)
         if existing is None:
             continue
         updates: dict[str, Any] = {}
+        if not str(existing.gender or "").strip() and candidate.gender:
+            updates["gender"] = candidate.gender
+        appearance = appearances.get(name)
+        if appearance is None:
+            if updates:
+                await store.update_character(name, **updates)
+                repaired += 1
+            continue
         if not str(existing.face_prompt or "").strip():
             updates["face_prompt"] = appearance.face_prompt
+        if not str(getattr(existing, "voice_description", "") or "").strip() and appearance.voice_description.strip():
+            updates["voice_description"] = appearance.voice_description
         if not str(existing.role or "").strip() and appearance.role:
             updates["role"] = appearance.role
         if not str(existing.body_type or "").strip() and appearance.body_type:
@@ -329,7 +345,7 @@ async def _repair_missing_appearances(
             # selects are written together, so they cannot end up disagreeing.
             updates["age_group"] = appearance.age_group
             updates["fish_voice_id"] = voice_for(
-                appearance.age_group, existing.gender
+                appearance.age_group, updates.get("gender", existing.gender)
             )
         # Whether this may be claimed at all was settled before the first row
         # was written; by here the flag is either the one nomination this build
@@ -380,7 +396,7 @@ async def _publish_characters(
         character = NovelCharacter(
             name=item.name,
             aliases=sorted(item.aliases),
-            gender=item.gender,
+            gender=normalize_character_gender(item.gender),
             description=item.description,
         )
         _apply_appearance(character, appearances.get(item.name), get_fish_voice_id)
@@ -396,16 +412,14 @@ async def _publish_characters(
     )
 
     # An existing character is an asset fact and a rebuild leaves it alone —
-    # except for a face prompt it never had. Characters built before this stage
-    # existed carry an empty one, and the portrait runner refuses to work
-    # without it, so skipping them would strand those projects forever. Only
-    # empty fields are written; anything the user typed is never touched.
+    # except for missing appearance and voice descriptions. Only empty fields
+    # are written; anything the user typed is never touched.
     report(
         0.85,
         lmsg("tasks.progress.characters.repairingAppearance", "补齐已有角色的空缺形象..."),
     )
     repaired = await _repair_missing_appearances(
-        store, set(added), appearances, get_fish_voice_id
+        store, set(added), appearances, get_fish_voice_id, candidates
     )
     if repaired:
         log(

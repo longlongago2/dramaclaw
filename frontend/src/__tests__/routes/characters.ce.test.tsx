@@ -15,6 +15,9 @@ const buildCharactersMutationMock = vi.hoisted(() => vi.fn());
 const taskStreamOptionsMock = vi.hoisted(() => vi.fn());
 const updateCharacterMutationMock = vi.hoisted(() => vi.fn());
 const updateIdentityMutationMock = vi.hoisted(() => vi.fn());
+const characterGenderState = vi.hoisted(() => ({ value: "男" }));
+
+beforeEach(() => { characterGenderState.value = "男"; });
 
 vi.mock("@/lib/runtime-config", () => ({
   isCeRuntime: () => runtimeState.isCeRuntime,
@@ -111,6 +114,13 @@ vi.mock("@/lib/queries/character-image-selection", () => ({
   useCharacterImageUsage: () => ({ data: { ok: true, data: {} } }),
 }));
 
+vi.mock("@/lib/queries/character-voice-generation", () => ({
+  useCharacterVoiceSelection: () => ({ data: { ok: true, data: { model: "index-tts-2", options: { "index-tts-2": "Seed Audio" } } } }),
+  useUpdateCharacterVoiceSelection: mutation,
+  useGenerateCharacterVoice: mutation,
+  useSaveCharacterVoicePreview: mutation,
+}));
+
 vi.mock("@/lib/queries/generation-credit-cost", () => ({
   useGenerationCreditCost: () => ({
     data: { ok: true, data: { display: "12 credits", cost: 12 } },
@@ -135,7 +145,7 @@ vi.mock("@/lib/queries/characters", () => ({
           name: "Li Qing",
           aliases: [],
           role: "主角",
-          gender: "男",
+          gender: characterGenderState.value,
           age_group: "middle",
           is_main: true,
           description: "Lead character",
@@ -155,7 +165,7 @@ vi.mock("@/lib/queries/characters", () => ({
           name: "Li Qing",
           aliases: [],
           role: "主角",
-          gender: "男",
+          gender: characterGenderState.value,
           age_group: "middle",
           is_main: true,
           description: "Lead character",
@@ -425,6 +435,18 @@ describe("character and identity rename confirmation", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
+    it("saves the character voice description independently of face prompts", async () => {
+      const user = userEvent.setup();
+      renderCharactersPage();
+      const description = await screen.findByRole("textbox", { name: "Voice prompt" });
+      await user.type(description, "低沉清晰，语速平稳，普通话");
+      await user.tab();
+      await waitFor(() => expect(updateCharacterMutationMock).toHaveBeenCalledWith({ voice_description: "低沉清晰，语速平稳，普通话" }));
+      for (const field of screen.getAllByDisplayValue("sharp eyes")) {
+        expect(field).toHaveValue("sharp eyes");
+      }
+    });
+
   it("holds the character guard through confirmation and mutation, and releases it after failure", async () => {
     let reject!: (reason: Error) => void;
     updateCharacterMutationMock.mockImplementationOnce(() => new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
@@ -524,5 +546,70 @@ describe("character and identity rename confirmation", () => {
     expect(within(confirmation).getByText("修改名称会改变资产 ID。已有规划、分镜及生成结果不会自动迁移，保存后可能需要重新规划并生成。是否继续？")).toBeInTheDocument();
     expect(updateCharacterMutationMock).not.toHaveBeenCalled();
     await userEvent.click(within(confirmation).getByRole("button", { name: "取消" }));
+  });
+});
+
+describe("character gender normalization and localized selection", () => {
+  beforeEach(async () => {
+    i18n.addResourceBundle("en", "translation", enTranslation, true, true);
+    i18n.addResourceBundle("zh", "translation", zhTranslation, true, true);
+    await i18n.changeLanguage("zh");
+    window.localStorage.clear();
+    Element.prototype.scrollTo = vi.fn();
+    updateCharacterMutationMock.mockReset().mockResolvedValue({ ok: true });
+    useSaveStatusStore.getState().reset();
+  });
+
+  it.each([
+    ["male", "男 / 雄"], ["男", "男 / 雄"], [" MALE ", "男 / 雄"],
+    ["female", "女 / 雌"], ["女性", "女 / 雌"], ["Female", "女 / 雌"],
+    ["雄", "男 / 雄"], ["公", "男 / 雄"], ["雌性", "女 / 雌"], ["母", "女 / 雌"],
+    ["agender", "无性别"], ["genderless", "无性别"], ["无性别", "无性别"],
+    ["non_binary", "非二元"], ["Non-binary", "非二元"],
+    ["", "未设定"],
+    ["无性别设定", "未设定"],
+  ])("localizes the selected gender %s as %s before the menu opens", async (stored, label) => {
+    characterGenderState.value = stored;
+    renderCharactersPage();
+    const select = await screen.findByRole("combobox", { name: "性别" });
+    expect(select).toHaveTextContent(label);
+    expect(select).not.toHaveTextContent(/male|female/i);
+    await userEvent.click(select);
+    expect(await screen.findByRole("option", { name: label })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("saves a canonical gender from a translated option", async () => {
+    characterGenderState.value = "male";
+    renderCharactersPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", { name: "性别" }));
+    await user.click(await screen.findByRole("option", { name: "女 / 雌" }));
+    await waitFor(() => expect(updateCharacterMutationMock).toHaveBeenCalledWith({ gender: "female" }));
+  });
+
+  it.each([["无性别", "agender"], ["非二元", "non_binary"]])("saves the explicit %s setting without clearing it", async (label, value) => {
+    characterGenderState.value = "female";
+    renderCharactersPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", { name: "性别" }));
+    expect(await screen.findAllByRole("option")).toHaveLength(5);
+    await user.click(screen.getByRole("option", { name: label }));
+    await waitFor(() => expect(updateCharacterMutationMock).toHaveBeenCalledWith({ gender: value }));
+  });
+
+  it("clears a gender without storing the UI-only unknown option", async () => {
+    characterGenderState.value = "male";
+    renderCharactersPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", { name: "性别" }));
+    await user.click(await screen.findByRole("option", { name: "未设定" }));
+    await waitFor(() => expect(updateCharacterMutationMock).toHaveBeenCalledWith({ gender: "" }));
+  });
+
+  it("uses the active locale when reading legacy Chinese values", async () => {
+    characterGenderState.value = "女";
+    await i18n.changeLanguage("en");
+    renderCharactersPage();
+    expect(await screen.findByRole("combobox", { name: "Gender" })).toHaveTextContent("Female");
   });
 });

@@ -476,6 +476,8 @@ def _build_embedding_model_channel_spec(
 
 
 def _mask_sent_channel_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    if "channel" not in payload:
+        return {**payload, "key": mask_token(str(payload.get("key") or ""))}
     return {
         **payload,
         "channel": {
@@ -1235,6 +1237,7 @@ async def sync_custom_newapi_provider_channel(
                 [
                     {
                         "provider": provider,
+                        "type": int(result.get("type") or saved_channel_type),
                         "upstreamKey": upstream_key,
                         "baseUrl": base_url or "",
                     }
@@ -1260,7 +1263,7 @@ async def sync_custom_newapi_provider_channel(
             "newApiResponse": result.get("newApiResponse"),
             "sentPayload": (
                 _mask_sent_channel_payload(sent_payload)
-                if isinstance(sent_payload, dict) and "channel" in sent_payload
+                if isinstance(sent_payload, dict)
                 else sent_payload
             ),
             "savedChannel": next(

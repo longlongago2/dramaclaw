@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from novelvideo.models import SceneRef
+from novelvideo.utils.character_gender import CharacterGender
 from novelvideo.ports.project import normalize_project_display_name
 from novelvideo.freezone.asset_copy import MAX_SOURCE_URL_LENGTH, MAX_SOURCES_PER_REQUEST
 from novelvideo.freezone.slots import PushTarget
@@ -433,10 +434,11 @@ class CharacterCreate(BaseModel):
     name: str
     role: str = ""
     is_main: bool = False
-    gender: str = ""
+    gender: CharacterGender = ""
     age_group: str = "youth"
     description: str = ""
     face_prompt: str = ""
+    voice_description: str = Field(default="", max_length=1000)
 
 
 # ── Freezone ─────────────────────────────────────────────────────────────────
@@ -2242,8 +2244,9 @@ class CreateIdentityAssetRequest(BaseModel):
 class CharacterUpdate(BaseModel):
     name: Optional[str] = None
     face_prompt: Optional[str] = None
+    voice_description: Optional[str] = Field(default=None, max_length=1000)
     description: Optional[str] = None
-    gender: Optional[str] = None
+    gender: Optional[CharacterGender] = None
     age_group: Optional[str] = None
     is_main: Optional[bool] = None
     role: Optional[str] = None  # "主角" / "配角" / "反派"
@@ -2354,6 +2357,19 @@ class AssetImageSourceSelectionRequest(BaseModel):
 
 class CharacterVoiceRecordRequest(BaseModel):
     data_url: str
+
+
+class CharacterVoiceSourceRequest(BaseModel):
+    model: str = Field(min_length=1, max_length=255)
+
+
+class CharacterVoiceGenerateRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=1500)
+    speaker: str = Field(default="", max_length=255)
+
+
+class CharacterVoiceSavePreviewRequest(BaseModel):
+    preview_id: str = Field(pattern=r"^[0-9a-f]{32}$")
 
 
 class SystemVoicePrepareRequest(BaseModel):

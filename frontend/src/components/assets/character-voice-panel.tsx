@@ -9,6 +9,7 @@ import {
   Mic,
   Scissors,
   Square,
+  Sparkles,
   Trash2,
   Upload,
   Volume2,
@@ -27,6 +28,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { CharacterVoiceGenerateDialog } from "@/components/assets/character-voice-generate-dialog";
+import { useCharacterVoiceSelection } from "@/lib/queries/character-voice-generation";
 import type { Character, CharacterVoiceSlot, CharacterVoiceSlotId } from "@/types/character";
 
 const AGE_SLOT_ORDER: CharacterVoiceSlotId[] = ["child", "youth", "middle", "elder"];
@@ -132,6 +135,8 @@ export function CharacterVoicePanel({
 }) {
   const { t } = useTranslation();
   const samples = useCharacterVoiceSamples(project, character.name);
+  const voiceSelection = useCharacterVoiceSelection(project);
+  const [generateSlot, setGenerateSlot] = useState<CharacterVoiceSlot | null>(null);
   const uploadVoice = useUploadCharacterVoiceSample(project, character.name);
   const recordVoice = useRecordCharacterVoiceSample(project, character.name);
   const trimVoice = useTrimCharacterVoiceSample(project, character.name);
@@ -492,6 +497,12 @@ export function CharacterVoicePanel({
 
                 <div className="flex items-center gap-1 shrink-0">
                   <VoiceActionButton
+                    label={t("characters.voiceGeneration.generate")}
+                    icon={<Sparkles className="size-3.5" />}
+                    disabled={pending || !voiceSelection.data?.data.model}
+                    onClick={() => setGenerateSlot(actionSlot)}
+                  />
+                  <VoiceActionButton
                     label={t("characters.voiceSamples.upload")}
                     icon={<Upload className="size-3.5" />}
                     disabled={pending}
@@ -541,6 +552,15 @@ export function CharacterVoicePanel({
           event.target.value = "";
         }}
       />
+
+      {generateSlot && (
+        <CharacterVoiceGenerateDialog
+          key={`${character.name}:${generateSlot.slot}`}
+          project={project} name={character.name} slot={generateSlot}
+            hasVoicePrompt={Boolean(character.voice_description?.trim())}
+          onClose={() => setGenerateSlot(null)}
+        />
+      )}
 
       <Dialog open={Boolean(recordSlot)} onOpenChange={closeRecordDialog}>
         <DialogContent className="gap-4 rounded-2xl border border-white/[0.08] bg-zinc-950/30 p-5 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:max-w-lg">

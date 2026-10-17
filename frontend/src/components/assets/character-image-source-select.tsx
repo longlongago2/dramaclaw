@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -16,6 +17,7 @@ import {
   useUpdateAssetImageSourceSelection,
 } from "@/lib/queries/character-image-selection";
 import { cn } from "@/lib/utils";
+import { ASSET_SOURCE_CONTENT_CLASS, ASSET_SOURCE_ITEM_CLASS, ASSET_SOURCE_TRIGGER_CLASS } from "@/components/ui/header-action-styles";
 
 export type CharacterImageSourceSelectProps = {
   project: string;
@@ -64,7 +66,7 @@ export function CharacterImageSourceSelect({
       <SelectTrigger
         aria-label={t("characters.imageSource.label")}
         className={cn(
-          "h-8 gap-0 rounded-[8px] border-white/10 bg-transparent px-3 text-xs font-normal shadow-none hover:bg-white/[0.04] dark:bg-transparent",
+          ASSET_SOURCE_TRIGGER_CLASS,
           className,
         )}
         disabled={isDisabled}
@@ -79,17 +81,19 @@ export function CharacterImageSourceSelect({
       </SelectTrigger>
       <SelectContent
         alignItemWithTrigger={false}
-        className="rounded-md border border-white/10 bg-popover p-1 shadow-xl shadow-black/20 ring-0"
+        className={ASSET_SOURCE_CONTENT_CLASS}
       >
-        {optionEntries.map(([value, label]) => (
-          <SelectItem
-            key={value}
-            value={value}
-            className="min-h-8 gap-2 rounded-sm px-2 py-1.5 text-xs focus:bg-white/8 focus:text-current"
-          >
-            {label}
-          </SelectItem>
-        ))}
+        <SelectGroup className="p-0">
+          {optionEntries.map(([value, label]) => (
+            <SelectItem
+              key={value}
+              value={value}
+              className={ASSET_SOURCE_ITEM_CLASS}
+            >
+              {label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );

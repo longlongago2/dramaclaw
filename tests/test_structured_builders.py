@@ -79,6 +79,24 @@ def _candidate(name, *, quotes=(), aliases=(), gender="", description=""):
     )
 
 
+@pytest.mark.parametrize("label, expected", [
+    ("男", "male"), ("女性", "female"), (" Female ", "female"),
+    ("male", "male"), ("未知", ""), ("", ""),
+    ("雄", "male"), ("公", "male"), ("雌性", "female"), ("母", "female"),
+    ("无性别", "agender"), ("genderless", "agender"),
+    ("非二元", "non_binary"), ("Non-binary", "non_binary"),
+    ("无性别设定", ""),
+])
+def test_gender_labels_survive_candidate_validation_and_merging(label, expected):
+    chunk = _chunk("林默走进房间。")
+    output = ChunkCharacterOutput(characters=[
+        _candidate("林默", gender=label, quotes=[chunk.text]),
+    ])
+    merged = merge_character_candidates([(chunk, output)])
+    assert len(merged) == 1
+    assert merged[0].gender == expected
+
+
 def _disable_appearance_enrichment(monkeypatch) -> None:
     """Keep extraction/run-state tests independent from the appearance model."""
 
@@ -1960,6 +1978,8 @@ class FakeAppearanceAgent:
 def _appearance(name, *, face="女性，二十多岁，黑色长发，杏眼", **kwargs):
     from novelvideo.structured_extraction import CharacterAppearance
 
+    kwargs.setdefault("voice_description", "青年女性，音色清亮，语速适中，普通话清晰，表达沉稳。")
+    kwargs.setdefault("gender", "")
     return CharacterAppearance(name=name, face_prompt=face, **kwargs)
 
 
@@ -1972,6 +1992,124 @@ def _cast_member(name, *, gender="female", description="", quotes=("他回来了
         description=description,
         evidence=[{"quote": quote} for quote in quotes],
     )
+
+
+async def test_character_build_creates_and_caches_voice_description_with_face(structured_store, monkeypatch):
+    from novelvideo import structured_builders
+
+    store, _ = structured_store
+    voice = "青年女性，中高音，音色清亮柔和，语速适中，普通话清晰。"
+    agent_mock = FakeAppearanceAgent({"郑家悦": _appearance("郑家悦", voice_description=voice)})
+    monkeypatch.setattr("novelvideo.structured_extraction._create_character_appearance_agent", lambda agent=None: agent_mock)
+    await structured_builders._publish_characters(
+        store, [_cast_member("郑家悦")], "", lambda *_: None, lambda *_: None,
+    )
+    character = store.get_character("郑家悦")
+    assert character.face_prompt
+    assert character.voice_description == voice
+    await store.update_character("郑家悦", voice_description="用户设定的低沉沙哑声线")
+    agent_mock.by_name["郑家悦"] = _appearance("郑家悦", voice_description="新的自动描述")
+    await structured_builders._publish_characters(
+        store, [_cast_member("郑家悦")], "", lambda *_: None, lambda *_: None,
+    )
+    assert store.get_character("郑家悦").voice_description == "用户设定的低沉沙哑声线"
+    assert (await store.list_characters())[0].voice_description == "用户设定的低沉沙哑声线"
+    assert len(agent_mock.prompts) == 1
+
+
+@pytest.mark.parametrize("gender", ["female", "male", "agender", "non_binary"])
+async def test_appearance_fills_missing_gender_and_caches_it(structured_store, monkeypatch, gender):
+    from novelvideo import structured_builders
+    from novelvideo.structured_extraction import enrich_character_appearances
+
+    store, _ = structured_store
+    agent_mock = FakeAppearanceAgent({"郑家悦": _appearance("郑家悦", gender=gender)})
+    monkeypatch.setattr("novelvideo.structured_extraction._create_character_appearance_agent", lambda agent=None: agent_mock)
+    cast = [_cast_member("郑家悦", gender="", quotes=("郑家悦是她的姐姐。",))]
+    await structured_builders._publish_characters(store, cast, "", lambda *_: None, lambda *_: None)
+    assert store.get_character("郑家悦").gender == gender
+    assert (await store.list_characters())[0].gender == gender
+    cache = RecordingCache()
+    first = await enrich_character_appearances(cast, agent=agent_mock, cache=cache)
+    second = await enrich_character_appearances(cast, agent=FakeAppearanceAgent({}), cache=cache)
+    assert first["郑家悦"].gender == second["郑家悦"].gender == gender
+
+
+@pytest.mark.parametrize("extracted, inferred", [("female", ""), ("", "female")])
+async def test_rebuild_repairs_empty_gender_even_when_other_fields_are_present(
+    structured_store, monkeypatch, extracted, inferred,
+):
+    from novelvideo import structured_builders
+    from novelvideo.models import NovelCharacter
+
+    store, _ = structured_store
+    await store.add_characters_atomic([NovelCharacter(name="郑家悦", face_prompt="手写面部", voice_description="手写声音", role="配角")])
+    agent_mock = FakeAppearanceAgent({"郑家悦": _appearance("郑家悦", gender=inferred)})
+    monkeypatch.setattr("novelvideo.structured_extraction._create_character_appearance_agent", lambda agent=None: agent_mock)
+    await structured_builders._publish_characters(store, [_cast_member("郑家悦", gender=extracted)], "", lambda *_: None, lambda *_: None)
+    saved = store.get_character("郑家悦")
+    assert saved.gender == "female"
+    assert saved.face_prompt == "手写面部"
+    assert saved.voice_description == "手写声音"
+    assert saved.role == "配角"
+
+
+async def test_rebuild_preserves_existing_gender_and_unknown_nonhuman_gender(structured_store, monkeypatch):
+    from novelvideo import structured_builders
+    from novelvideo.models import NovelCharacter
+
+    store, _ = structured_store
+    await store.add_characters_atomic([NovelCharacter(name="郑家悦", gender="女")])
+    agent_mock = FakeAppearanceAgent({
+        "郑家悦": _appearance("郑家悦", gender="male"),
+        "丁丁": _appearance("丁丁", gender="", face="无性别设定的机器人"),
+    })
+    monkeypatch.setattr("novelvideo.structured_extraction._create_character_appearance_agent", lambda agent=None: agent_mock)
+    await structured_builders._publish_characters(
+        store, [_cast_member("郑家悦", gender="male"), _cast_member("丁丁", gender="")], "", lambda *_: None, lambda *_: None,
+    )
+    assert store.get_character("郑家悦").gender == "女"
+    assert store.get_character("丁丁").gender == ""
+
+
+async def test_known_extracted_gender_repairs_existing_character_when_appearance_fails(structured_store, monkeypatch):
+    from novelvideo import structured_builders
+    from novelvideo.models import NovelCharacter
+
+    store, _ = structured_store
+    await store.add_characters_atomic([NovelCharacter(name="郑家悦")])
+    monkeypatch.setattr("novelvideo.structured_extraction._create_character_appearance_agent", lambda agent=None: FakeAppearanceAgent({}, fail=True))
+    await structured_builders._publish_characters(store, [_cast_member("郑家悦", gender="female")], "", lambda *_: None, lambda *_: None)
+    assert store.get_character("郑家悦").gender == "female"
+
+
+async def test_character_rebuild_fills_only_missing_voice_and_preserves_face(structured_store, monkeypatch):
+    from novelvideo import structured_builders
+    from novelvideo.models import NovelCharacter
+
+    store, _ = structured_store
+    await store.add_characters_atomic([NovelCharacter(name="郑家悦", face_prompt="手写面部提示词")])
+    agent_mock = FakeAppearanceAgent({"郑家悦": _appearance("郑家悦", voice_description="轻柔清亮、语速适中")})
+    monkeypatch.setattr("novelvideo.structured_extraction._create_character_appearance_agent", lambda agent=None: agent_mock)
+    await structured_builders._publish_characters(
+        store, [_cast_member("郑家悦")], "", lambda *_: None, lambda *_: None,
+    )
+    assert store.get_character("郑家悦").face_prompt == "手写面部提示词"
+    assert store.get_character("郑家悦").voice_description == "轻柔清亮、语速适中"
+
+
+def test_character_cache_preserves_voice_and_rejects_old_incomplete_payload():
+    from novelvideo.structured_extraction import appearance_from_cache_payload, appearance_to_cache_payload
+
+    appearance = _appearance("郑家悦", gender="female", voice_description="沉稳、低音、自然语速")
+    restored = appearance_from_cache_payload(appearance_to_cache_payload(appearance))
+    assert restored.voice_description == appearance.voice_description
+    assert restored.face_prompt == appearance.face_prompt
+    assert restored.gender == "female"
+    old_payload = json.loads(appearance_to_cache_payload(appearance))
+    old_payload.pop("gender")
+    assert appearance_from_cache_payload(json.dumps(old_payload)) is None
+    assert appearance_from_cache_payload(json.dumps({"name": "郑家悦", "face_prompt": "旧缓存脸部"})) is None
 
 
 class RecordingCache:
@@ -2008,6 +2146,7 @@ async def test_appearance_stage_fills_the_fields_extraction_cannot_quote():
     assert result["郑家悦"].face_prompt == "女性，二十多岁，黑色长发，杏眼"
     assert result["郑家悦"].role == "主角"
     assert result["郑家悦"].body_type == "纤细高挑"
+    assert result["郑家悦"].voice_description == "青年女性，音色清亮，语速适中，普通话清晰，表达沉稳。"
 
 
 async def test_english_appearance_requests_english_prose_and_keeps_the_source_name():
@@ -2039,6 +2178,24 @@ async def test_english_appearance_requests_english_prose_and_keeps_the_source_na
     assert result["Maya"].name == "Maya"
     assert result["Maya"].role == "librarian"
     assert "Write every user-visible prose field in English" in agent.prompts[0]
+
+
+async def test_old_voice_prompt_cache_is_regenerated_with_the_new_contract(monkeypatch):
+    from novelvideo import structured_extraction
+
+    item = _cast_member("丁丁", description="少年机器人")
+    version = structured_extraction.CHARACTER_APPEARANCE_CACHE_VERSION
+    monkeypatch.setattr(structured_extraction, "CHARACTER_APPEARANCE_CACHE_VERSION", 4)
+    old_key = structured_extraction.character_appearance_cache_key(item)
+    cache = RecordingCache({
+        (structured_extraction.CHARACTER_APPEARANCE_CACHE_TYPE, old_key):
+            structured_extraction.appearance_to_cache_payload(_appearance("丁丁", voice_description="活泼，偶尔带机械提示音")),
+    })
+    monkeypatch.setattr(structured_extraction, "CHARACTER_APPEARANCE_CACHE_VERSION", version)
+    agent = FakeAppearanceAgent({"丁丁": _appearance("丁丁", voice_description="少年感的中高音，音高起伏较窄，咬字短促清晰，语速轻快。")})
+    result = await structured_extraction.enrich_character_appearances([item], agent=agent, cache=cache)
+    assert len(agent.prompts) == 1
+    assert result["丁丁"].voice_description == "少年感的中高音，音高起伏较窄，咬字短促清晰，语速轻快。"
 
 
 async def test_pre_language_contract_appearance_cache_keys_are_retired(monkeypatch):
@@ -2434,6 +2591,7 @@ async def test_a_character_with_nothing_missing_is_left_untouched(
                 name="郑家悦",
                 gender="female",
                 face_prompt="已有的脸",
+                voice_description="已确认的角色声音",
                 role="已有定位",
                 body_type="已有身形",
                 fish_voice_id="已有声音",

@@ -1885,6 +1885,37 @@
     "freezone": "虾画"
   },
   "characters": {
+    "voiceGeneration": {
+      "auditionHint": "生成后可对比试听，选择满意的声线保存。生成会消耗音频渠道额度。",
+      "candidate": "候选 {{number}}",
+      "current": "使用中",
+      "description": "声音提示词",
+      "descriptionPlaceholder": "例如：青年男性，普通话清晰，音色温暖明亮，语气亲切、充满好奇。",
+      "duration": "{{seconds}} 秒",
+      "emptyHistory": "还没有试听记录",
+      "failed": "声线生成失败，请检查音频渠道及权限；结果不明时请勿重复提交。",
+      "generate": "生成声线",
+      "generating": "正在生成…",
+      "history": "试听记录",
+      "historyFailed": "试听记录加载失败，请刷新列表重试。",
+      "historyHint": "记录自动保留，选择一条试听后保存。",
+      "noSource": "未配置",
+      "preview": "声线试听",
+      "promptRequired": "请先在角色资料中填写声音提示词。",
+      "refreshHistory": "刷新试听记录",
+      "replace": "保存并替换",
+      "sampleText": "你好！世界里藏着许多奇妙的秘密，让我们一起出发，寻找新的发现吧。",
+      "save": "保存声线",
+      "saved": "角色声线已保存",
+      "saveFailed": "声线保存失败，试听结果已保留。",
+      "source": "音源",
+      "sourceHint": "选择已配置的 Seed Audio 模型来生成角色声线。请先在设置中配置音频模型。",
+      "sourceSaveFailed": "音源保存失败",
+      "speaker": "音色 ID（可选）",
+      "speakerPlaceholder": "留空时使用角色已保存的声音提示词",
+      "text": "试听文本",
+      "title": "生成声线 · {{name}}"
+    },
     "title": "角色",
     "subtitle": "为这个项目编排角色阵容",
     "assetTabs": {
@@ -1979,8 +2010,8 @@
       "configureHint": "在导入页面配置项目风格"
     },
     "voiceSamples": {
-      "title": "声线管理 (IndexTTS2)",
-      "hint": "通常只需上传默认声线；只有年龄变体需要不同声音时再覆盖。",
+      "title": "声线管理",
+      "hint": "生成、上传或录制默认声线；只有年龄变体需要不同声音时再覆盖。",
       "defaultRequired": "默认（必填）",
       "ageDefaultRequired": "{{age}}（默认 · 必填）",
       "optionalOverride": "{{age}}（可选覆盖）",
@@ -2166,8 +2197,11 @@
       "elder": "老年"
     },
     "genders": {
-      "male": "男",
-      "female": "女"
+      "agender": "无性别",
+      "female": "女 / 雌",
+      "male": "男 / 雄",
+      "nonBinary": "非二元",
+      "unknown": "未设定"
     },
     "roles": {
       "lead": "主角",
@@ -7736,14 +7770,16 @@
         }
       },
       "channelModels": {
-        "fetch": "获取模型列表",
+        "fetch": "获取模型",
         "select": "选择渠道模型",
         "inputLabel": "上游模型名称",
         "loading": "正在获取渠道模型列表…",
         "manualHint": "输入关键词搜索，也可直接填写模型名称。",
         "empty": "没有匹配的模型，可继续手动填写。",
         "fetchFailed": "未能获取模型列表，请确认渠道已同步且上游支持模型列表接口；也可手动填写。",
-        "syncFirst": "请先同步渠道的 Key 和 Base URL，再获取模型列表。"
+        "syncFirst": "请先同步渠道的 Key 和 Base URL，再获取模型列表。",
+        "supported": "支持模型",
+        "builtinHint": "内置支持目录，实际可用性取决于账号权限。请使用豆包语音控制台的 API Key。"
       },
       "featureModels": {
         "discoverModels": "获取可用模型",

@@ -76,6 +76,7 @@ import { TaskControllerProvider } from "@/components/episode/task-controller-pro
 import { SlidingTabs } from "@/components/nav/sliding-tabs";
 import { CharacterSearch, filterCharacters } from "@/components/assets/character-search";
 import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
+import { CharacterVoiceSourceSelect } from "@/components/assets/character-voice-source-select";
 import { CharacterStatsStrip } from "@/components/assets/character-stats-strip";
 import { CharacterVoicePanel } from "@/components/assets/character-voice-panel";
 import { NarratorVoicePanel } from "@/components/assets/narrator-voice-panel";
@@ -175,11 +176,15 @@ const AGE_GROUP_OPTIONS = [
   { value: "elder", labelKey: "characters.ageGroups.elder" },
 ] as const;
 
-// value 是存进角色档案、后端和提示词都认的原值，只有 labelKey 跟界面语言走。
+// Known genders use canonical values; unknown is a UI option saved as an empty string.
+// Labels follow the UI language, including for older Chinese-valued records.
 // i18n-exempt-start
 const GENDER_OPTIONS = [
-  { value: "男", labelKey: "characters.genders.male" },
-  { value: "女", labelKey: "characters.genders.female" },
+  { value: "male", labelKey: "characters.genders.male" },
+  { value: "female", labelKey: "characters.genders.female" },
+  { value: "agender", labelKey: "characters.genders.agender" },
+  { value: "non_binary", labelKey: "characters.genders.nonBinary" },
+  { value: "unknown", labelKey: "characters.genders.unknown" },
 ] as const;
 
 const ROLE_OPTIONS = [
@@ -269,6 +274,17 @@ function labelKeyFor<T extends { value: string; labelKey: string }>(
   value: string | undefined,
 ): string | undefined {
   return opts.find((o) => o.value === value)?.labelKey;
+}
+
+function normalizeGenderValue(value: string | undefined): string {
+  const normalized = (value ?? "").trim().toLowerCase();
+  // Accept both extraction formats and older manually entered records.
+  if (["male", "m", "man", "boy", "男", "男性", "男生", "雄", "雄性", "公"].includes(normalized)) return "male";
+  if (["female", "f", "woman", "girl", "女", "女性", "女生", "雌", "雌性", "母"].includes(normalized)) return "female";
+  if (["agender", "genderless", "无性别"].includes(normalized)) return "agender";
+  if (["non_binary", "non-binary", "nonbinary", "非二元", "非二元性别"].includes(normalized)) return "non_binary";
+  if (["", "unknown", "unspecified", "未知", "不明", "不详", "未说明", "性别不明", "性别不明确", "无性别设定", "未设定"].includes(normalized)) return "unknown";
+  return value ?? "unknown";
 }
 
 async function openFreezonePresetCanvas({
@@ -599,6 +615,7 @@ function CharactersPageHeader({
               disabled={rebuildDisabled}
               onSelectionChange={setImageModel}
             />
+            <CharacterVoiceSourceSelect project={project} />
             <Button
               variant="outline"
               size="sm"
@@ -681,10 +698,11 @@ function CharacterListItem({
 }) {
   const { t } = useTranslation();
   const ageKey = labelKeyFor(AGE_GROUP_OPTIONS, character.age_group);
-  const genderKey = labelKeyFor(GENDER_OPTIONS, character.gender);
+  const gender = normalizeGenderValue(character.gender);
+  const genderKey = labelKeyFor(GENDER_OPTIONS, gender);
   const metaParts = [
     ageKey ? t(ageKey) : undefined,
-    genderKey ? t(genderKey) : character.gender || undefined,
+    gender !== "unknown" ? (genderKey ? t(genderKey) : character.gender) : undefined,
     character.body_type || undefined,
   ].filter(Boolean);
 
@@ -819,15 +837,12 @@ function CharacterHeaderRow({
   return (
     <div className="flex items-start gap-2">
       <div className="min-w-0 flex-1 flex flex-wrap items-center gap-2">
-        {/* 比的是档案里存的原值，见 GENDER_OPTIONS。 */}
-        {/* i18n-exempt-start */}
-        {character.gender === "男" && (
+        {normalizeGenderValue(character.gender) === "male" && (
           <Mars className="size-4 text-sky-400" aria-hidden />
         )}
-        {character.gender === "女" && (
+        {normalizeGenderValue(character.gender) === "female" && (
           <Venus className="size-4 text-pink-400" aria-hidden />
         )}
-        {/* i18n-exempt-end */}
         <h2 className="truncate text-[19px] font-semibold tracking-tight text-foreground">
           {character.name}
         </h2>
@@ -1112,6 +1127,7 @@ function DetailsFormCard({
   const [aliases, setAliases] = useState((character.aliases ?? []).join(", "));
   const [desc, setDesc] = useState(character.description ?? "");
   const [facePrompt, setFacePrompt] = useState(character.face_prompt ?? "");
+  const [voiceDescription, setVoiceDescription] = useState(character.voice_description ?? "");
 
   useEffect(() => {
     setDisplayName(character.name);
@@ -1120,6 +1136,7 @@ function DetailsFormCard({
     setAliases((character.aliases ?? []).join(", "));
     setDesc(character.description ?? "");
     setFacePrompt(character.face_prompt ?? "");
+    setVoiceDescription(character.voice_description ?? "");
   }, [
     character.name,
     character.role,
@@ -1127,6 +1144,7 @@ function DetailsFormCard({
     character.aliases,
     character.description,
     character.face_prompt,
+    character.voice_description,
   ]);
 
   const handleInstantSelect = async (
@@ -1231,10 +1249,10 @@ function DetailsFormCard({
           </Field>
           <Field label={t("characters.basics.gender")}>
             <Select
-              value={character.gender ?? ""}
-              onValueChange={(v) => handleInstantSelect("gender", v)}
+              value={normalizeGenderValue(character.gender)}
+              onValueChange={(v) => handleInstantSelect("gender", v === "unknown" ? "" : v)}
             >
-              <SelectTrigger className={CHARACTER_SELECT_TRIGGER_CLASS}>
+              <SelectTrigger className={CHARACTER_SELECT_TRIGGER_CLASS} aria-label={t("characters.basics.gender")}>
                 <SelectValue placeholder={t("ingest.selectPlaceholder")}>
                   {(val: string) => {
                     const key = labelKeyFor(GENDER_OPTIONS, val);
@@ -1326,6 +1344,22 @@ function DetailsFormCard({
               onChange={(e) => setFacePrompt(e.target.value)}
               onBlur={handleBlurFacePrompt}
               placeholder="oval face, big eyes…"
+            />
+          </Field>
+          <Field label={t("characters.voiceGeneration.description")}>
+            <textarea
+              aria-label={t("characters.voiceGeneration.description")}
+              className={cn(CHARACTER_TEXTAREA_CLASS, "min-h-[96px]")}
+              rows={3}
+              maxLength={1000}
+              value={voiceDescription}
+              onChange={(event) => setVoiceDescription(event.target.value)}
+              onBlur={() => {
+                if (voiceDescription !== (character.voice_description ?? "")) {
+                  void saveField({ voice_description: voiceDescription });
+                }
+              }}
+              placeholder={t("characters.voiceGeneration.descriptionPlaceholder")}
             />
           </Field>
         </div>
@@ -2772,7 +2806,7 @@ function AddCharacterDialog({
     resolver: zodResolver(addCharacterSchema),
   });
   const roleValue = watch("role") ?? "";
-  const genderValue = watch("gender") ?? "";
+  const genderValue = normalizeGenderValue(watch("gender"));
   const inputClass =
     "h-10 rounded-[8px] border-white/12 bg-white/[0.04] px-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/8 dark:bg-white/[0.04]";
   const selectTriggerClass =
@@ -2852,11 +2886,11 @@ function AddCharacterDialog({
                 value={genderValue}
                 onValueChange={(value) => {
                   if (value !== null) {
-                    setValue("gender", value, { shouldDirty: true });
+                    setValue("gender", value === "unknown" ? "" : value, { shouldDirty: true });
                   }
                 }}
               >
-                <SelectTrigger className={selectTriggerClass}>
+                <SelectTrigger className={selectTriggerClass} aria-label={t("characters.basics.gender")}>
                   <SelectValue
                     placeholder={`${t("characters.genders.male")} / ${t(
                       "characters.genders.female",

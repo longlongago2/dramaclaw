@@ -991,6 +991,15 @@ def test_newapi_base_url_normalizers_keep_admin_and_relay_urls_separate():
     )
 
 
+@pytest.mark.parametrize("upstream_model", ["Grok 4.5", "Grok 4.6", "Grok 4.7", "Grok Imagine Image 2.0", "Grok Imagine Video 1.5", "claude-opus- 4.7"])
+def test_model_mapping_keeps_space_containing_upstream_id(upstream_model):
+    payload = build_channel_payload(
+        provider="mrtoken", upstream_key="test-only-key",
+        model_mapping={"local-alias": upstream_model},
+    )
+    assert json.loads(payload["channel"]["model_mapping"]) == {"local-alias": upstream_model}
+
+
 def test_build_channel_payload_maps_dc_models_to_upstream_models():
     payload = build_channel_payload(
         provider="ali",
@@ -2994,6 +3003,137 @@ def test_anthropic_channel_creation_without_explicit_type(provider):
     assert payload["channel"]["name"] == f"DC-{provider}"
     assert payload["channel"]["type"] == 14
     assert payload["channel"]["base_url"] == "https://api.anthropic.com"
+
+
+@pytest.mark.parametrize(
+    ("provider", "channel_type"),
+    [("doubao_audio", 62), ("doubao_video", 54), ("future_audio", 80)],
+)
+@respx.mock
+def test_provider_channel_sync_resolves_dynamic_type_and_preserves_it(
+    monkeypatch, tmp_path, provider, channel_type
+):
+    _isolate_settings_db(monkeypatch, tmp_path)
+    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
+    save_newapi_provider_channels(
+        [{"provider": "openai", "upstreamKey": "existing-openai-secret"}]
+    )
+    cfg = NewApiProvisionerConfig(
+        admin_base_url="http://new-api:3000",
+        sql_dsn="local",
+        sqlite_path="/tmp/one-api.db",
+        admin_username="root",
+        init_timeout_ms=1000,
+        relay_token_name="dramaclaw-ce-runtime",
+    )
+    admin = AdminToken(1, "root", "admin-secret", False)
+    monkeypatch.setattr(model_gateway, "get_provisioner_config", lambda *a, **k: cfg)
+    monkeypatch.setattr(model_gateway, "ensure_admin_access_token", lambda cfg: admin)
+    metadata = respx.get("http://new-api:3000/api/channel/types").respond(
+        200,
+        json={
+            "success": True,
+            "data": {
+                "items": [{"provider": provider, "type": channel_type, "status": 1}]
+            },
+        },
+    )
+    channel = {"id": 9, "name": f"DC-{provider}", "type": channel_type}
+    respx.get("http://new-api:3000/api/channel/").mock(
+        side_effect=[
+            Response(200, json={"success": True, "data": {"items": []}}),
+            Response(200, json={"success": True, "data": {"items": [channel]}}),
+            Response(200, json={"success": True, "data": {"items": [channel]}}),
+        ]
+    )
+    create = respx.post("http://new-api:3000/api/channel/").respond(
+        200, json={"success": True}
+    )
+    mapping = {"index-tts-2": "seed-audio-1.0"}
+    respx.get("http://new-api:3000/api/channel/9").respond(
+        200,
+        json={
+            "success": True,
+            "data": {
+                **channel,
+                "models": "index-tts-2",
+                "model_mapping": json.dumps(mapping),
+                "group": "default",
+                "priority": 2,
+                "settings": "{}",
+            },
+        },
+    )
+    update = respx.put("http://new-api:3000/api/channel/").respond(
+        200, json={"success": True}
+    )
+    app = FastAPI()
+    app.include_router(model_gateway.router)
+    with TestClient(app) as client:
+        response = client.post(
+            "/model-gateway/custom/newapi/provider-channel/sync",
+            json={
+                "newApiBaseUrl": cfg.admin_base_url,
+                "provider": provider,
+                "upstreamKey": "new-speech-provider-secret",
+                "baseUrl": "",
+            },
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["ok"] is True
+        assert "new-speech-provider-secret" not in response.text
+        created = json.loads(create.calls.last.request.content)["channel"]
+        assert created["type"] == channel_type
+        assert created["models"] == ""
+        assert created["key"] == "new-speech-provider-secret"
+        saved = model_gateway_settings.get_newapi_provider_channel(provider)
+        assert saved["type"] == channel_type
+        assert (
+            model_gateway_settings.get_newapi_provider_channel("openai")["upstreamKey"]
+            == "existing-openai-secret"
+        )
+
+        response = client.post(
+            "/model-gateway/custom/newapi/provider-channel/sync",
+            json={"newApiBaseUrl": cfg.admin_base_url, "provider": provider},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["ok"] is True
+        updated = json.loads(update.calls.last.request.content)
+        assert updated["type"] == channel_type
+        assert updated["key"] == "new-speech-provider-secret"
+        assert updated["models"] == "index-tts-2"
+        assert json.loads(updated["model_mapping"]) == mapping
+        assert updated["priority"] == 2
+        assert metadata.call_count == 1
+        assert "new-speech-provider-secret" not in response.text
+
+
+@respx.mock
+def test_provider_channel_sync_rejects_unregistered_provider(monkeypatch, tmp_path):
+    _isolate_settings_db(monkeypatch, tmp_path)
+    monkeypatch.setenv("NEWAPI_PROVISIONER_ENABLED", "true")
+    cfg = type("Cfg", (), {"admin_base_url": "http://new-api:3000"})()
+    monkeypatch.setattr(model_gateway, "get_provisioner_config", lambda *a, **k: cfg)
+    admin = AdminToken(1, "root", "admin-secret", False)
+    monkeypatch.setattr(model_gateway, "ensure_admin_access_token", lambda cfg: admin)
+    respx.get("http://new-api:3000/api/channel/types").respond(
+        200, json={"success": True, "data": {"items": []}}
+    )
+    app = FastAPI()
+    app.include_router(model_gateway.router)
+    with TestClient(app) as client:
+        response = client.post(
+            "/model-gateway/custom/newapi/provider-channel/sync",
+            json={
+                "newApiBaseUrl": cfg.admin_base_url,
+                "provider": "unknown",
+                "upstreamKey": "unused-secret",
+            },
+        )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "unknown provider"
+    assert get_newapi_provider_channels() == []
 
 
 def test_custom_newapi_provider_channel_sync_updates_newapi_and_local_config(

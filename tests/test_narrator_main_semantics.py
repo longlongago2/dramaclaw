@@ -104,6 +104,7 @@ async def test_character_extraction_keeps_single_narrator_main(monkeypatch):
     characters = await pipeline.extract_characters_from_graph()
 
     assert [c.name for c in characters if c.is_main] == ["桑落"]
+    assert [c.gender for c in characters] == ["female", "male", "female"]
     assert all(isinstance(c, NovelCharacter) for c in characters)
 
 

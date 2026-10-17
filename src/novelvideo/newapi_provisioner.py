@@ -1147,18 +1147,22 @@ def fetch_provider_channel_models(
         if not isinstance(raw, str):
             continue
         model = raw.strip()
-        # NewAPI stores comma-separated model ids with a 255-character limit.
+        # NewAPI separates model IDs with commas. Ordinary spaces are valid
+        # inside provider IDs and must survive discovery and model mapping.
         if (
             not model
             or len(model) > 255
             or "," in model
-            or any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in model)
+            or any(ord(char) < 32 or ord(char) == 127 for char in model)
             or model in seen
         ):
             continue
         seen.add(model)
         models.append(model)
-    return {"provider": provider_key, "models": models, "channelId": channel_id}
+    result = {"provider": provider_key, "models": models, "channelId": channel_id}
+    if body.get("source") == "builtin":
+        result["source"] = "builtin"
+    return result
 
 
 def delete_channel_by_name(
@@ -1402,7 +1406,19 @@ def update_provider_channel_credentials(
             base_url = normalize_base_url(base_url)
     preset = PROVIDER_PRESETS.get(provider_key)
     if not preset and channel_type is None:
+        # The picker uses the connected gateway's adapters, which can include
+        # providers newer than this application's legacy presets.
+        channel_type = next(
+            (
+                item["type"]
+                for item in list_channel_types(cfg, admin)
+                if item["provider"] == provider_key and item["status"] == 1
+            ),
+            None,
+        )
+    if not preset and channel_type is None:
         raise ValueError("unknown provider")
+    resolved_channel_type = int(channel_type or preset["type"])
     key = str(upstream_key or "").strip()
     if not key:
         raise ValueError("upstreamKey is required")
@@ -1412,7 +1428,7 @@ def update_provider_channel_credentials(
         cfg,
         admin,
         name=channel_name,
-        channel_type=int(channel_type or preset["type"]),
+        channel_type=resolved_channel_type,
     )
     if not existing:
         # Credentials are saved before model selection; create a channel with no
@@ -1421,7 +1437,7 @@ def update_provider_channel_credentials(
             "mode": "single",
             "channel": {
                 "name": channel_name,
-                "type": int(channel_type or preset["type"]),
+                "type": resolved_channel_type,
                 "key": key,
                 "base_url": str(base_url or "").strip().rstrip("/"),
                 "models": "",
@@ -1448,6 +1464,7 @@ def update_provider_channel_credentials(
             "channelId": created.get("id") if created else None,
             "name": channel_name,
             "provider": provider_key,
+            "type": resolved_channel_type,
         }
 
     detail = get_channel_detail(cfg, admin, existing["id"])
@@ -1474,7 +1491,7 @@ def update_provider_channel_credentials(
     }
     channel["id"] = existing["id"]
     channel["name"] = channel_name
-    channel["type"] = int(channel_type or preset["type"])
+    channel["type"] = resolved_channel_type
     channel["key"] = key
     if base_url is not None:
         channel["base_url"] = str(base_url or "").strip().rstrip("/")
@@ -1487,6 +1504,7 @@ def update_provider_channel_credentials(
         "channelId": existing["id"],
         "name": channel_name,
         "provider": provider_key,
+        "type": resolved_channel_type,
     }
 
 
