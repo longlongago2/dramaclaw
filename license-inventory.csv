@@ -2580,6 +2580,7 @@ src/novelvideo/verification/training_db.py,Elastic-2.0,2026 SuperTale contributo
 src/novelvideo/verification/utils.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/verification/version_hash.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/video_billing.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+src/novelvideo/video_catalog.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/video_duration.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/video_prompt_prerequisite.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/video_request_usage.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation

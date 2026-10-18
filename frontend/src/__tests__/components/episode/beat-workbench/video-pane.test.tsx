@@ -243,6 +243,19 @@ vi.mock("@/lib/queries/video", () => ({
       ok: true,
       data: [
         {
+          value: "newapi_minimax-h3-i2v",
+          label: "MrToken H3",
+          is_default: false,
+          is_catalog: true,
+          is_seedance2: false,
+          dialogue_only: false,
+          min_duration: 1,
+          max_duration: 30,
+          resolution_options: ["480p", "720p", "1080p"],
+          ratio_options: ["16:9", "9:16"],
+          supported_modes: ["first_frame"],
+        },
+        {
           value: "newapi_seedance-1.0-pro-fast",
           label: "Seedance 1.0 Pro Fast",
           is_default: true,
@@ -755,6 +768,20 @@ function expandSeedance2References() {
 }
 
 describe("VideoPane Seedance2 inspector", () => {
+  it("uses configured MrToken duration and resolution controls when generating", async () => {
+    renderPane(makeBeat({ video_prompt: "boat drifts", audio_duration_seconds: null }), {
+      defaultBackend: "newapi_minimax-h3-i2v",
+    });
+    const duration = screen.getByRole("spinbutton", { name: "时长" });
+    expect(duration).toHaveAttribute("min", "1");
+    expect(duration).toHaveAttribute("max", "30");
+    fireEvent.change(duration, { target: { value: "9" } });
+    await userEvent.click(screen.getByRole("button", { name: "重新生成" }));
+    await userEvent.click(screen.getByRole("button", { name: "确认" }));
+    await waitFor(() => expect(regenerateMock).toHaveBeenCalledWith(expect.objectContaining({
+      videoBackend: "newapi_minimax-h3-i2v", duration: 9, resolution: "720p",
+    })));
+  });
   it("renders and saves the 1.x video prompt while showing image-only reference details", () => {
     videoQueryMockState.includeAudioAsset = true;
     renderPane(

@@ -279,11 +279,13 @@ function labelKeyFor<T extends { value: string; labelKey: string }>(
 function normalizeGenderValue(value: string | undefined): string {
   const normalized = (value ?? "").trim().toLowerCase();
   // Accept both extraction formats and older manually entered records.
+  // i18n-exempt-start -- Stored gender aliases; rendered labels use translation keys.
   if (["male", "m", "man", "boy", "男", "男性", "男生", "雄", "雄性", "公"].includes(normalized)) return "male";
   if (["female", "f", "woman", "girl", "女", "女性", "女生", "雌", "雌性", "母"].includes(normalized)) return "female";
   if (["agender", "genderless", "无性别"].includes(normalized)) return "agender";
   if (["non_binary", "non-binary", "nonbinary", "非二元", "非二元性别"].includes(normalized)) return "non_binary";
   if (["", "unknown", "unspecified", "未知", "不明", "不详", "未说明", "性别不明", "性别不明确", "无性别设定", "未设定"].includes(normalized)) return "unknown";
+  // i18n-exempt-end
   return value ?? "unknown";
 }
 

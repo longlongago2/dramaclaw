@@ -552,6 +552,28 @@ def test_newapi_video_backends_only_include_enabled_comfyui_video_models(
     assert "newapi_comfy-image" not in options
 
 
+def test_video_selector_reads_enabled_mrtoken_catalog_and_capabilities(monkeypatch, tmp_path):
+    _isolate_settings_db(monkeypatch, tmp_path)
+    set_model_gateway_mode(MODE_CUSTOM)
+    save_newapi_media_model_mappings({
+        "minimax-h3-i2v": {"provider": "mrtoken", "mediaType": "video", "label": "MrToken H3",
+            "config": {"minDuration": 1, "maxDuration": 30, "resolutionOptions": ["480p", "720p"], "supportedModes": ["first_frame"]}},
+        "hidden-video": {"provider": "mrtoken", "mediaType": "video", "enabled": False},
+        "not-video": {"provider": "mrtoken", "mediaType": "image"},
+    })
+    from novelvideo.api.routes.generation import _api_video_backend_options
+
+    options = {item.value: item for item in _api_video_backend_options()}
+    item = options["newapi_minimax-h3-i2v"]
+    assert item.label == "MrToken H3"
+    assert item.is_catalog is True
+    assert (item.min_duration, item.max_duration) == (1, 30)
+    assert item.resolution_options == ["480p", "720p"]
+    assert item.supported_modes == ["first_frame"]
+    assert "newapi_hidden-video" not in options
+    assert "newapi_not-video" not in options
+
+
 def test_newapi_runtime_credentials_prefer_saved_custom_gateway(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     monkeypatch.setenv("NEWAPI_API_KEY", "sk-env-secret")

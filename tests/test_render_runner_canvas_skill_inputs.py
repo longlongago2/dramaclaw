@@ -80,6 +80,41 @@ async def test_regenerate_selected_beats_isolates_concurrent_grid_paths(
 
 
 @pytest.mark.asyncio
+async def test_failed_sketch_request_is_not_reported_as_a_generated_image(tmp_path, monkeypatch):
+    from novelvideo.generators import nanobanana_grid, pool_indexer
+    from novelvideo.models import NO_CHARACTER_MARKER
+
+    logs = []
+
+    async def no_scene_refs(**_kwargs):
+        return {"requested": 0, "generated": 0, "skipped": 0, "missing": 0}
+
+    async def rejected_image(**kwargs):
+        kwargs["progress_callback"](1, 1)
+        return [nanobanana_grid.GridGenerationResult(
+            success=False, error="HTTP 503: system_memory_overloaded", generation_time=0,
+        )]
+
+    def capture_progress(*_args, **kwargs):
+        logs.extend(kwargs.get("logs") or [])
+
+    monkeypatch.setattr(render_runner, "get_task_manager", lambda: SimpleNamespace(update_progress_for_project=capture_progress))
+    monkeypatch.setattr(render_runner, "_ensure_scene_refs_for_beats", no_scene_refs)
+    monkeypatch.setattr(nanobanana_grid, "regenerate_selected_beats", rejected_image)
+    monkeypatch.setattr(pool_indexer, "save_grid_and_split", lambda **_kwargs: pytest.fail("Failed images must not enter the pool"))
+    with pytest.raises(RuntimeError, match="system_memory_overloaded"):
+        await render_runner._run_selected_regen_async({
+            "task_type": "sketch_regen", "episode": 1,
+            "payload": {"mode_key": "1x1_16-9_sketch", "config": {
+                "selected_beat_numbers": [3],
+                "beats": [{"beat_number": 3, "visual_description": "A paper boat", "detected_identities": [NO_CHARACTER_MARKER]}],
+            }},
+        }, _project_ctx(tmp_path), is_sketch=True)
+    assert any("已处理 1/1" in str(message) for message in logs)
+    assert not any("已生成 1/1" in str(message) or "分割网格" in str(message) for message in logs)
+
+
+@pytest.mark.asyncio
 async def test_frame_skill_render_uses_canvas_sketch_input_without_mainline_sketch_dir(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

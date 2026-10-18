@@ -266,6 +266,7 @@ class VideoBackendOption(BaseModel):
     is_seedance2: bool = False
     is_happyhorse: bool = False
     is_grok_video: bool = False
+    is_catalog: bool = False
     dialogue_only: bool = False
     min_duration: Optional[int] = None
     max_duration: Optional[int] = None

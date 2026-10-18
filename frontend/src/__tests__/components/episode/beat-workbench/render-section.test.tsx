@@ -370,6 +370,61 @@ beforeEach(() => {
 });
 
 describe("RenderSection", () => {
+  it.each(["黑洞", ""])("starts a render without requiring an ungenerated background for scene %s", async (sceneId) => {
+    backgroundAnchorsMock.mockReturnValue({
+      isLoading: false,
+      data: { ok: true, data: {
+        episode: 1, beat_num: 5, scene_id: sceneId, can_choose: Boolean(sceneId),
+        current_source: sceneId ? "master" : "", current_anchor: sceneId ? "master" : "",
+        current_reference: null,
+        anchors: [{ id: "master", label: "master", current: true, exists: false, path: "", url: null }],
+      } },
+    });
+    regenerateMock.mockResolvedValue({ ok: true, scope: "render-scope", task_id: "render-task" });
+    render(<I18nextProvider i18n={i18n}><RenderSection
+      beat={{ ...beat, frame_url: "", scene_ref: { scene_id: sceneId } }} project="demo" episode={1}
+      images={[sketchImage]} assignments={{}}
+    /></I18nextProvider>);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "episode.workbench.render.generateNew" }));
+    await user.click(screen.getByRole("button", { name: "确认" }));
+    await waitFor(() => expect(regenerateMock).toHaveBeenCalledWith({
+      beatIndices: [5], modeKey: "1x1_2-3", imageGenerationSelection: "doubao_seedream-3.0-t2i",
+    }));
+    expect(updateBackgroundAnchorMock).not.toHaveBeenCalled();
+    expect(taskStartMock).toHaveBeenCalledWith({ scope: "render-scope", taskId: "render-task", beatNumbers: [5] });
+  });
+
+  it("shows submission progress while preparing the background and displays a persistent failure", async () => {
+    let finish!: (value: { ok: boolean; error: string }) => void;
+    updateBackgroundAnchorMock.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    render(<I18nextProvider i18n={i18n}><RenderSection
+      beat={beat} project="demo" episode={1} images={[sketchImage]} assignments={{}}
+    /></I18nextProvider>);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /重新生成/ }));
+    await user.click(screen.getByRole("button", { name: "确认" }));
+    expect(screen.getByRole("button", { name: /重新生成/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /重新生成/ })).toHaveAttribute("aria-busy", "true");
+    expect(regenerateMock).not.toHaveBeenCalled();
+    finish({ ok: false, error: "背景图已被删除，请重新选择" });
+    expect(await screen.findByRole("alert")).toHaveTextContent("背景图已被删除，请重新选择");
+    await waitFor(() => expect(screen.getByRole("button", { name: /重新生成/ })).toBeEnabled());
+    expect(taskStartMock).not.toHaveBeenCalled();
+    regenerateMock.mockResolvedValueOnce({ ok: false, error: "图像渠道暂不可用" });
+    await user.click(screen.getByRole("button", { name: /重新生成/ }));
+    await user.click(screen.getByRole("button", { name: "确认" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("图像渠道暂不可用");
+    expect(regenerateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("displays a generated candidate when the beat frame URL is still empty", () => {
+    render(<I18nextProvider i18n={i18n}><RenderSection
+      beat={{ ...beat, frame_url: "" }} project="demo" episode={1} images={[renderImage]} assignments={{}}
+    /></I18nextProvider>);
+    expect(screen.getByRole("img", { name: "Beat 5 render" })).toHaveAttribute("src", "/static/render-5.png");
+  });
+
   it("blocks Render generation when the beat has no sketch", () => {
     render(
       <I18nextProvider i18n={i18n}>

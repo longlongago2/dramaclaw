@@ -159,6 +159,62 @@ def test_mainline_video_backend_options_hide_legacy_models_and_expose_mini() -> 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("mode, has_sketch", [("first_frame", True), ("image_reference", True), ("text_to_video", False)])
+async def test_catalog_video_prepares_supported_inputs_without_requiring_render(monkeypatch, tmp_path, mode, has_sketch):
+    from novelvideo.api.routes import generation
+    from novelvideo.api.schemas import SingleVideoRequest
+    from novelvideo.utils.path_resolver import PathResolver
+
+    store = _FakeSeedance2Store([{"beat_number": 2, "video_prompt": "A paper boat drifts.", "audio_type": "narration"}])
+    _patch_generation_celery(monkeypatch, generation, tmp_path, store)
+    paths = PathResolver(str(tmp_path), 3)
+    if has_sketch:
+        paths.sketch(2).parent.mkdir(parents=True)
+        paths.sketch(2).write_bytes(b"sketch")
+    calls = []
+    monkeypatch.setattr(generation, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)))
+    monkeypatch.setattr(generation, "load_project_config", lambda *_a: {"aspect_ratio": "16:9"})
+    monkeypatch.setattr("novelvideo.video_catalog.configured_video_catalog", lambda: {"newapi_custom-video": {
+        "supportedModes": [mode], "minDuration": 1, "maxDuration": 30,
+        "resolutionOptions": ["720p"], "ratioOptions": ["16:9"], "supportsGenerateAudio": False,
+    }})
+    result = await generation.generate_single_video("demo", 3, 2,
+        SingleVideoRequest(video_backend="newapi_custom-video", duration=7), {"username": "alice"})
+    assert result["ok"] is True
+    cfg = calls[0]["payload"]["config"]
+    assert cfg["gen_mode"] == mode
+    assert cfg["video_duration"] == 7
+    assert cfg["ratio"] == "16:9"
+    assert cfg["generate_audio"] is False
+    if mode == "first_frame":
+        assert cfg["frame_path"] == str(paths.sketch(2))
+    elif mode == "image_reference":
+        assert cfg["frame_path"] is None
+        assert cfg["references"] == [{"type": "image", "path": str(paths.sketch(2)), "role": "reference_image"}]
+    else:
+        assert cfg["frame_path"] is None
+        assert cfg["references"] == []
+
+
+@pytest.mark.asyncio
+async def test_legacy_video_uses_existing_sketch_when_render_is_absent(monkeypatch, tmp_path):
+    from novelvideo.api.routes import generation
+    from novelvideo.api.schemas import SingleVideoRequest
+    from novelvideo.utils.path_resolver import PathResolver
+
+    calls = []
+    _patch_generation_celery(monkeypatch, generation, tmp_path, _FakeStore())
+    paths = PathResolver(str(tmp_path), 3)
+    paths.sketch(2).parent.mkdir(parents=True)
+    paths.sketch(2).write_bytes(b"sketch")
+    monkeypatch.setattr(generation, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=_fake_enqueue(calls)))
+    result = await generation.generate_single_video("demo", 3, 2,
+        SingleVideoRequest(video_backend="newapi_seedance-1.0-pro-fast"), {"username": "alice"})
+    assert result["ok"] is True
+    assert calls[0]["payload"]["config"]["frame_path"] == str(paths.sketch(2))
+
+
+@pytest.mark.asyncio
 async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
     from novelvideo.api.routes import generation
     from novelvideo.api.schemas import TTSGenerateRequest

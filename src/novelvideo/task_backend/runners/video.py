@@ -152,6 +152,9 @@ async def _run_single_video_async(
     videos_dir.mkdir(parents=True, exist_ok=True)
     video_path = paths.video(beat_num)
     gen_kwargs: dict[str, Any] = {}
+    if config.get("gen_mode"):
+        gen_kwargs["generate_audio"] = config.get("generate_audio", False)
+        gen_kwargs["request_schema"] = config.get("request_schema") or {}
     egress_context = envelope.get("__trusted_egress_context")
     if egress_context is not None:
         gen_kwargs["egress_context"] = egress_context
@@ -175,7 +178,7 @@ async def _run_single_video_async(
             current_task=f"生成 Beat {beat_num} 视频",
         )
 
-    if video_mode == "keyframe" and last_frame_path and not is_seedance2_backend:
+    if video_mode == "keyframe" and last_frame_path and not is_seedance2_backend and not config.get("gen_mode"):
         video_duration = 5.0
 
     seedance2_references = []
@@ -242,6 +245,8 @@ async def _run_single_video_async(
         "task_type": task_type,
         "scope": str(envelope.get("scope") or "beat"),
     }
+    if config.get("gen_mode"):
+        generate_kwargs["gen_mode"] = config["gen_mode"]
     if egress_context is not None:
         generate_kwargs["egress_context"] = egress_context
     if model_references:

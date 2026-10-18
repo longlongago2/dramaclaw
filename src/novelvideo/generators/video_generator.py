@@ -1980,7 +1980,8 @@ class NewApiVideoGenerator(VideoGeneratorBase):
                     )
                     if (
                         active_gateway.mode == MODE_HYBRID
-                        and media_mapping.get("provider") == "comfyui"
+                        and (media_mapping.get("provider") == "comfyui"
+                             or media_mapping.get("mediaType") == "video")
                     ):
                         gateway = get_ce_newapi_config_for_mode(MODE_CUSTOM)
                 except (RuntimeError, ImportError):
@@ -4718,12 +4719,15 @@ def newapi_video_backend_options(
         for model in NEWAPI_MAINLINE_SEEDANCE2_MODELS:
             if model not in models:
                 models.append(model)
-    return {
-        f"{NEWAPI_VIDEO_BACKEND_PREFIX}{model}": NEWAPI_VIDEO_DISPLAY_LABELS.get(
-            model, model
-        )
+    options = {
+        f"{NEWAPI_VIDEO_BACKEND_PREFIX}{model}": NEWAPI_VIDEO_DISPLAY_LABELS.get(model, model)
         for model in models
     }
+    from novelvideo.video_catalog import configured_video_catalog
+
+    for backend, item in configured_video_catalog().items():
+        options[backend] = item["label"]
+    return options
 
 
 def _coerce_video_backend_value(backend: VideoBackend | str | None) -> str:

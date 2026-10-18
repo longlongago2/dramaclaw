@@ -94,6 +94,14 @@ After initialization, start with **Recommended**. One profile configures:
 
 Enter each provider key separately, then click **Save & Apply**. Keys are stored separately and never written into profile JSON. Leave an already saved key blank; entering a new value replaces it.
 
+Enabled video mappings, including MrToken and other custom channels, appear in the
+episode shot workbench with their saved labels, duration bounds, and resolutions.
+Saving media mappings refreshes that selector. Single-shot generation prefers the
+current rendered first frame and can use an existing sketch when no render exists.
+Text-to-video models need no image; reference-image models receive the current image
+as a reference. Image-based models still require an available image. Catalog and
+dispatch validation do not establish successful live generation for every upstream model.
+
 The built-in recommended template uses OpenRouter + VolcEngine. To use Doubao audio, add
 **DoubaoAudio** (type 62) in the advanced configuration. DoubaoVideo is a video channel.
 

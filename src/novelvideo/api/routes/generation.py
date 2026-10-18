@@ -1673,6 +1673,10 @@ def _api_video_backend_options() -> list[VideoBackendOption]:
         parse_newapi_video_backend,
     )
 
+    from novelvideo.video_catalog import configured_video_catalog
+    from novelvideo.video_duration import video_duration_bounds_for_backend
+
+    catalog = configured_video_catalog()
     hidden_mainline_backends = {
         "newapi_seedance-2.0-value",
         "newapi_seedance-2.0-fast-value",
@@ -1691,8 +1695,12 @@ def _api_video_backend_options() -> list[VideoBackendOption]:
     default_backend = VideoGenerateRequest().video_backend
     backend_options: list[VideoBackendOption] = []
     for value, label in options.items():
+        item = catalog.get(value, {})
         model = parse_newapi_video_backend(value)
         bounds = duration_bounds.get(model or "")
+        if item:
+            default_min, default_max = video_duration_bounds_for_backend(value)
+            bounds = (item.get("minDuration", default_min), item.get("maxDuration", default_max))
         if model == "seedance-2.0-mini" and not bounds:
             bounds = (4, 15)
         if model == "happyhorse-1.0" and not bounds:
@@ -1709,6 +1717,7 @@ def _api_video_backend_options() -> list[VideoBackendOption]:
                 is_seedance2=_is_seedance2_backend(value),
                 is_happyhorse=is_happyhorse,
                 is_grok_video=is_grok_video,
+                is_catalog=bool(item) and not (_is_seedance2_backend(value) or is_happyhorse or is_grok_video),
                 dialogue_only=value in {"seedance_pro", "newapi_seedance-1.5-pro"},
                 min_duration=bounds[0] if bounds else None,
                 max_duration=bounds[1] if bounds else None,
@@ -1717,25 +1726,25 @@ def _api_video_backend_options() -> list[VideoBackendOption]:
                     if is_happyhorse
                     else list(GROK_VIDEO_RESOLUTION_OPTIONS)
                     if is_grok_video
-                    else None
+                    else item.get("resolutionOptions")
                 ),
                 ratio_options=(
                     list(HAPPYHORSE_RATIO_OPTIONS)
                     if is_happyhorse
                     else list(GROK_VIDEO_RATIO_OPTIONS)
                     if is_grok_video
-                    else None
+                    else item.get("ratioOptions")
                 ),
                 supported_modes=(
                     list(HAPPYHORSE_SUPPORTED_MODES)
                     if is_happyhorse
                     else list(GROK_VIDEO_SUPPORTED_MODES)
                     if is_grok_video
-                    else None
+                    else item.get("supportedModes")
                 ),
-                reference_image_max=7 if is_grok_video else 9 if is_happyhorse else None,
-                reference_video_max=0 if is_grok_video else 1 if is_happyhorse else None,
-                reference_audio_max=0 if is_grok_video or is_happyhorse else None,
+                reference_image_max=7 if is_grok_video else 9 if is_happyhorse else item.get("referenceImageMax"),
+                reference_video_max=0 if is_grok_video else 1 if is_happyhorse else item.get("referenceVideoMax"),
+                reference_audio_max=0 if is_grok_video or is_happyhorse else item.get("referenceAudioMax"),
             )
         )
     return backend_options
@@ -4781,6 +4790,11 @@ async def generate_single_video(
     is_happyhorse = _is_happyhorse_backend(body.video_backend)
     is_grok_video = _is_grok_video_backend(body.video_backend)
 
+    from novelvideo.video_catalog import configured_video_catalog
+
+    catalog_model = configured_video_catalog().get(body.video_backend)
+    generic_catalog_model = catalog_model if not (is_seedance2 or is_happyhorse or is_grok_video) else None
+
     # 首帧路径
     from novelvideo.utils.path_resolver import PathResolver
 
@@ -4789,7 +4803,9 @@ async def generate_single_video(
         beat_num,
         use_director_render=bool(body.use_director_render),
     )
-    if not frame_path.exists():
+    if not frame_path.exists() and paths.sketch(beat_num).is_file():
+        frame_path = paths.sketch(beat_num)
+    if not frame_path.exists() and not (generic_catalog_model or is_seedance2):
         return {"ok": False, "error": f"Beat {beat_num} 首帧不存在，请先生成预览"}
 
     # 视频模式与提示词
@@ -4809,6 +4825,8 @@ async def generate_single_video(
             beat_num + 1,
             use_director_render=bool(body.use_director_render),
         )
+        if not next_frame.exists() and paths.sketch(beat_num + 1).is_file():
+            next_frame = paths.sketch(beat_num + 1)
         if next_frame.exists():
             last_frame_path = str(next_frame)
         else:
@@ -4821,7 +4839,63 @@ async def generate_single_video(
     happyhorse_ratio: str | None = None
     grok_video_references: list[dict[str, str]] = []
     grok_video_ratio: str | None = None
-    if is_seedance2:
+    catalog_generation_config: dict[str, Any] = {}
+    if generic_catalog_model:
+        from novelvideo.video_duration import normalize_video_duration_for_backend
+
+        modes = list(generic_catalog_model.get("supportedModes") or ["first_frame"])
+        mode = str(body.mode or "").strip()
+        if not mode:
+            if video_mode == "keyframe" and last_frame_path and "first_last_frame" in modes:
+                mode = "first_last_frame"
+            elif frame_path.is_file() and ("first_frame" in modes or "image_to_video" in modes):
+                mode = "first_frame"
+            elif frame_path.is_file() and "image_reference" in modes:
+                mode = "image_reference"
+            elif "text_to_video" in modes:
+                mode = "text_to_video"
+            else:
+                mode = modes[0]
+        if mode == "image_to_video":
+            mode = "first_frame"
+        if mode not in modes and not (mode == "first_frame" and "image_to_video" in modes):
+            return {"ok": False, "error": f"Unsupported video mode: {mode}"}
+        if mode not in {"text_to_video", "first_frame", "first_last_frame", "image_reference"}:
+            return {"ok": False, "error": f"Mainline video input mode is not supported: {mode}"}
+        if mode != "text_to_video" and not frame_path.is_file():
+            return {"ok": False, "error": f"Beat {beat_num} 缺少首帧或草图，请先生成预览或草图"}
+        if mode == "first_last_frame" and not last_frame_path:
+            return {"ok": False, "error": f"Beat {beat_num} 缺少尾帧"}
+        if not prompt.strip():
+            return {"ok": False, "error": _missing_video_prompt_error(beat_num)}
+        resolution_options = generic_catalog_model.get("resolutionOptions") or ["720p"]
+        single_video_resolution = body.resolution if "resolution" in body.model_fields_set else ("720p" if "720p" in resolution_options else resolution_options[0])
+        if single_video_resolution not in resolution_options:
+            return {"ok": False, "error": f"Unsupported video resolution: {single_video_resolution}"}
+        ratios = generic_catalog_model.get("ratioOptions") or ["16:9"]
+        ratio = body.ratio or load_project_config(username, project_name).get("aspect_ratio") or "16:9"
+        if ratio not in ratios:
+            if body.ratio:
+                return {"ok": False, "error": f"Unsupported video ratio: {ratio}"}
+            ratio = ratios[0]
+        video_duration = normalize_video_duration_for_backend(
+            body.video_backend, body.duration if body.duration is not None else video_duration,
+            generic_catalog_model.get("minDuration"), generic_catalog_model.get("maxDuration"),
+        )
+        references = []
+        if mode == "image_reference":
+            references = [{"type": "image", "path": str(frame_path), "role": "reference_image"}]
+        if mode in {"text_to_video", "image_reference"}:
+            frame_path = None
+        if mode != "first_last_frame":
+            last_frame_path = None
+        video_mode = "keyframe" if last_frame_path else "first_frame"
+        catalog_generation_config = {
+            "gen_mode": mode, "ratio": ratio, "references": references,
+            "generate_audio": bool(generic_catalog_model.get("supportsGenerateAudio", False)),
+            "request_schema": generic_catalog_model.get("request") or {},
+        }
+    elif is_seedance2:
         try:
             request_config_json = _merge_seedance2_request_config(
                 beat,
@@ -4993,6 +5067,7 @@ async def generate_single_video(
         "use_director_render": bool(body.use_director_render),
         "last_frame_path": last_frame_path,
         "cognee_store_project": f"{username}/{project_name}",
+        **catalog_generation_config,
     }
     if seedance2_config_json:
         config["seedance2_config"] = seedance2_config_json

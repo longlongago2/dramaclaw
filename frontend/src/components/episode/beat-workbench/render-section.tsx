@@ -219,6 +219,9 @@ export function RenderSection({
   });
   const [stalePrompt, setStalePrompt] = useState<{ poolId: string; message: string } | null>(null);
   const [regenConfirm, setRegenConfirm] = useState(false);
+  const [regenSubmitting, setRegenSubmitting] = useState(false);
+  const [regenError, setRegenError] = useState<string | null>(null);
+  const regenInFlightRef = useRef(false);
   const [freezonePending, setFreezonePending] = useState(false);
   const [croppingAnchorId, setCroppingAnchorId] = useState<string | null>(null);
   const now = useNow();
@@ -237,7 +240,7 @@ export function RenderSection({
     ? images.find((i) => isRenderAssignmentMatch(i, currentAssignment)) ?? null
     : null;
   const detailRender = assignedRender ?? candidates[0] ?? null;
-  const previewUrl = beat.frame_url ?? detailRender?.cell_url ?? null;
+  const previewUrl = beat.frame_url?.trim() || detailRender?.cell_url || null;
   // Live loading state for the preview card while a render regen runs. Progress
   // comes from the active task's SSE stream (0–1) and survives refresh because
   // the controller reconciles against the persisted task row.
@@ -290,12 +293,23 @@ export function RenderSection({
   };
 
   const handleRegen = async () => {
+    if (regenInFlightRef.current) return;
+    regenInFlightRef.current = true;
+    setRegenSubmitting(true);
+    setRegenError(null);
     try {
       const anchorId = currentBackgroundSource || "master";
-      const backgroundRes = await updateBackgroundAnchor.mutateAsync({ anchorId });
-      if (!backgroundRes.ok) {
-        toast.error(backgroundRes.error || t("episode.workbench.render.backgroundSaveFailed"));
-        return;
+      const anchor = backgroundData?.anchors.find((item) => item.id === anchorId);
+      // A default source can be saved before its optional background image
+      // exists. Do not block sketch-based rendering on that missing image.
+      if (anchor?.exists) {
+        const backgroundRes = await updateBackgroundAnchor.mutateAsync({ anchorId });
+        if (!backgroundRes.ok) {
+          const message = backgroundRes.error || t("episode.workbench.render.backgroundSaveFailed");
+          setRegenError(message);
+          toast.error(message);
+          return;
+        }
       }
       const res = await regenerate.mutateAsync({
         beatIndices: [beat.beat_number],
@@ -303,7 +317,9 @@ export function RenderSection({
         imageGenerationSelection: renderImageSelection,
       });
       if (res.ok === false) {
-        toast.error(res.error || t("episode.workbench.render.regenFailed"));
+        const message = res.error || t("episode.workbench.render.regenFailed");
+        setRegenError(message);
+        toast.error(message);
         return;
       }
       regenTask.start({
@@ -313,7 +329,12 @@ export function RenderSection({
       });
       toast.success(t("episode.workbench.render.regenStarted"));
     } catch (err) {
-      toast.error(backendErrorToastMessage(err, t));
+      const message = backendErrorToastMessage(err, t);
+      setRegenError(message);
+      toast.error(message);
+    } finally {
+      regenInFlightRef.current = false;
+      setRegenSubmitting(false);
     }
   };
 
@@ -440,6 +461,7 @@ export function RenderSection({
 
   return (
     <div className="flex flex-col gap-3">
+      {regenError && <p role="alert" className="text-xs text-destructive">{regenError}</p>}
       <section className="rounded-[10px] border border-white/[0.055] bg-white/[0.016] p-3">
         <div className={RENDER_GRID_CLASS}>
           {/* Left: preview image (with a live progress overlay while generating) */}
@@ -565,16 +587,17 @@ export function RenderSection({
                 <Button
                   size="xs"
                   variant="outline"
-                  onClick={() => setRegenConfirm(true)}
+                  onClick={() => { setRegenError(null); setRegenConfirm(true); }}
                   // Also blocked while a regen this beat is NOT part of is
                   // running: all beats share one `selected_regen` registry
                   // entry, so starting a second run would repoint its scope/
                   // task id/beat coverage and the in-flight beat would lose its
                   // progress bar and Stop button.
-                  disabled={!hasCurrentSketch || regenerate.isPending || regenTask.started}
+                  disabled={!hasCurrentSketch || regenSubmitting || regenerate.isPending || regenTask.started}
+                  aria-busy={regenSubmitting}
                   className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
                 >
-                  {regenerate.isPending ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+                  {regenSubmitting || regenerate.isPending ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
                   {previewUrl
                     ? t("common.regenerate")
                     : t("episode.workbench.render.generateNew")}
