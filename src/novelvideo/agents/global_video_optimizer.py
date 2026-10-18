@@ -16,6 +16,7 @@ from PIL import Image as PILImage
 
 from novelvideo.brainclaw_contract import BrainClawProfile
 from novelvideo.utils.source_language import asset_language_instruction
+from novelvideo.utils.character_gender import normalize_character_gender
 
 
 class ReviewResult(BaseModel):
@@ -120,12 +121,8 @@ Output a strict JSON object with no explanation or markdown:
 
 def _normalize_gender_label(value: str) -> str:
     """将仓库内常见性别值归一化为英文标签。"""
-    g = (value or "").strip().lower()
-    if g in ("男", "男性", "male"):
-        return "male"
-    if g in ("女", "女性", "female"):
-        return "female"
-    return ""
+    gender = normalize_character_gender(value)
+    return gender if gender in {"male", "female", "agender", "non_binary"} else ""
 
 
 def _combine_identity_prompt(face_prompt: str, appearance: str) -> str:

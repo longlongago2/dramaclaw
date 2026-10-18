@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from novelvideo.generators.tts_generator import EdgeTTSGenerator
+from novelvideo.utils.character_gender import normalize_character_gender
 from novelvideo.project_config import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
@@ -42,11 +43,15 @@ MALE_VOICES = (
 
 def _system_voice_for_character(character) -> str:
     gender = str(getattr(character, "gender", "") or "").strip().lower()
+    normalized_gender = normalize_character_gender(gender)
     age_group = str(getattr(character, "age_group", "") or "").strip().lower()
-    if "女" in gender or gender in {"female", "woman", "girl"}:
+    if normalized_gender == "female" or "女" in gender:
         if age_group == "child":
             return "zh-CN-XiaoshuangNeural"
         pool = FEMALE_VOICES
+    elif normalized_gender in {"agender", "non_binary"}:
+        # These settings do not prescribe a male or female performance.
+        pool = FEMALE_VOICES + MALE_VOICES
     else:
         pool = MALE_VOICES
     stable_index = sum(ord(char) for char in str(getattr(character, "name", "") or ""))

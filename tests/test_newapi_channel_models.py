@@ -85,7 +85,8 @@ def test_discovery_uses_saved_gateway_channel_and_normalizes_models(
                 "bad\nmodel",
                 "bad\x00model",
                 "bad\x7fmodel",
-                "bad model",
+                "Grok 4.5",
+                "claude-opus- 4.7",
                 "GPT-4o",
             ],
         },
@@ -98,7 +99,7 @@ def test_discovery_uses_saved_gateway_channel_and_normalizes_models(
         "ok": True,
         "data": {
             "provider": "openai",
-            "models": ["gpt-4o", "vendor/model", "x" * 255, "GPT-4o"],
+            "models": ["gpt-4o", "vendor/model", "x" * 255, "Grok 4.5", "claude-opus- 4.7", "GPT-4o"],
             "channelId": 7,
         },
     }
@@ -111,6 +112,22 @@ def test_discovery_uses_saved_gateway_channel_and_normalizes_models(
     assert request.headers["New-Api-User"] == "1"
     assert SECRET not in str(request.headers)
     assert SECRET not in response.text
+
+
+@respx.mock
+def test_speech_catalog_preserves_builtin_source(discovery_client):
+    mock_channels([{"id": 7, "name": "DC-doubao_audio", "type": 62}])
+    respx.get(f"{BASE_URL}/api/channel/fetch_models/7").respond(
+        200, json={"success": True, "data": ["seed-audio-1.0"], "source": "builtin"}
+    )
+    response = discovery_client.post(ENDPOINT, json={"provider": "doubao_audio"})
+    assert response.status_code == 200
+    assert response.json()["data"] == {
+        "provider": "doubao_audio",
+        "channelId": 7,
+        "models": ["seed-audio-1.0"],
+        "source": "builtin",
+    }
 
 
 @respx.mock
@@ -129,6 +146,26 @@ def test_mrtoken_channel_picker_uses_gateway_instead_of_direct_discovery(discove
         "channelId": 7,
     }
     assert discovery.call_count == 1
+
+
+@respx.mock
+def test_mrtoken_direct_and_gateway_discovery_preserve_space_containing_ids(
+    discovery_client, monkeypatch
+):
+    models = ["Grok 4.5", "Grok 4.6", "Grok 4.7", "Grok Imagine Image 2.0",
+              "Grok Imagine Video 1.5", "claude-opus- 4.7"]
+    monkeypatch.setattr(model_gateway, "get_newapi_provider_channel", lambda provider: {"upstreamKey": SECRET})
+    mock_channels([{"id": 7, "name": "DC-mrtoken", "type": 1}])
+    respx.get("https://api.mrtoken.cn/v1/models").respond(
+        200, json={"data": [{"id": model} for model in models]}
+    )
+    respx.get(f"{BASE_URL}/api/channel/fetch_models/7").respond(
+        200, json={"success": True, "data": models}
+    )
+    for payload in [{"provider": "mrtoken"}, {"provider": "mrtoken", "newApiBaseUrl": BASE_URL}]:
+        response = discovery_client.post(ENDPOINT, json=payload)
+        assert response.status_code == 200
+        assert response.json()["data"]["models"] == models
 
 
 @respx.mock

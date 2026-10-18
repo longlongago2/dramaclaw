@@ -1771,6 +1771,37 @@
     "freezone": "Freezone"
   },
   "characters": {
+    "voiceGeneration": {
+      "auditionHint": "Tạo giọng, so sánh các bản nghe thử rồi lưu bản bạn chọn. Việc tạo sử dụng hạn mức kênh âm thanh.",
+      "candidate": "Bản {{number}}",
+      "current": "Đang dùng",
+      "description": "Lời nhắc giọng nói",
+      "descriptionPlaceholder": "Giọng nam trẻ, phát âm rõ ràng, ấm áp, thân thiện và tò mò.",
+      "duration": "{{seconds}} giây",
+      "emptyHistory": "Chưa có bản nghe thử",
+      "failed": "Không tạo được giọng. Kiểm tra kênh và quyền; không gửi lại khi chưa rõ kết quả.",
+      "generate": "Tạo giọng",
+      "generating": "Đang tạo…",
+      "history": "Bản nghe thử",
+      "historyFailed": "Không tải được bản nghe thử. Hãy làm mới danh sách.",
+      "historyHint": "Bản nghe thử được lưu tự động. Chọn một bản để nghe và lưu.",
+      "noSource": "Chưa cấu hình",
+      "preview": "Nghe thử giọng",
+      "promptRequired": "Trước tiên, nhập lời nhắc giọng trong thông tin nhân vật.",
+      "refreshHistory": "Làm mới bản nghe thử",
+      "replace": "Lưu và thay thế",
+      "sampleText": "Xin chào! Thế giới chứa đầy những điều kỳ diệu. Hãy cùng nhau khám phá nhé.",
+      "save": "Lưu giọng",
+      "saved": "Đã lưu giọng nhân vật",
+      "saveFailed": "Không lưu được giọng. Bản nghe thử được giữ lại.",
+      "source": "Nguồn giọng",
+      "sourceHint": "Chọn mô hình Seed Audio đã cấu hình để tạo mẫu giọng nhân vật. Hãy cấu hình mô hình âm thanh trong Cài đặt trước.",
+      "sourceSaveFailed": "Không lưu được nguồn giọng",
+      "speaker": "ID giọng (tùy chọn)",
+      "speakerPlaceholder": "Để trống để dùng lời nhắc giọng đã lưu của nhân vật",
+      "text": "Nội dung nghe thử",
+      "title": "Tạo giọng · {{name}}"
+    },
     "title": "Nhân vật",
     "subtitle": "Sắp xếp dàn nhân vật cho dự án này.",
     "assetTabs": {
@@ -1865,8 +1896,8 @@
       "configureHint": "Thiết lập phong cách của dự án ở trang nhập truyện"
     },
     "voiceSamples": {
-      "title": "Mẫu giọng nói (IndexTTS2)",
-      "hint": "Thường chỉ cần tải giọng mặc định. Chỉ ghi đè theo nhóm tuổi khi biến thể cần chất giọng khác.",
+      "title": "Quản lý giọng",
+      "hint": "Tạo, tải lên hoặc ghi mẫu giọng mặc định. Giọng theo độ tuổi là tùy chọn ghi đè.",
       "defaultRequired": "Mặc định (bắt buộc)",
       "ageDefaultRequired": "{{age}} (mặc định · bắt buộc)",
       "optionalOverride": "{{age}} (ghi đè tuỳ chọn)",
@@ -2069,8 +2100,11 @@
       "courtDress": "Cung trang"
     },
     "genders": {
-      "male": "Nam",
-      "female": "Nữ"
+      "agender": "Vô giới",
+      "female": "Nữ / Cái",
+      "male": "Nam / Đực",
+      "nonBinary": "Phi nhị nguyên",
+      "unknown": "Chưa xác định"
     },
     "roles": {
       "lead": "Vai chính",
@@ -7379,14 +7413,16 @@
         }
       },
       "channelModels": {
-        "fetch": "Lấy danh sách model",
+        "fetch": "Lấy mô hình",
         "select": "Chọn model của kênh",
         "inputLabel": "Tên model phía nhà cung cấp",
         "loading": "Đang lấy danh sách model…",
         "manualHint": "Nhập để tìm kiếm hoặc nhập tên model thủ công.",
         "empty": "Không có model phù hợp. Bạn vẫn có thể nhập tên thủ công.",
         "fetchFailed": "Không thể lấy danh sách model. Hãy đồng bộ kênh và kiểm tra hỗ trợ của nhà cung cấp, hoặc nhập tên thủ công.",
-        "syncFirst": "Đồng bộ key và Base URL của kênh trước khi lấy danh sách model."
+        "syncFirst": "Đồng bộ key và Base URL của kênh trước khi lấy danh sách model.",
+        "supported": "Mô hình hỗ trợ",
+        "builtinHint": "Danh mục tích hợp; khả năng sử dụng tùy thuộc quyền tài khoản. Dùng API Key từ bảng điều khiển Doubao Speech."
       },
       "featureModels": {
         "discoverModels": "Lấy mô hình khả dụng",

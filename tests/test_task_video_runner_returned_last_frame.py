@@ -322,3 +322,45 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
     assert generate_calls[0]["references"] == [
         ShotReference("image", "https://example.com/ref.png", "图片1")
     ]
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('mode', ['first_last_frame', 'image_reference', 'text_to_video'])
+async def test_catalog_runner_preserves_input_mode_and_duration(tmp_path, monkeypatch, mode):
+    from novelvideo.generators.video_generator import ShotReference, VideoGenStatus
+    from novelvideo.task_backend.runners import video as video_runner
+
+    generated = []
+    constructors = []
+
+    class FakeVideoGenerator:
+        async def generate(self, **kwargs):
+            generated.append(kwargs)
+            return SimpleNamespace(status=VideoGenStatus.DONE, error=None, provider_task_id='task-original', last_frame_path=None, last_frame_url=None)
+
+    def create(backend, **kwargs):
+        constructors.append((backend, kwargs))
+        return FakeVideoGenerator()
+
+    monkeypatch.setattr(video_runner, 'get_task_manager', lambda: SimpleNamespace(update_progress_for_project=lambda *_a, **_kw: None))
+    monkeypatch.setattr('novelvideo.generators.video_generator.create_video_generator', create)
+    monkeypatch.setattr('novelvideo.generators.video_pool_indexer.add_video_to_pool', lambda **_kw: SimpleNamespace(id='pool-1'))
+    frame = 'first.png' if mode == 'first_last_frame' else None
+    refs = [{'type':'image', 'path':'ref.png', 'role':'reference_image'}] if mode == 'image_reference' else []
+    result = await video_runner._run_single_video_async({
+        'task_type': 'single_video', 'episode': 1, 'beat_num': 1, 'payload': {'config': {
+            'video_backend': 'newapi_minimax-h3-i2v', 'gen_mode': mode, 'video_duration': 9,
+            'video_mode': 'keyframe' if frame else 'first_frame', 'frame_path': frame,
+            'last_frame_path': 'last.png' if frame else None, 'references': refs,
+            'resolution':'720p', 'ratio':'16:9', 'generate_audio': False,
+            'prompt': 'boat drifts', 'request_schema': {'endpoint':'video/generations'},
+        }},
+    }, _ctx(tmp_path))
+    assert result['provider_task_id'] == 'task-original'
+    assert generated[0]['duration'] == 9
+    assert generated[0]['gen_mode'] == mode
+    assert generated[0]['image_path'] == frame
+    assert generated[0]['aspect_ratio'] == '16:9'
+    assert constructors[0][1]['generate_audio'] is False
+    assert constructors[0][1]['request_schema'] == {'endpoint':'video/generations'}
+    if refs:
+        assert generated[0]['references'] == [ShotReference('image', 'ref.png', 'reference_image')]

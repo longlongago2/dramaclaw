@@ -61,7 +61,6 @@ import {
   useSaveOfficialMediaCatalogPreferences,
   useCheckOfficialMediaCatalog,
   useNewApiChannelTypes,
-  useDiscoverProviderModels,
   useEnableOfficial,
   useEnableCustom,
   useEnableHybrid,
@@ -4735,9 +4734,9 @@ function ProviderChannelsBlock({
           provider,
           name: featureProviderLabel(provider),
         }));
-  const availableProviders = providerOptions.filter(
-    (item) => !providerChannels[item.provider],
-  );
+  const availableProviders = providerOptions
+    .filter((item) => !providerChannels[item.provider])
+    .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
   const savedChannelByProvider = useMemo(() => {
     return new Map(
       savedProviderChannels.map((channel) => [channel.provider, channel]),
@@ -4955,8 +4954,6 @@ function ProviderChannelRow({
     (s) => s.clearFeatureProviderUpstreamKey,
   );
   const syncProviderChannel = useSyncProviderChannel();
-  const discoverModels = useDiscoverProviderModels();
-  const [discoveredModels, setDiscoveredModels] = useState<string[] | null>(null);
   const clearComfyUIConfig = useClearComfyUIConfig();
   const [revealed, setRevealed] = useState(false);
   const upstreamKeyValue = channel?.upstreamKey ?? "";
@@ -4965,38 +4962,6 @@ function ProviderChannelRow({
     : "";
   const upstreamPlaceholder = savedKeyPreview || "sk-...";
   const isComfyUI = provider === "comfyui";
-  useEffect(() => {
-    setDiscoveredModels(null);
-  }, [upstreamKeyValue, channel?.baseUrl]);
-  const handleDiscoverModels = async () => {
-    const requestedKey = upstreamKeyValue;
-    const requestedBase = channel?.baseUrl ?? "";
-    setDiscoveredModels(null);
-    try {
-      const response = await discoverModels.mutateAsync({
-        provider,
-        ...(requestedKey.trim() ? { upstreamKey: requestedKey.trim() } : {}),
-        baseUrl: requestedBase.trim(),
-      });
-      const current =
-        useSettingsStore.getState().featureModelConfig.providerChannels[provider];
-      if (
-        current?.upstreamKey !== requestedKey ||
-        current?.baseUrl !== requestedBase
-      ) return;
-      if (response.ok === true) {
-        setDiscoveredModels(response.data.models);
-      } else {
-        toast.error(
-          getResponseErrorMessage(response, t("settings.modelConfig.requestFailed")),
-        );
-      }
-    } catch {
-      toast.error(t("settings.modelConfig.requestFailed"));
-    } finally {
-      discoverModels.reset();
-    }
-  };
   const hasComfyUIConfig = isComfyUI && savedChannel?.configured === true;
   useEffect(() => {
     if (!upstreamKeyValue) setRevealed(false);
@@ -5171,24 +5136,6 @@ function ProviderChannelRow({
           />
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5 sm:self-end">
-          {provider === "mrtoken" ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 whitespace-nowrap text-xs"
-              onClick={() => void handleDiscoverModels()}
-              disabled={
-                discoverModels.isPending ||
-                (!upstreamKeyValue.trim() && !savedChannel?.configured)
-              }
-            >
-              {discoverModels.isPending ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : null}
-              {t("settings.modelConfig.featureModels.discoverModels")}
-            </Button>
-          ) : null}
           {!isComfyUI ? (
             <ChannelModelsButton
               provider={provider}
@@ -5251,33 +5198,6 @@ function ProviderChannelRow({
           )}
         </div>
       </div>
-      {provider === "mrtoken" ? (
-        <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-          <p>{t("settings.modelConfig.featureModels.mrtokenHint")}</p>
-          {discoveredModels !== null ? (
-            <details open>
-              <summary>
-                {t("settings.modelConfig.featureModels.discoveredModelCount", {
-                  count: discoveredModels.length,
-                })}
-              </summary>
-              <div className="mt-2 max-h-40 overflow-auto rounded-md border border-border p-2 text-foreground">
-                {discoveredModels.length === 0 ? (
-                  t("settings.modelConfig.featureModels.noDiscoveredModels")
-                ) : (
-                  <ul className="space-y-1">
-                    {discoveredModels.map((id) => (
-                      <li key={id}>
-                        <code className="break-all select-text">{id}</code>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </details>
-          ) : null}
-        </div>
-      ) : null}
       {isComfyUI ? (
         <ComfyUIWorkflowsEditor
           settings={channel?.settings ?? {}}

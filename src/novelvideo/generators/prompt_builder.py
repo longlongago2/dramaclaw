@@ -29,6 +29,7 @@ from novelvideo.config import get_style_preset, IMAGE_DEFAULT_STYLE
 from novelvideo.models import beat_scene_id, real_detected_identities, real_detected_props
 from novelvideo.services.style_service import StyleService
 from novelvideo.styles.stickman import canonical_theme, theme_rules
+from novelvideo.utils.character_gender import normalize_character_gender
 
 
 StyleRef: TypeAlias = "StyleConfig | str | None"
@@ -2246,11 +2247,9 @@ Show the STARTING pose, NOT the ending result."""
                 next_image_slot += 1
 
         def _gender_label(value: str) -> str:
-            g = (value or "").strip().lower()
-            if g in ("男", "男性", "male"):
-                return "MALE"
-            if g in ("女", "女性", "female"):
-                return "FEMALE"
+            gender = normalize_character_gender(value)
+            if gender in {"male", "female", "agender", "non_binary"}:
+                return gender.replace("_", "-").upper()
             return ""
 
         def _appearance_source(cfg, suffix: str = "") -> str:

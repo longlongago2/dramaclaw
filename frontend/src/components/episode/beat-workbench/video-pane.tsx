@@ -392,9 +392,13 @@ export function VideoPane({
   );
   const showSeedance2ValueStyle =
     showSeedance2Config && isSeedance2ValueBackend(defaultBackend);
+  const catalogResolutionKey = selectedBackend?.is_catalog
+    ? (selectedBackend.resolution_options ?? []).join("|") : "";
   const seedance2ResolutionOptions = useMemo(
-    () => seedance2ResolutionOptionsForBackend(defaultBackend),
-    [defaultBackend],
+    () => catalogResolutionKey
+      ? catalogResolutionKey.split("|").filter((value): value is Seedance2Resolution => ["480p", "720p", "1080p"].includes(value))
+      : seedance2ResolutionOptionsForBackend(defaultBackend),
+    [defaultBackend, catalogResolutionKey],
   );
   const seedance2DurationBounds = useMemo(
     () => seedance2DurationBoundsForBackend(selectedBackend),
@@ -417,8 +421,8 @@ export function VideoPane({
     [selectedBackend],
   );
   // seedance-1.5-pro：复用清晰度/时长控件（精品剧+解说剧），但不走 seedance2 多模态那套。
-  const isSd15ProConfig =
-    !showSeedance2Config && isSeedance15ProBackend(defaultBackend);
+  const showBasicVideoConfig =
+    !showSeedance2Config && (isSeedance15ProBackend(defaultBackend) || selectedBackend?.is_catalog === true);
   const audioFloorSeconds =
     typeof beat.audio_duration_seconds === "number" &&
     beat.audio_duration_seconds > 0
@@ -438,7 +442,7 @@ export function VideoPane({
     seedance2DurationBounds.min,
   );
   useEffect(() => {
-    if (!isSd15ProConfig) return;
+    if (!showBasicVideoConfig) return;
     const fallbackRes = seedance2ResolutionOptions.includes("720p")
       ? "720p"
       : seedance2ResolutionOptions[0];
@@ -452,7 +456,7 @@ export function VideoPane({
       clampDuration(audioFloorSeconds ?? sd15DurationBounds.min, sd15DurationBounds),
     );
   }, [
-    isSd15ProConfig,
+    showBasicVideoConfig,
     beat.beat_number,
     audioFloorSeconds,
     seedance2ResolutionOptions,
@@ -547,13 +551,13 @@ export function VideoPane({
   const videoPricingResolution =
     showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig
       ? seedance2Draft.resolution
-      : isSd15ProConfig
+      : showBasicVideoConfig
         ? sd15Resolution
         : "720p";
   const configuredVideoPricingQuantity =
     showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig
       ? seedance2Draft.duration
-      : isSd15ProConfig
+      : showBasicVideoConfig
         ? sd15Duration
         : 5;
   const videoPricingQuantity = Math.max(
@@ -830,8 +834,12 @@ export function VideoPane({
               seedance2ConfigJson: grokVideoConfigJson,
             }
           : {}),
-        ...(isSd15ProConfig
-          ? { resolution: sd15Resolution, duration: sd15Duration }
+        ...(showBasicVideoConfig
+          ? {
+              resolution: sd15Resolution, duration: sd15Duration,
+              ...(selectedBackend?.is_catalog && selectedBackend.ratio_options?.includes(spec.renderAspect)
+                ? { ratio: spec.renderAspect } : {}),
+            }
           : {}),
       });
       if (res.ok === false) {
@@ -1683,7 +1691,7 @@ export function VideoPane({
               </VideoParamField>
             </>
           )}
-          {isSd15ProConfig && (
+          {showBasicVideoConfig && (
             <>
               <VideoParamField
                 label={t("episode.workbench.video.duration")}

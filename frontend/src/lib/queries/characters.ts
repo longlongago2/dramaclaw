@@ -92,6 +92,7 @@ export function useUpdateCharacter(project: string, name: string) {
         .json<OkResponse<CharacterUpdateResponse>>(),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: queryKeys.characters(project) });
+      qc.invalidateQueries({ queryKey: queryKeys.characterDetails(project, name) });
       // 改名走 _cascade_character_rename，它 UPDATE beats 的
       // detected_identities_json 和 visual_description——也就是反向引用索引的两个
       // 来源。资产引用有自己的 project 级 key，characters 的失效碰不到它，卡片会

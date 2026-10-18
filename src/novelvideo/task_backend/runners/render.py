@@ -623,7 +623,7 @@ async def _run_selected_regen_async(
     def report_generation_progress(completed: int, total: int) -> None:
         ratio = completed / max(total, 1)
         log(
-            f"已生成 {completed}/{total} 张{'草图' if is_sketch else '网格'}",
+            f"已处理 {completed}/{total} 个{'草图' if is_sketch else '网格'}生成任务",
             progress=0.2 + 0.45 * ratio,
         )
 
@@ -643,7 +643,8 @@ async def _run_selected_regen_async(
         **force_kwargs,
     )
 
-    log("分割网格并更新图片池...", progress=0.7)
+    if any(result.success and result.grid_image_path for result in results):
+        log("分割网格并更新图片池...", progress=0.7)
     ts = datetime.now().strftime("%Y%m%d%H%M%S")
     updated_beats: list[int] = []
     grid_paths: dict[int, str] = {}

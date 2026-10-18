@@ -29,10 +29,22 @@ import {
   useDiscoverProviderModels,
   useLocalGatewayBilling,
   useSaveLocalGatewayBilling,
+  useSaveMediaModels,
 } from "@/lib/queries/model-gateway";
 import { queryKeys } from "@/lib/query-keys";
 
 const server = setupServer();
+
+it("invalidates mainline video choices after saving media mappings", async () => {
+  server.use(http.post("http://localhost:3000/api/v1/model-gateway/custom/newapi/media-models", () =>
+    HttpResponse.json({ ok: true, data: {} })));
+  const queryClient = new QueryClient();
+  const key = queryKeys.videoBackends("demo");
+  queryClient.setQueryData(key, { ok: true, data: [] });
+  const { result } = renderHook(() => useSaveMediaModels(), { wrapper: wrapper(queryClient) });
+  await act(async () => { await result.current.mutateAsync({ newApiBaseUrl: "http://gateway.example", models: {} }); });
+  expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+});
 
 describe("local gateway billing", () => {
   it("reads and saves the effective switch state", async () => {

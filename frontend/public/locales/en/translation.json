@@ -1885,6 +1885,37 @@
     "freezone": "Freezone"
   },
   "characters": {
+    "voiceGeneration": {
+      "auditionHint": "Generate a voice, compare your auditions, then save your choice. Generation uses your audio channel credits.",
+      "candidate": "Take {{number}}",
+      "current": "In use",
+      "description": "Voice prompt",
+      "descriptionPlaceholder": "A friendly young male voice, clear Mandarin, warm and curious.",
+      "duration": "{{seconds}} s",
+      "emptyHistory": "No auditions yet",
+      "failed": "Voice generation failed. Check the audio channel and permissions; do not resubmit while the result is uncertain.",
+      "generate": "Generate voice",
+      "generating": "Generating…",
+      "history": "Auditions",
+      "historyFailed": "Could not load auditions. Try refreshing the list.",
+      "historyHint": "Auditions are saved automatically. Select one to listen and save.",
+      "noSource": "Not configured",
+      "preview": "Voice preview",
+      "promptRequired": "Enter a voice prompt in the character details first.",
+      "refreshHistory": "Refresh auditions",
+      "replace": "Save and replace",
+      "sampleText": "Hello! The world is full of wonderful discoveries. Let us explore them together.",
+      "save": "Save voice",
+      "saved": "Character voice saved",
+      "saveFailed": "Could not save voice. The preview is retained.",
+      "source": "Voice source",
+      "sourceHint": "Choose a configured Seed Audio model to create character voice samples. Configure audio models in Settings first.",
+      "sourceSaveFailed": "Could not save voice source",
+      "speaker": "Speaker ID (optional)",
+      "speakerPlaceholder": "Leave blank to use the character's saved voice prompt",
+      "text": "Sample text",
+      "title": "Generate voice · {{name}}"
+    },
     "title": "Characters",
     "subtitle": "Curate the cast for this project.",
     "assetTabs": {
@@ -1979,8 +2010,8 @@
       "configureHint": "Configure the project style on the import page"
     },
     "voiceSamples": {
-      "title": "Voice samples (IndexTTS2)",
-      "hint": "Usually upload only the default voice. Override age slots only when variants need a different sound.",
+      "title": "Voice samples",
+      "hint": "Generate, upload, or record a default voice sample. Age-specific voices are optional overrides.",
       "defaultRequired": "Default (required)",
       "ageDefaultRequired": "{{age}} (default · required)",
       "optionalOverride": "{{age}} (optional override)",
@@ -2166,8 +2197,11 @@
       "elder": "Elder"
     },
     "genders": {
+      "agender": "Agender",
+      "female": "Female",
       "male": "Male",
-      "female": "Female"
+      "nonBinary": "Non-binary",
+      "unknown": "Unspecified"
     },
     "roles": {
       "lead": "Lead",
@@ -7743,7 +7777,9 @@
         "manualHint": "Type to search or enter a model name manually.",
         "empty": "No matching models. You can enter a name manually.",
         "fetchFailed": "Could not fetch models. Sync the channel and check upstream model-list support, or enter a name manually.",
-        "syncFirst": "Sync the channel key and Base URL before fetching models."
+        "syncFirst": "Sync the channel key and Base URL before fetching models.",
+        "supported": "Supported models",
+        "builtinHint": "Built-in model catalog; availability depends on your account permissions. Use an API Key from the Doubao Speech console."
       },
       "featureModels": {
         "discoverModels": "Fetch available models",

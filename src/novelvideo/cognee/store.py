@@ -1034,7 +1034,15 @@ class CogneeStore:
         added: list[NovelCharacter] = []
         skipped = 0
         for char in characters:
-            if self.get_character(char.name):
+            existing = self.get_character(char.name)
+            if existing:
+                updates = {}
+                if not str(existing.gender or "").strip() and char.gender:
+                    updates["gender"] = char.gender
+                if not getattr(existing, "voice_description", "").strip() and char.voice_description.strip():
+                    updates["voice_description"] = char.voice_description
+                if updates:
+                    await self.update_character(char.name, **updates)
                 skipped += 1
                 continue
             await self.add_character(char)

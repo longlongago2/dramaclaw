@@ -1127,6 +1127,10 @@ class NovelCharacter(BaseModel):
         description="按年龄段（child/youth/middle/elder）划分的 IndexTTS2 声线样本 JSON：{slot: {path, sha256, updated_at}}",
     )
     description: str = Field(default="", description="角色描述")
+    voice_description: str = Field(
+        default="",
+        description="角色稳定的声线设定：年龄感、音高、音色、语速、口音和表达风格，不含单句情绪",
+    )
 
     # ============================================================
     # 第一层：Portrait（必需）- 纯面部特写

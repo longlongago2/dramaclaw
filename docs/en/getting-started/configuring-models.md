@@ -94,7 +94,61 @@ After initialization, start with **Recommended**. One profile configures:
 
 Enter each provider key separately, then click **Save & Apply**. Keys are stored separately and never written into profile JSON. Leave an already saved key blank; entering a new value replaces it.
 
-The current recommended template includes OpenRouter, VolcEngine, fal.ai, and DoubaoAudio. The recommended speech mapping keeps `index-tts-2` as DramaClaw's model ID while routing it through the DoubaoAudio channel to the upstream `seed-audio-1.0` model.
+Enabled video mappings, including MrToken and other custom channels, appear in the
+episode shot workbench with their saved labels, duration bounds, and resolutions.
+Saving media mappings refreshes that selector. Single-shot generation prefers the
+current rendered first frame and can use an existing sketch when no render exists.
+Text-to-video models need no image; reference-image models receive the current image
+as a reference. Image-based models still require an available image. Catalog and
+dispatch validation do not establish successful live generation for every upstream model.
+
+The built-in recommended template uses OpenRouter + VolcEngine. To use Doubao audio, add
+**DoubaoAudio** (type 62) in the advanced configuration. DoubaoVideo is a video channel.
+
+1. Enter an API Key from the Doubao Speech console. The default Base URL is `https://openspeech.bytedance.com`.
+2. Click **Update NewAPI channel**. The first sync resolves and saves the type advertised by the gateway.
+3. **Fetch models** shows the built-in `seed-audio-1.0` catalog. Its tooltip explains that this does not verify account permissions or authenticate the Key.
+4. Select this channel in the audio model mapping. You may keep `index-tts-2` as DramaClaw's model ID and set the upstream model to `seed-audio-1.0`, then save the mapping.
+
+Configure Ark and Speech console credentials separately. This adapter implements non-streaming
+Seed Audio 1.0 generation; TTS 2.0 and voice-clone training use different APIs.
+See `docs/volcengine-audio.md` in the gateway repository for reference, subtitle, and watermark mappings.
+
+In **Assets → Characters**, choose **Voice source** beside **Image source** in the header.
+Edit **Voice prompt** in the character details, then use **Generate voice** in a voice slot and enter sample text,
+and optionally enter an existing Doubao Speaker ID. Listen to the preview, then save it to the slot.
+Previews leave existing voices untouched; saving archives any previous slot file. A saved default
+voice is available to the existing reference-based dialogue synthesis flow.
+
+Previews combine the saved voice setting with quoted dialogue in the Seed Audio prompt,
+producing speech only, without music, beeps, or other sound effects. Synthetic character
+timbres are expressed through the voice and articulation. Duration follows the text and
+requested pace, up to 30 seconds, instead of targeting a fixed eight seconds. Output is
+48 kHz MP3; speech rate, pitch, and loudness controls remain at zero (no extra adjustment),
+leaving expression to the prompt. An optional Speaker ID adds a voice reference; leave it
+empty when designing a new timbre from the description.
+
+The **Auditions** panel retains every generated take across page refreshes and reopened
+dialogs. Select any take to listen and save; the active voice is marked **In use**.
+New takes retain their model, dialogue, Speaker ID, duration, and generation time.
+Older audio files without generation metadata also appear in the list.
+
+Character extraction produces both face prompts and stable voice prompts, stored separately.
+Voice prompts describe audible traits such as register, resonance, breathiness, articulation,
+and pauses. They exclude effects, music, and dialogue, including for non-human characters.
+Edit the voice prompt in the character details. Generation reads the saved prompt on the server;
+the dialog has no duplicate prompt editor. Run extraction again to fill missing prompts on existing characters;
+existing non-empty voice prompts and face prompts are preserved.
+
+Character gender uses `male`, `female`, `agender`, `non_binary`, or an empty string
+for unspecified. Creation, editing, and extraction normalize recognized human and
+animal labels to these values. Existing records remain readable without a bulk migration.
+An unspecified gender differs from an explicitly agender character; robot characters
+follow their stated characterization. Keep biological traits and stage-dependent details
+in the character description. Unsupported new values fail validation instead of silently
+clearing a saved setting. Image and video prompts retain the supported gender settings.
+Legacy binary voice presets do not assign agender or non-binary characters a male preset;
+opt-in system reference voices use the full voice pool for these settings.
 
 The built-in recommended profile is read-only. Switch to **My Config** to edit and persist your own JSON. The main shape is:
 

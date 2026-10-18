@@ -61,6 +61,8 @@ beforeAll(async () => {
     },
     interpolation: { escapeValue: false },
   });
+  server.use(http.get("http://localhost:3000/api/v1/projects/demo/character-voice-selection", () =>
+    HttpResponse.json({ ok: true, data: { model: "", options: {} } })));
   server.listen();
 });
 afterEach(() => server.resetHandlers());

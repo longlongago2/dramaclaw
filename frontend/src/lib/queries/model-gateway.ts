@@ -276,6 +276,7 @@ export interface ChannelModelsResult {
   provider: string;
   channelId: number | string;
   models: string[];
+  source?: "builtin";
 }
 
 export interface SaveMediaModelsInput {
@@ -656,7 +657,8 @@ export function useClearComfyUIConfig() {
   });
 }
 
-const CHANNEL_MODELS_QUERY_KEY = ["newapi-channel-models"] as const;
+// Discard lists cached before discovery preserved provider IDs with spaces.
+const CHANNEL_MODELS_QUERY_KEY = ["newapi-channel-models", 2] as const;
 
 /** Fetch explicitly; all model inputs for this gateway/provider share the list. */
 export function useChannelModels(input: ChannelModelsInput) {
@@ -730,8 +732,10 @@ export function useSaveMediaModels() {
           timeout: 120_000,
         })
         .json<OkResponse<SaveMediaModelsResult> | ErrorResponse>(),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (!response.ok) return;
       qc.invalidateQueries({ queryKey: queryKeys.modelGateway() });
+      qc.invalidateQueries({ predicate: (query) => query.queryKey[2] === "video-backends" });
     },
   });
 }

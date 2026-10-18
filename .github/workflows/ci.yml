@@ -65,6 +65,11 @@ jobs:
               print("ladybug json ok:", con.execute("RETURN to_json({a: 1}) AS j;").get_next())
           EOF
       # 单元测试：pytest 默认 addopts 已排除 ee/e2e；-n auto 走 xdist 并行。
+      - name: Install audio and video test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffprobe -version
       - name: Run tests
         run: uv run pytest -n auto
 
