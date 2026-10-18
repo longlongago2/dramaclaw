@@ -32,6 +32,14 @@ function renderVoice(component: React.ReactNode) {
 }
 
 describe("character voice generation", () => {
+  it("renders an unconfigured source safely when the response has no options", async () => {
+    server.use(http.get(`${root}/character-voice-selection`, () => HttpResponse.json({ ok: true, data: {} })));
+    renderVoice(<CharacterVoiceSourceSelect project="demo" />);
+    const source = await screen.findByRole("combobox", { name: "音源" });
+    await waitFor(() => expect(source).toHaveTextContent("未配置"));
+    expect(source).toBeDisabled();
+  });
+
   it("saves a project audio source independently of image source", async () => {
     let selected = "index-tts-2";
     server.use(

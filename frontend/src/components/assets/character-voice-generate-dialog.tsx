@@ -68,7 +68,7 @@ export function CharacterVoiceGenerateDialog({ project, name, slot, hasVoiceProm
           <div className="flex min-w-0 flex-col gap-4">
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="size-1.5 rounded-full bg-primary" />
-              {t("characters.voiceGeneration.source")} · {selection?.options[selection.model] || t("characters.voiceGeneration.noSource")}
+              {t("characters.voiceGeneration.source")} · {selection?.options?.[selection.model] || t("characters.voiceGeneration.noSource")}
             </p>
             <div className="flex flex-col gap-2">
               <Label htmlFor="character-voice-text">{t("characters.voiceGeneration.text")}</Label>

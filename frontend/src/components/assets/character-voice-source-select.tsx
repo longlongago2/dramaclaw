@@ -27,7 +27,7 @@ export function CharacterVoiceSourceSelect({ project }: { project: string }) {
               className={ASSET_SOURCE_TRIGGER_CLASS}>
               <span className="shrink-0 text-muted-foreground">{t("characters.voiceGeneration.source")}</span>
               <span className="shrink-0 text-muted-foreground/50">&nbsp;·&nbsp;</span>
-              <SelectValue>{selection?.options[selection.model] || t("characters.voiceGeneration.noSource")}</SelectValue>
+              <SelectValue>{selection?.options?.[selection.model] || t("characters.voiceGeneration.noSource")}</SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false} className={ASSET_SOURCE_CONTENT_CLASS}>
               <SelectGroup className="p-0">
