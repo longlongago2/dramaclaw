@@ -891,6 +891,117 @@ def test_newapi_image_edit_supports_cockpit_reference_format(
     assert "https://relay.test" not in str(context)
 
 
+@pytest.mark.parametrize("status", [400, 422])
+@pytest.mark.parametrize("reference_count", [1, 3])
+def test_newapi_image_edit_retries_provider_json_rejection_as_multipart(
+    monkeypatch, status, reference_count
+):
+    import json
+    from email.parser import BytesParser
+    from email.policy import default
+    from unittest.mock import AsyncMock
+
+    import httpx
+    from novelvideo.generators import nanobanana_grid
+
+    requests = []
+    real_client = httpx.AsyncClient
+    usage_meter = SimpleNamespace(
+        reserve_current_model_call_credit=AsyncMock(return_value="reservation-1"),
+        mark_current_paid_execution_attempt=AsyncMock(),
+        bump_model_call=AsyncMock(),
+        refund_model_call_credit_reservation=AsyncMock(),
+    )
+    monkeypatch.setattr(nanobanana_grid, "get_usage_meter", lambda: usage_meter)
+
+    def handle_request(request):
+        requests.append(request)
+        if len(requests) == 1:
+            assert json.loads(request.content)["model"] == "LingShan-G2"
+            return httpx.Response(status, json={"error": {
+                "message": "JSON prompt/image editing requires providerCode OpenImgVideo"
+            }})
+        return httpx.Response(200, json={"data": [{
+            "b64_json": base64.b64encode(b"edited-image").decode()
+        }]})
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: real_client(
+        transport=httpx.MockTransport(handle_request), **kwargs
+    ))
+    monkeypatch.setattr(nanobanana_grid, "upload_image_bytes", lambda *_args, **_kwargs:
+                        "https://relay.test/ref.png")
+    references = [b"png-bytes", (b"jpeg-bytes", "image/jpeg"),
+                  ("custom.webp", b"webp-bytes", "image/webp")][:reference_count]
+    image_bytes, _text, error = run_async(nanobanana_grid._call_newapi_image_api(
+        api_key="test-token", model="LingShan-G2", prompt="render this sketch",
+        reference_images=references,
+        image_config={"aspect_ratio": "16:9", "image_size": "1K"},
+        base_url="http://newapi.test/v1",
+    ))
+    assert error == ""
+    assert image_bytes == b"edited-image"
+    assert len(requests) == 2
+    usage_meter.reserve_current_model_call_credit.assert_awaited_once()
+    usage_meter.bump_model_call.assert_awaited_once()
+    usage_meter.refund_model_call_credit_reservation.assert_not_awaited()
+    retry = requests[1]
+    assert retry.url == requests[0].url
+    assert retry.headers["authorization"] == "Bearer test-token"
+    message = BytesParser(policy=default).parsebytes(
+        f"Content-Type: {retry.headers['content-type']}\r\n\r\n".encode() + retry.content
+    )
+    parts = list(message.iter_parts())
+    fields = {part.get_param("name", header="content-disposition"):
+              part.get_payload(decode=True).decode() for part in parts if not part.get_filename()}
+    assert fields["model"] == "LingShan-G2"
+    assert fields["prompt"] == "render this sketch"
+    assert fields["size"] == f"{fields['width']}x{fields['height']}"
+    assert json.loads(fields["metadata"]) == {"ratio": "16:9", "resolution": "1k"}
+    assert fields["n"] == "1"
+    assert fields["watermark"] == "false"
+    file_parts = [part for part in parts if part.get_filename()]
+    assert [part.get_payload(decode=True) for part in file_parts] == [
+        b"png-bytes", b"jpeg-bytes", b"webp-bytes"
+    ][:reference_count]
+    assert [part.get_content_type() for part in file_parts] == [
+        "image/png", "image/jpeg", "image/webp"
+    ][:reference_count]
+    assert [part.get_filename() for part in file_parts] == [
+        "reference_1.png", "reference_2.jpg", "custom.webp"
+    ][:reference_count]
+    assert all(part.get_param("name", header="content-disposition") ==
+               ("image" if reference_count == 1 else "image[]") for part in file_parts)
+
+
+@pytest.mark.parametrize("status,message", [
+    (422, "model does not support reference images"),
+    (500, "JSON prompt/image editing requires providerCode OpenImgVideo"),
+])
+def test_newapi_image_edit_does_not_resubmit_other_failures(monkeypatch, status, message):
+    import httpx
+    from novelvideo.generators import nanobanana_grid
+
+    requests = []
+    real_client = httpx.AsyncClient
+
+    def handle_request(request):
+        requests.append(request)
+        return httpx.Response(status, json={"error": {"message": message}})
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: real_client(
+        transport=httpx.MockTransport(handle_request), **kwargs
+    ))
+    monkeypatch.setattr(nanobanana_grid, "upload_image_bytes", lambda *_args, **_kwargs:
+                        "https://relay.test/ref.png")
+    image_bytes, _text, error = run_async(nanobanana_grid._call_newapi_image_api(
+        api_key="test-token", model="LingShan-G2", prompt="render this sketch",
+        reference_images=[b"ref"], base_url="http://newapi.test/v1",
+    ))
+    assert image_bytes is None
+    assert f"HTTP {status}" in error
+    assert len(requests) == 1
+
+
 def test_newapi_image_edit_rejects_unknown_reference_format_before_upload(monkeypatch):
     from novelvideo.generators import nanobanana_grid
 

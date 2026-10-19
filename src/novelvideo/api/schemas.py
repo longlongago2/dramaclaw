@@ -198,6 +198,7 @@ class BeatUpdate(BaseModel):
     video_prompt: Optional[str] = None
     keyframe_prompt: Optional[str] = None
     video_mode: Optional[str] = None  # "first_frame" | "keyframe"
+    duration_seconds: Optional[float] = Field(default=None, gt=0, le=300, allow_inf_nan=False)
     seedance2_config_json: Optional[str] = None
     audio_type: Optional[str] = None  # "silence" | "narration" | "dialogue"
     speaker: Optional[str] = None  # 说话人身份ID（dialogue 时必填）
@@ -213,6 +214,7 @@ class Seedance2PromptGenerateRequest(BaseModel):
 
 class BeatVideoPromptGenerateRequest(BaseModel):
     language: str = "zh"
+    video_backend: Optional[str] = None
 
 
 class Seedance2AssetDeleteRequest(BaseModel):

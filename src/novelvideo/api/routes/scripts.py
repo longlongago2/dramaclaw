@@ -4,6 +4,7 @@
 """
 
 import logging
+import math
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ from novelvideo.api.schemas import (
     ScriptSaveRequest,
 )
 from novelvideo.models import sync_beat_asset_refs
+from novelvideo.agents.video_prompt_plan import VideoPromptPlan
 from novelvideo.ports import get_task_backend, get_usage_meter
 from novelvideo.task_identity import project_task_state_key
 from novelvideo.utils.source_language import detect_episode_asset_language
@@ -127,7 +129,8 @@ async def _generate_single_beat_video_prompt(
     prev_beat: dict[str, Any] | None = None,
     next_beat: dict[str, Any] | None = None,
     language: str = "en",
-) -> str:
+    duration_context: str = "",
+) -> dict[str, Any]:
     """为 1.x 首帧视频模式生成单 Beat SuperPower 运动提示词。"""
     from novelvideo.agents.global_video_optimizer import (
         _build_color_appearance_map,
@@ -168,8 +171,9 @@ async def _generate_single_beat_video_prompt(
         next_beat=next_beat,
         prev_prompt=None,
         total_beats=len(beats),
+        duration_context=duration_context,
     )
-    return str(result.get("prompt") or "").strip()
+    return result
 
 
 async def _generate_single_beat_keyframe_prompt(
@@ -179,7 +183,8 @@ async def _generate_single_beat_keyframe_prompt(
     beat: dict[str, Any],
     next_beat: dict[str, Any],
     language: str = "en",
-) -> str:
+    duration_context: str = "",
+) -> VideoPromptPlan | str:
     """为 1.x 首尾帧模式生成单 Beat 过渡提示词。"""
     from novelvideo.agents.keyframe_prompt_builder import get_keyframe_prompt_builder
     from novelvideo.models import format_beat_narration
@@ -218,6 +223,7 @@ async def _generate_single_beat_keyframe_prompt(
         audio_type=audio_type,
         dialogue_line=narration if audio_type == "dialogue" else "",
         allow_fallback=False,
+        duration_context=duration_context,
     )
 
 
@@ -255,6 +261,7 @@ async def _generate_and_save_beat_video_prompt(
     episode_num: int,
     beat_num: int,
     language: str,
+    video_backend: str | None = None,
 ) -> dict[str, Any]:
     script_data = await store.get_script_as_dict(episode_num)
     if not script_data:
@@ -271,16 +278,51 @@ async def _generate_and_save_beat_video_prompt(
         None,
     )
 
+    from novelvideo.config import VIDEO_BACKEND
+    from novelvideo.video_catalog import configured_video_catalog
+    from novelvideo.video_duration import (
+        normalize_video_duration_for_backend,
+        video_duration_bounds_for_backend,
+    )
+
+    backend = video_backend or VIDEO_BACKEND
+    catalog_model = configured_video_catalog().get(backend) or {}
+    min_duration, max_duration = video_duration_bounds_for_backend(backend)
+    min_duration = catalog_model.get("minDuration") or min_duration or 1
+    max_duration = catalog_model.get("maxDuration") or max_duration or 15
+    audio_duration = await _audio_duration_seconds(output_dir, episode_num, beat_num)
+    audio_floor = math.ceil(audio_duration) if audio_duration else 0
+    if audio_floor > max_duration:
+        raise ValueError(
+            f"Beat {beat_num} 音频时长超过模型支持的 {max_duration} 秒，请拆分镜头或选择更长时长的模型"
+        )
+    duration_context = (
+        "## Shot timing\n"
+        f"Audio type: {target.get('audio_type') or 'narration'}.\n"
+        f"Choose an integer duration_seconds between {max(min_duration, audio_floor)} "
+        f"and {max_duration} seconds for this shot.\n"
+        "Base timing on the visible action, camera travel, dialogue/narration length, "
+        "and continuity. Aim for natural pacing, usually 4–10 seconds for a single beat; "
+        "do not pick the model minimum or maximum by default. "
+        "When audio is absent, estimate speech at a natural rate for narration/dialogue; "
+        "for silence, budget only visual action. "
+        "Write a prompt whose action fits the chosen duration. "
+        "Return prompt and duration_seconds together using the supplied structured schema."
+    )
+    if audio_duration:
+        duration_context += f"\nMeasured audio duration: {audio_duration:.2f} seconds."
+
     if field == "keyframe_prompt":
-        prompt = await _generate_single_beat_keyframe_prompt(
+        result = await _generate_single_beat_keyframe_prompt(
             output_dir=output_dir,
             episode=episode_num,
             beat=target,
             next_beat=next_beat,
             language=language,
+            duration_context=duration_context,
         )
     else:
-        prompt = await _generate_single_beat_video_prompt(
+        result = await _generate_single_beat_video_prompt(
             store=store,
             output_dir=output_dir,
             project_name=project_name,
@@ -290,14 +332,21 @@ async def _generate_and_save_beat_video_prompt(
             prev_beat=prev_beat,
             next_beat=next_beat,
             language=language,
+            duration_context=duration_context,
         )
 
-    target[field] = prompt
+    plan = result if isinstance(result, VideoPromptPlan) else VideoPromptPlan.model_validate(result)
+    prompt = plan.prompt
+    duration = normalize_video_duration_for_backend(
+        backend, max(plan.duration_seconds, audio_floor), min_duration, max_duration,
+    )
+    updates = {field: prompt, "duration_seconds": duration}
+    target.update(updates)
     sync_beat_asset_refs(target)
     saved = await store.update_beat_asset(
         episode_number=episode_num,
         beat_number=beat_num,
-        **{field: prompt},
+        **updates,
     )
     if not saved:
         raise RuntimeError(f"Beat {beat_num} was not updated")
@@ -306,6 +355,7 @@ async def _generate_and_save_beat_video_prompt(
         "beat": target,
         "field": field,
         "prompt": prompt,
+        "duration_seconds": duration,
     }
 
 
@@ -440,6 +490,7 @@ async def update_beat(
                     "scene_ref",
                     "time_of_day",
                     "video_mode",
+                    "duration_seconds",
                     "video_prompt",
                     "keyframe_prompt",
                     "seedance2_config_json",
@@ -520,6 +571,7 @@ async def generate_beat_video_prompt(
                 "beat_num": beat_num,
                 "field": field,
                 "language": language,
+                "video_backend": body.video_backend,
                 "output_dir": str(resolved.output_dir),
                 "display_name": f"生成提示词 · EP{episode_num} / Beat {beat_num}",
             },
@@ -547,6 +599,7 @@ async def generate_beat_video_prompt(
             episode_num=episode_num,
             beat_num=beat_num,
             language=language,
+            video_backend=body.video_backend,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

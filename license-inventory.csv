@@ -2028,6 +2028,7 @@ src/novelvideo/agents/global_video_optimizer.py,Elastic-2.0,2026 SuperTale contr
 src/novelvideo/agents/identity_planner.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/agents/keyframe_prompt_builder.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/agents/video_prompt_builder.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
+src/novelvideo/agents/video_prompt_plan.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/api/__init__.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/api/app.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation
 src/novelvideo/api/asset_metadata.py,Elastic-2.0,2026 SuperTale contributors,REUSE.toml aggregate annotation

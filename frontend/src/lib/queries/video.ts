@@ -337,6 +337,7 @@ export interface BeatVideoPromptResult {
   beat: Beat;
   field: "video_prompt" | "keyframe_prompt";
   prompt: string;
+  duration_seconds?: number;
 }
 
 export interface GlobalOptimizeBillingQuote {
@@ -681,12 +682,12 @@ export function useGenerateSeedance2Prompt(project: string, episode: number) {
 export function useGenerateBeatVideoPrompt(project: string, episode: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ beatNum }: { beatNum: number }) =>
+    mutationFn: ({ beatNum, videoBackend }: { beatNum: number; videoBackend?: string }) =>
       jsonWithBackendError<OkResponse<BeatVideoPromptResult> | TaskResponse | ErrorResponse>(
         api.post(
           p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNum}/video-prompt/generate`,
           {
-            json: {},
+            json: { ...(videoBackend ? { video_backend: videoBackend } : {}) },
             throwHttpErrors: false,
           },
         ),

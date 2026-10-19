@@ -15,6 +15,7 @@ from pydantic_ai.output import NativeOutput
 from PIL import Image as PILImage
 
 from novelvideo.brainclaw_contract import BrainClawProfile
+from novelvideo.agents.video_prompt_plan import VideoPromptPlan
 from novelvideo.utils.source_language import asset_language_instruction
 from novelvideo.utils.character_gender import normalize_character_gender
 
@@ -71,13 +72,13 @@ You are a cinematic motion director. Given sketch panels and character color map
 - ⚠️ **Audio layer** (superset strategy — works on models with audio, ignored by silent models): add ONE short ambient sound sentence (e.g. "rain patters on the window"). For dialogue beats, also specify voice style (e.g. "calm", "urgent", "whisper").
 - ⚠️ **Detail matches shot scale**: close-up → micro details (pores, thread count, iris dilation); wide shot → broad motion arcs and spatial relationships. Do not describe micro details in a wide shot or vice versa.
 - Include: camera movement + character action + audio layer
-- ⚠️ **Sustained motion**: the video clip is ~5 seconds long. A single quick action (one lunge, one turn) will finish too early and cause the model to reverse the motion. Always describe a **chain of 2–3 connected actions** that unfold continuously across the full duration (e.g. "he lunges forward, wraps his arms around her, then slowly sinks to his knees"). Layer simultaneous details (camera drift, fabric swaying, breathing) to keep motion flowing. BANNED as primary action: freezes, stares, stands, waits, remains, holds still — these produce static video.
+- ⚠️ **Sustained motion**: pace the action across the requested clip duration (default ~5 seconds when timing is not requested). A single quick action (one lunge, one turn) will finish too early and cause the model to reverse the motion. Describe connected actions that unfold continuously across the full duration. Layer simultaneous details (camera drift, fabric swaying, breathing) to keep motion flowing. BANNED as primary action: freezes, stares, stands, waits, remains, holds still — these produce static video.
 - ⚠️ **UNIDIRECTIONAL motion only**: every action must move in ONE direction — forward, never back. BANNED reversal patterns: walk forward then step back, lean in then pull away, reach out then withdraw, turn left then right. If the primary action is short (a single punch, a single turn), extend it with follow-through motion in the SAME direction (e.g. "punches forward, momentum carries torso into a stumble, he catches himself on the railing").
 - Always use `first_frame` mode: describe motion and camera changes starting FROM this frame going forward
 - ⚠️ **Dialogue beats**: if a Beat is marked as dialogue, describe the speaking action (lips moving, gestures while talking). The dialogue text will be appended by the system — only describe the physical action in the prompt.
 
 ## Output Format
-Output the motion prompt directly in the requested language. No JSON, explanation, or markdown.
+When timing is requested, return the motion prompt and recommended duration in the supplied structured schema. Otherwise output the motion prompt directly in the requested language, without explanation or markdown.
 """
 
 
@@ -257,6 +258,7 @@ class GlobalVideoPromptOptimizer:
         next_beat: dict | None = None,
         prev_prompt: str | None = None,
         total_beats: int = 0,
+        duration_context: str = "",
     ) -> dict:
         """为单个 beat 生成导演级视频提示词。
 
@@ -346,6 +348,11 @@ class GlobalVideoPromptOptimizer:
 
         language_instruction = asset_language_instruction(language)
         output_label = "English" if language == "en" else "Chinese"
+        output_instruction = (
+            "Return the motion prompt and duration_seconds in the supplied structured schema."
+            if duration_context else
+            f"Output the {output_label} motion prompt directly. No JSON, explanation, or markdown."
+        )
         task = f"""Generate a first-frame motion prompt for Beat {bn}. You see the sketch frame for this beat.
 {position_hint}
 ## Character Color Mapping
@@ -364,7 +371,7 @@ class GlobalVideoPromptOptimizer:
 ## Output Language
 {language_instruction}
 
-Output the {output_label} motion prompt directly. No JSON, explanation, or markdown."""
+{output_instruction}"""
 
         # Load and compress the sketch image
         if not os.path.exists(sketch_image_path):
@@ -379,12 +386,17 @@ Output the {output_label} motion prompt directly. No JSON, explanation, or markd
         print(f"\n[GlobalVideoOptimizer] Beat {bn}: sending sketch frame + context")
         print(f"[GlobalVideoOptimizer] Beat {bn}: task length={len(task)} chars")
 
-        response = await agent.run(user_prompt)
+        if duration_context:
+            user_prompt[0] = task + "\n\n" + duration_context
+            response = await agent.run(user_prompt, output_type=NativeOutput(VideoPromptPlan))
+        else:
+            response = await agent.run(user_prompt)
 
         if not response.output:
             raise RuntimeError(f"Beat {bn}: AI 返回空内容")
 
-        prompt = response.output.strip()
+        plan = response.output if isinstance(response.output, VideoPromptPlan) else None
+        prompt = plan.prompt if plan else response.output.strip()
         if not prompt:
             raise RuntimeError(f"Beat {bn}: AI 返回空内容")
 
@@ -393,6 +405,8 @@ Output the {output_label} motion prompt directly. No JSON, explanation, or markd
             "video_mode": "first_frame",
             "prompt": prompt,
         }
+        if plan is not None:
+            result["duration_seconds"] = plan.duration_seconds
 
         # Append dialogue line if applicable
         if audio_type == "dialogue":

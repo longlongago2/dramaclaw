@@ -82,6 +82,7 @@ export interface Beat {
   video_mode?: string; // "first_frame" | "keyframe"
   seedance2_config_json?: string;
   estimated_duration?: number;
+  duration_seconds?: number | null;
   /** Identity IDs detected on the sketch for this beat (color-bound). */
   detected_identities?: string[];
   /** Prop IDs detected on the sketch for this beat (color-bound). */

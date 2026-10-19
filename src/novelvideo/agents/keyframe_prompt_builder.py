@@ -9,16 +9,18 @@ import os
 from typing import Optional
 
 from pydantic_ai import Agent, BinaryContent
+from pydantic_ai.output import NativeOutput
 from PIL import Image as PILImage
 
 from novelvideo.brainclaw_contract import BrainClawProfile
+from novelvideo.agents.video_prompt_plan import VideoPromptPlan
 from novelvideo.utils.logging import log_agent_start, log_agent_end
 from novelvideo.utils.source_language import asset_language_instruction
 
 # 首尾帧过渡提示词生成器指令（英文版 SuperPower）
 KEYFRAME_PROMPT_BUILDER_INSTRUCTIONS_EN = """# Cinematic Transition Director (SuperPower)
 
-You craft 5-second transitions between two keyframes. The AI video model interpolates between them; your prompt guides the cinematic journey.
+You craft transitions between two keyframes, choosing timing when requested (otherwise default to 5 seconds). The AI video model interpolates between them; your prompt guides the cinematic journey.
 
 ## Input
 - Image 1: first frame (starting point)
@@ -57,11 +59,11 @@ You craft 5-second transitions between two keyframes. The AI video model interpo
 - Wide shot → broad motion arcs and spatial relationships
 
 ## Sustained Motion
-The clip is ~5 seconds. Describe a **chain of 2–3 connected actions** that bridge first frame to last frame continuously.
+Describe connected actions that bridge first frame to last frame continuously across the selected duration.
 ⚠️ **UNIDIRECTIONAL motion only**: every action must move in ONE direction — forward, never back. If the primary action is short, extend it with follow-through motion in the SAME direction.
 
 ## Output
-Output ONLY the transition prompt in the requested language.
+When timing is requested, return the transition prompt and recommended duration in the supplied structured schema. Otherwise output only the transition prompt in the requested language.
 """
 
 
@@ -156,7 +158,9 @@ class KeyframePromptBuilder:
         next_visual_description: str = "",
         audio_type: str = "narration",
         dialogue_line: str = "",
-    ) -> str:
+        duration_context: str = "",
+        allow_fallback: bool = True,
+    ) -> str | VideoPromptPlan:
         """生成首尾帧过渡提示词。
 
         Args:
@@ -198,6 +202,11 @@ class KeyframePromptBuilder:
             output_label = "Chinese (中文)"
             length_target = "4-6 句, ~50-90 字"
         language_instruction = asset_language_instruction(language)
+        output_instruction = (
+            "Return the transition prompt and duration_seconds in the supplied structured schema."
+            if duration_context else
+            f"Output the transition prompt in {output_label} directly."
+        )
 
         if color_map_text:
             # English + color map mode (SuperPower)
@@ -231,7 +240,7 @@ class KeyframePromptBuilder:
 ## Output Language
 {language_instruction}
 
-Output the transition prompt in {output_label} directly."""
+{output_instruction}"""
         else:
             task = f"""Craft an imaginative 5-second transition between these two frames in {output_label} ({length_target}).
 
@@ -256,9 +265,12 @@ Output the transition prompt in {output_label} directly."""
 ## Output Language
 {language_instruction}
 
-Output the transition prompt in {output_label} directly."""
+{output_instruction}"""
 
         lang_hint = output_label
+        if duration_context:
+            task = task.replace("5-second", "naturally paced")
+            task += "\n\n" + duration_context
         log_agent_start("首尾帧过渡提示词生成师", f"生成过渡描述 ({lang_hint})")
 
         # 存储上下文供调试
@@ -266,10 +278,17 @@ Output the transition prompt in {output_label} directly."""
 
         try:
             agent = self._get_agent(language)
-            response = await agent.run([task, first_frame_image, last_frame_image])
+            if duration_context:
+                response = await agent.run(
+                    [task, first_frame_image, last_frame_image],
+                    output_type=NativeOutput(VideoPromptPlan),
+                )
+            else:
+                response = await agent.run([task, first_frame_image, last_frame_image])
 
             # 提取过渡描述
-            result = (
+            plan = response.output if isinstance(response.output, VideoPromptPlan) else None
+            result = plan.prompt if plan else (
                 response.output.strip() if response.output else str(response).strip()
             )
 
@@ -294,10 +313,14 @@ Output the transition prompt in {output_label} directly."""
                     result = f'{result} Says: "{dialogue_line}"'
                 else:
                     result = f"{result}，说：{dialogue_line}"
+            if plan is not None:
+                return plan.model_copy(update={"prompt": result})
             return result
 
         except Exception as e:
             log_agent_end("首尾帧过渡提示词生成师", success=False, result=str(e))
+            if not allow_fallback:
+                raise
             # 失败时回退到默认提示词
             return self._fallback_build(language)
 

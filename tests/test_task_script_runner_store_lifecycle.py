@@ -67,7 +67,8 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
         return store
 
     async def fake_generate_and_save_beat_video_prompt(**kwargs):
-        return {"field": "video_prompt", "prompt": "camera move"}
+        assert kwargs["video_backend"] == "newapi_minimax-h3-i2v"
+        return {"field": "video_prompt", "prompt": "camera move", "duration_seconds": 8}
 
     monkeypatch.setattr(runner, "get_task_manager", lambda: _Manager())
     monkeypatch.setattr(deps, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context)
@@ -78,11 +79,14 @@ async def test_beat_video_prompt_runner_closes_sqlite_store(monkeypatch, tmp_pat
     )
 
     result = await runner._run_beat_video_prompt(
-        {"episode": 1, "beat_num": 2, "payload": {"output_dir": str(tmp_path)}},
+        {"episode": 1, "beat_num": 2, "payload": {
+            "output_dir": str(tmp_path), "video_backend": "newapi_minimax-h3-i2v",
+        }},
         _ctx(tmp_path),
     )
 
     assert result["prompt"] == "camera move"
+    assert result["duration_seconds"] == 8
     assert store.closed is True
 
 

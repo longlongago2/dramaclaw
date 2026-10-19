@@ -79,6 +79,7 @@ async def _run_beat_video_prompt(
             episode_num=episode,
             beat_num=beat_num,
             language=language,
+            video_backend=payload.get("video_backend"),
         )
         update_progress(
             0.95,
@@ -93,6 +94,7 @@ async def _run_beat_video_prompt(
             "beat_num": beat_num,
             "field": data["field"],
             "prompt": data["prompt"],
+            "duration_seconds": data["duration_seconds"],
         }
     finally:
         await store.close()

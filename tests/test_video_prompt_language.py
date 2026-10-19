@@ -17,6 +17,44 @@ class _TextAgent:
         return SimpleNamespace(output=self._output)
 
 
+@pytest.mark.parametrize("mode", ["first_frame", "keyframe"])
+def test_video_directors_return_prompt_and_timing_in_one_ai_call(monkeypatch, tmp_path, mode):
+    from novelvideo.agents.global_video_optimizer import GlobalVideoPromptOptimizer
+    from novelvideo.agents.keyframe_prompt_builder import KeyframePromptBuilder
+    from novelvideo.agents.video_prompt_plan import VideoPromptPlan
+
+    calls = []
+
+    class PlanAgent:
+        async def run(self, prompt, **kwargs):
+            calls.append((prompt, kwargs))
+            return SimpleNamespace(output=VideoPromptPlan(prompt="Camera follows the figure.", duration_seconds=8))
+
+    image_path = tmp_path / "frame.png"
+    image_path.write_bytes(b"image")
+    director = GlobalVideoPromptOptimizer() if mode == "first_frame" else KeyframePromptBuilder()
+    monkeypatch.setattr(director, "_get_agent", lambda _language: PlanAgent())
+    monkeypatch.setattr(director, "_compress_image", lambda _path: b"compressed")
+    if mode == "first_frame":
+        result = asyncio.run(director.optimize_single_beat(
+            beat={"beat_number": 1, "audio_type": "dialogue", "narration_segment": "Come here."},
+            sketch_image_path=str(image_path), character_color_map={},
+            language="en", duration_context="Choose timing between 4 and 12 seconds.",
+        ))
+    else:
+        result = asyncio.run(director.build(
+            first_frame_path=str(image_path), last_frame_path=str(image_path), narration="Come here.",
+            audio_type="dialogue", dialogue_line="Come here.", language="en",
+            duration_context="Choose timing between 4 and 12 seconds.", allow_fallback=False,
+        )).model_dump()
+    assert len(calls) == 1
+    assert "output_type" in calls[0][1]
+    assert "Choose timing between 4 and 12 seconds." in calls[0][0][0]
+    assert result["duration_seconds"] == 8
+    assert "Camera follows" in result["prompt"]
+    assert "Come here." in result["prompt"]
+
+
 @pytest.mark.parametrize(
     ("language", "required", "forbidden"),
     [

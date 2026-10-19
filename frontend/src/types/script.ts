@@ -19,6 +19,7 @@ export interface BeatUpdate {
   video_prompt?: string;
   keyframe_prompt?: string;
   video_mode?: string;
+  duration_seconds?: number;
   seedance2_config_json?: string;
   audio_type?: string;
   speaker?: string;

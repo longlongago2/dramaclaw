@@ -186,13 +186,13 @@ describe("1.x beat video prompt generation query", () => {
     const { result } = renderHook(() => useGenerateBeatVideoPrompt("demo", 1), {
       wrapper,
     });
-    result.current.mutate({ beatNum: 2 });
+    result.current.mutate({ beatNum: 2, videoBackend: "newapi_minimax-h3-i2v" });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe(
       "/api/v1/projects/demo/episodes/1/beats/2/video-prompt/generate",
     );
-    expect(body).toEqual({});
+    expect(body).toEqual({ video_backend: "newapi_minimax-h3-i2v" });
     expect(result.current.data?.ok).toBe(true);
   });
 

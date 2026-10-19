@@ -3846,6 +3846,49 @@ async def _call_newapi_image_api(
                 headers=headers,
                 json=payload,
             )
+            # MrToken rejects prompt-based JSON edits for providers outside
+            # OpenImgVideo before generation. Its OpenAI file-edit endpoint
+            # accepts multipart instead. Retry only this definite rejection;
+            # timeouts and ambiguous failures must not submit another image.
+            if (
+                reference_images
+                and getattr(response, "status_code", None) in {400, 422}
+                and "JSON prompt/image editing requires providerCode OpenImgVideo"
+                in response.text
+            ):
+                form_payload = {
+                    key: value for key, value in payload.items()
+                    if key not in {"image", "images"}
+                }
+                if payload.get("width") and payload.get("height"):
+                    form_payload["size"] = f"{payload['width']}x{payload['height']}"
+                form_data = {
+                    key: value if isinstance(value, str) else json.dumps(value)
+                    for key, value in form_payload.items()
+                }
+                files = []
+                for idx, image_ref in enumerate(reference_images):
+                    filename = f"reference_{idx + 1}.png"
+                    mime_type = "image/png"
+                    if isinstance(image_ref, tuple):
+                        if len(image_ref) == 3:
+                            filename, _data, mime_type = image_ref
+                        elif len(image_ref) == 2:
+                            mime_type = image_ref[1]
+                            ext = "jpg" if mime_type == "image/jpeg" else "png"
+                            filename = f"reference_{idx + 1}.{ext}"
+                    files.append((
+                        "image" if len(reference_images) == 1 else "image[]",
+                        (filename, _reference_image_bytes(image_ref), mime_type),
+                    ))
+                logger.info("DramaClawAPI image edit: retrying rejected JSON as multipart")
+                await update_current_model_call_log(request_payload=form_payload)
+                response = await client.post(
+                    f"{endpoint}{request_path}",
+                    headers={key: value for key, value in headers.items() if key != "Content-Type"},
+                    data=form_data,
+                    files=files,
+                )
             logger.info(
                 "DramaClawAPI image POST response: status=%s bytes=%s",
                 getattr(response, "status_code", "?"),

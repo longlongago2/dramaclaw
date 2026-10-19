@@ -843,10 +843,57 @@ describe("VideoPane Seedance2 inspector", () => {
     expect(promptButton).toHaveTextContent("5");
     await user.click(promptButton);
 
-    expect(generateBeatVideoPromptMock).toHaveBeenCalledWith({ beatNum: 1 });
+    expect(generateBeatVideoPromptMock).toHaveBeenCalledWith({ beatNum: 1, videoBackend: "newapi_seedance-1.0-pro-fast" });
     expect(screen.getByLabelText("视频提示词")).toHaveValue(
       "generated 1.x motion prompt",
     );
+  });
+
+  it("fills the AI duration and uses it when generating video", async () => {
+    const user = userEvent.setup();
+    generateBeatVideoPromptMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        prompt: "camera pushes forward", duration_seconds: 8,
+        beat: makeBeat({ video_prompt: "camera pushes forward", duration_seconds: 8 }),
+      },
+    });
+    renderPane(makeBeat({ video_prompt: "boat drifts", audio_duration_seconds: null }), {
+      defaultBackend: "newapi_minimax-h3-i2v",
+    });
+    await user.click(screen.getByRole("button", { name: "生成本 Beat 提示词" }));
+    expect(generateBeatVideoPromptMock).toHaveBeenCalledWith({
+      beatNum: 1, videoBackend: "newapi_minimax-h3-i2v",
+    });
+    expect(screen.getByRole("spinbutton", { name: "时长" })).toHaveValue(8);
+    fireEvent.click(screen.getByRole("button", { name: "重新生成" }));
+    fireEvent.click(screen.getByRole("button", { name: /确认/ }));
+    await waitFor(() => expect(regenerateMock).toHaveBeenCalledWith(expect.objectContaining({ duration: 8 })));
+  });
+
+  it("restores persisted timing and saves a manual duration override", async () => {
+    renderPane(makeBeat({ duration_seconds: 8, audio_duration_seconds: 6.2 }), {
+      defaultBackend: "newapi_minimax-h3-i2v",
+    });
+    const duration = screen.getByRole("spinbutton", { name: "时长" });
+    expect(duration).toHaveValue(8);
+    fireEvent.change(duration, { target: { value: "10" } });
+    fireEvent.blur(duration);
+    expect(updateBeatMock).toHaveBeenCalledWith({ beatNum: 1, data: { duration_seconds: 10 } });
+  });
+
+  it("fills timing after the background prompt task refreshes the beat", async () => {
+    const user = userEvent.setup();
+    generateBeatVideoPromptMock.mockResolvedValueOnce({ ok: true, task_type: "beat_video_prompt", task_id: "prompt-1" });
+    const view = renderPane(makeBeat({ duration_seconds: null }), { defaultBackend: "newapi_minimax-h3-i2v" });
+    await user.click(screen.getByRole("button", { name: "生成本 Beat 提示词" }));
+    view.rerender(
+      <I18nextProvider i18n={i18n}>
+        <VideoPane beat={makeBeat({ duration_seconds: 9 })} project="demo" episode={1}
+          state="ready" defaultBackend="newapi_minimax-h3-i2v" />
+      </I18nextProvider>,
+    );
+    expect(screen.getByRole("spinbutton", { name: "时长" })).toHaveValue(9);
   });
 
   it("treats async 1.x beat video prompt task startup as success", async () => {
@@ -865,7 +912,7 @@ describe("VideoPane Seedance2 inspector", () => {
 
     await user.click(screen.getByRole("button", { name: "生成本 Beat 提示词" }));
 
-    expect(generateBeatVideoPromptMock).toHaveBeenCalledWith({ beatNum: 1 });
+    expect(generateBeatVideoPromptMock).toHaveBeenCalledWith({ beatNum: 1, videoBackend: "newapi_seedance-1.0-pro-fast" });
     expect(screen.getByLabelText("视频提示词")).toHaveValue("");
     expect(toast.success).toHaveBeenCalledWith(
       "本 Beat 视频提示词生成已启动",

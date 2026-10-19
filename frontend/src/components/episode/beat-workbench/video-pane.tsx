@@ -438,8 +438,13 @@ export function VideoPane({
   );
   const [sd15Resolution, setSd15Resolution] =
     useState<Seedance2Resolution>("720p");
-  const [sd15Duration, setSd15Duration] = useState<number>(
-    seedance2DurationBounds.min,
+  const durationDraftKey = `${beat.beat_number}:${defaultBackend}:${beat.duration_seconds ?? ""}`;
+  const [durationDraft, setDurationDraft] = useState<{ key: string; value: number } | null>(null);
+  const sd15Duration = clampDuration(
+    durationDraft?.key === durationDraftKey
+      ? durationDraft.value
+      : (beat.duration_seconds ?? audioFloorSeconds ?? sd15DurationBounds.min),
+    sd15DurationBounds,
   );
   useEffect(() => {
     if (!showBasicVideoConfig) return;
@@ -451,17 +456,9 @@ export function VideoPane({
         ? prev
         : normalizeSeedance2Resolution(fallbackRes),
     );
-    // 默认时长 = 音频下限（视频须 >= 音频）；用户可在控件里上调。
-    setSd15Duration(
-      clampDuration(audioFloorSeconds ?? sd15DurationBounds.min, sd15DurationBounds),
-    );
   }, [
     showBasicVideoConfig,
-    beat.beat_number,
-    audioFloorSeconds,
     seedance2ResolutionOptions,
-    sd15DurationBounds.min,
-    sd15DurationBounds.max,
   ]);
   useEffect(() => {
     setLegacyVideoPrompt(
@@ -1384,6 +1381,7 @@ export function VideoPane({
     try {
       const res = await generateBeatVideoPrompt.mutateAsync({
         beatNum: beat.beat_number,
+        videoBackend: defaultBackend,
       });
       if (!res.ok) {
         toast.error(
@@ -1397,6 +1395,12 @@ export function VideoPane({
         return;
       }
       setLegacyVideoPrompt(res.data.prompt);
+      if (res.data.duration_seconds !== undefined) {
+        setDurationDraft({
+          key: durationDraftKey,
+          value: res.data.duration_seconds,
+        });
+      }
       toast.success(t("episode.workbench.video.beatVideoPromptGenerated"));
     } catch (error) {
       toast.error(backendErrorToastMessage(error, t));
@@ -1705,10 +1709,18 @@ export function VideoPane({
                   max={sd15DurationBounds.max}
                   value={sd15Duration}
                   onChange={(e) =>
-                    setSd15Duration(
-                      clampDuration(e.target.value, sd15DurationBounds),
-                    )
+                    setDurationDraft({
+                      key: durationDraftKey,
+                      value: clampDuration(e.target.value, sd15DurationBounds),
+                    })
                   }
+                  onBlur={() => {
+                    if (sd15Duration === beat.duration_seconds) return;
+                    void updateBeat.mutateAsync({
+                      beatNum: beat.beat_number,
+                      data: { duration_seconds: sd15Duration },
+                    }).catch(() => toast.error(t("episode.workbench.video.regenFailed")));
+                  }}
                   className={cn("w-20", VIDEO_PARAM_CONTROL_CLASS)}
                 />
               </VideoParamField>

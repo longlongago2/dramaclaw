@@ -419,7 +419,7 @@ def test_generate_beat_video_prompt_updates_first_frame_video_prompt(
 
     async def _generate_single_beat_video_prompt(**kwargs):
         seen.update(kwargs)
-        return "generated first frame motion prompt"
+        return {"prompt": "generated first frame motion prompt", "duration_seconds": 8}
 
     monkeypatch.setattr(
         scripts,
@@ -461,7 +461,7 @@ def test_generate_beat_video_prompt_updates_first_frame_video_prompt(
         {
             "episode": 1,
             "beat": 1,
-            "updates": {"video_prompt": "generated first frame motion prompt"},
+            "updates": {"video_prompt": "generated first frame motion prompt", "duration_seconds": 8},
         }
     ]
 
@@ -549,6 +549,7 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
         "beat_num": 1,
         "field": "video_prompt",
         "language": "en",
+        "video_backend": None,
         "output_dir": str(tmp_path),
         "display_name": "生成提示词 · EP1 / Beat 1",
     }
@@ -716,7 +717,7 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
     class FakeOptimizer:
         async def optimize_single_beat(self, **kwargs):
             optimizer_seen.update(kwargs)
-            return {"beat_number": 1, "video_mode": "first_frame", "prompt": "superpower prompt"}
+            return {"beat_number": 1, "video_mode": "first_frame", "prompt": "superpower prompt", "duration_seconds": 8}
 
     monkeypatch.setattr(
         global_video_optimizer,
@@ -773,9 +774,66 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
         {
             "episode": 1,
             "beat": 1,
-            "updates": {"video_prompt": "superpower prompt"},
+            "updates": {"video_prompt": "superpower prompt", "duration_seconds": 8},
         }
     ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("video_mode", ["first_frame", "keyframe"])
+@pytest.mark.parametrize("suggested,audio,expected", [
+    (1, None, 2), (30, None, 10), (6.2, None, 7), (4, 8.2, 9),
+])
+async def test_beat_video_prompt_saves_timing_with_model_and_audio_bounds(
+    monkeypatch, tmp_path, video_mode, suggested, audio, expected
+):
+    from unittest.mock import AsyncMock
+
+    from novelvideo import video_catalog
+    from novelvideo.api.routes import scripts
+
+    generator = AsyncMock(return_value={"prompt": "camera tracks forward", "duration_seconds": suggested})
+    monkeypatch.setattr(scripts, "_generate_single_beat_video_prompt", generator)
+    monkeypatch.setattr(scripts, "_generate_single_beat_keyframe_prompt", generator)
+    monkeypatch.setattr(scripts, "_audio_duration_seconds", AsyncMock(return_value=audio))
+    monkeypatch.setattr(video_catalog, "configured_video_catalog", lambda: {
+        "custom-video": {"minDuration": 2, "maxDuration": 10},
+    })
+    store = DummySqliteStore([{"beat_number": 1, "video_mode": video_mode}, {"beat_number": 2}])
+    result = await scripts._generate_and_save_beat_video_prompt(
+        store=store, output_dir=tmp_path, episode_num=1, beat_num=1,
+        language="en", video_backend="custom-video",
+    )
+    assert result["duration_seconds"] == expected
+    assert (await store.get_script_as_dict(1))["beats"][0]["duration_seconds"] == expected
+    assert store.updates[0]["updates"] == {
+        result["field"]: "camera tracks forward", "duration_seconds": expected,
+    }
+    generator.assert_awaited_once()
+    assert f"between {max(2, 9 if audio else 0)} and 10" in generator.call_args.kwargs["duration_context"]
+
+
+@pytest.mark.asyncio
+async def test_beat_video_prompt_rejects_audio_longer_than_model_before_ai_call(monkeypatch, tmp_path):
+    from unittest.mock import AsyncMock
+
+    from novelvideo import video_catalog
+    from novelvideo.api.routes import scripts
+
+    generator = AsyncMock()
+    monkeypatch.setattr(scripts, "_generate_single_beat_video_prompt", generator)
+    monkeypatch.setattr(scripts, "_audio_duration_seconds", AsyncMock(return_value=12.1))
+    monkeypatch.setattr(video_catalog, "configured_video_catalog", lambda: {
+        "custom-video": {"minDuration": 2, "maxDuration": 10},
+    })
+    store = DummySqliteStore([{"beat_number": 1, "video_prompt": "old prompt"}])
+    with pytest.raises(ValueError, match="音频时长超过"):
+        await scripts._generate_and_save_beat_video_prompt(
+            store=store, output_dir=tmp_path, episode_num=1, beat_num=1,
+            language="en", video_backend="custom-video",
+        )
+    generator.assert_not_awaited()
+    assert store.updates == []
 
 
 def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_path):
@@ -785,7 +843,7 @@ def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_pat
 
     async def _generate_single_beat_keyframe_prompt(**kwargs):
         seen.update(kwargs)
-        return "generated first last frame prompt"
+        return {"prompt": "generated first last frame prompt", "duration_seconds": 6}
 
     monkeypatch.setattr(
         scripts,
@@ -827,7 +885,7 @@ def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_pat
         {
             "episode": 1,
             "beat": 1,
-            "updates": {"keyframe_prompt": "generated first last frame prompt"},
+            "updates": {"keyframe_prompt": "generated first last frame prompt", "duration_seconds": 6},
         }
     ]
 
