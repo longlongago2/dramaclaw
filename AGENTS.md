@@ -38,9 +38,10 @@ server `.env` image settings, Docker login, pull, startup, and deployment checks
 Use `docker-compose.release.yml` on the target server and keep its default
 runtime parameters unless the user requests a change.
 
-- Already built with `docker compose up -d --build`: run `python scripts/publish_harbor.py --skip-build --tag <tag>` to publish the existing local images.
-- Build and publish: run `python scripts/publish_harbor.py --tag <tag>`.
+- Already built with `docker compose up -d --build`: run `python scripts/publish_harbor.py --skip-build` to publish the existing local images.
+- Build and publish: run `python scripts/publish_harbor.py`.
 - Preview commands without login, build, tagging, or upload: add `--dry-run`.
+- Tags are generated only by the script as `YYYYMMDD-<8-character Git HEAD SHA>` using the build machine local date. Do not invent or pass `--tag`; use the printed version values for deployment.
 - Use `--project <project>` and `--username <account>` when needed. The Harbor project must already exist and the account must have push permission; Docker prompts for credentials.
 
 Prefer this script when explaining or performing Harbor publication. Successful
