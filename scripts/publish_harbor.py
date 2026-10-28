@@ -34,14 +34,17 @@ def project_name(value: str) -> str:
     return value
 
 
-def image_tag(value: str) -> str:
-    """Validate a Docker tag before any login, build or push."""
-    if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}", value):
-        raise argparse.ArgumentTypeError(
-            "tag must be 1-128 letters/digits/underscores/dots/hyphens, "
-            "and cannot start with '.' or '-'"
-        )
-    return value
+def generate_tag() -> str:
+    """Use the local build date and the repository's eight-character HEAD SHA."""
+    commit = subprocess.check_output(
+        ["git", "rev-parse", "--verify", "HEAD"],
+        cwd=REPOSITORY_ROOT,
+        text=True,
+        stderr=subprocess.PIPE,
+    ).strip()
+    if not re.fullmatch(r"[0-9a-f]{40,64}", commit):
+        raise ValueError("Git returned an invalid HEAD commit SHA")
+    return f"{datetime.now():%Y%m%d}-{commit[:8]}"
 
 
 def run_docker(arguments: list[str], *, dry_run: bool) -> None:
@@ -60,9 +63,6 @@ def main(argv: list[str] | None = None) -> int:
         help="existing Harbor project (default: dramaclaw)",
     )
     parser.add_argument(
-        "--tag", type=image_tag, help="image tag (default: local time YYYYMMDD-HHMMSS)"
-    )
-    parser.add_argument(
         "--username", help="Harbor username; Docker prompts for password"
     )
     parser.add_argument(
@@ -76,7 +76,11 @@ def main(argv: list[str] | None = None) -> int:
         help="print commands without login, build, tag or push",
     )
     args = parser.parse_args(argv)
-    tag = args.tag or datetime.now().strftime("%Y%m%d-%H%M%S")
+    try:
+        tag = generate_tag()
+    except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+        print(f"Could not generate image tag from Git HEAD: {exc}", file=sys.stderr)
+        return 1
     prefix = f"{REGISTRY}/{args.project}"
 
     if not args.dry_run and shutil.which("docker") is None:

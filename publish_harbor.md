@@ -3,7 +3,9 @@
 本文分为两部分：先在构建机器上把三个镜像推送到公司 Harbor，再在目标服务器上拉取镜像并启动服务。
 部署沿用 `docker-compose.release.yml` 的默认运行参数，只配置 Harbor 镜像来源与版本。
 
-文中的 `20261012-1` 是示例标签。实际操作时，必须替换为本次发布的标签，前后保持一致。
+标签由脚本自动生成，固定格式为 `YYYYMMDD-8位提交SHA`（构建机器本地日期 + 主项目 Git HEAD），
+例如 `20261019-01f4db4f`。三个镜像共用同一标签，不接受手动 `--tag`。
+文中的标签仅为示例，部署时复制脚本实际输出的版本值。
 
 ## 1. 发布到公司 Harbor Docker 镜像仓库
 
@@ -38,26 +40,23 @@ docker compose version
 
 ### 1.3 推送镜像
 
-先确定本次发布标签，例如：
-
-```powershell
-$tag = "20261012-1"
-```
+直接运行脚本即可生成标签，无需手填日期、分支名或功能名。
+同一天、同一提交重复运行会使用相同标签；Git HEAD 读取失败时停止发布。
 
 **已经执行过 `docker compose up -d --build` 并构建成功**，直接上传已有镜像：
 
 ```powershell
 # 先预览命令，不登录、不构建、不上传
-python scripts/publish_harbor.py --skip-build --tag $tag --dry-run
+python scripts/publish_harbor.py --skip-build --dry-run
 
 # 正式登录、打标签并上传三个镜像
-python scripts/publish_harbor.py --skip-build --tag $tag
+python scripts/publish_harbor.py --skip-build
 ```
 
 按提示输入 Harbor 用户名和密码。也可以显式指定用户名：
 
 ```powershell
-python scripts/publish_harbor.py --skip-build --tag $tag --username your-account
+python scripts/publish_harbor.py --skip-build --username your-account
 ```
 
 **需要重新构建后再上传**，先确保网关源码存在于项目旁边的 `../dramaclaw-gateway`：
@@ -67,7 +66,7 @@ python scripts/publish_harbor.py --skip-build --tag $tag --username your-account
 git clone https://github.com/dramaclaw/dramaclaw-gateway.git ../dramaclaw-gateway
 
 # 构建 API、网关和前端，再上传
-python scripts/publish_harbor.py --tag $tag
+python scripts/publish_harbor.py
 ```
 
 网关源码放在其他位置时，可通过本地 `.env` 的 `DRAMACLAW_GATEWAY_SRC` 指定路径。
@@ -83,16 +82,16 @@ python scripts/publish_harbor.py --tag $tag
 
 | 服务 | Harbor 镜像地址（示例） |
 | --- | --- |
-| API | `harbor.n.nebulaedata.com/dramaclaw/dramaclaw:20261012-1` |
-| 网关 | `harbor.n.nebulaedata.com/dramaclaw/dramaclaw-gateway:20261012-1` |
-| 前端 | `harbor.n.nebulaedata.com/dramaclaw/dramaclaw-frontend:20261012-1` |
+| API | `harbor.n.nebulaedata.com/dramaclaw/dramaclaw:20261019-01f4db4f` |
+| 网关 | `harbor.n.nebulaedata.com/dramaclaw/dramaclaw-gateway:20261019-01f4db4f` |
+| 前端 | `harbor.n.nebulaedata.com/dramaclaw/dramaclaw-frontend:20261019-01f4db4f` |
 
 记录脚本最后输出的三个配置值，下一章直接使用：
 
 ```dotenv
 DRAMACLAW_IMAGE_PREFIX=harbor.n.nebulaedata.com/dramaclaw
-DRAMACLAW_VERSION=20261012-1
-DRAMACLAW_GATEWAY_VERSION=20261012-1
+DRAMACLAW_VERSION=20261019-01f4db4f
+DRAMACLAW_GATEWAY_VERSION=20261019-01f4db4f
 ```
 
 任何 Docker 命令失败都会停止发布并返回非零退出码。三个镜像的推送不是原子操作，
@@ -185,8 +184,8 @@ nano .env
 
 ```dotenv
 DRAMACLAW_IMAGE_PREFIX=harbor.n.nebulaedata.com/dramaclaw
-DRAMACLAW_VERSION=20261012-1
-DRAMACLAW_GATEWAY_VERSION=20261012-1
+DRAMACLAW_VERSION=20261019-01f4db4f
+DRAMACLAW_GATEWAY_VERSION=20261019-01f4db4f
 ```
 
 前缀填写 `Harbor域名/项目名`，不要添加 `https://` 或 Harbor 网页中的 `/harbor/projects/...` 路径。
