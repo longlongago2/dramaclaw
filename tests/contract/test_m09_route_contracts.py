@@ -246,6 +246,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for rel, content in (
         ("audio/ep001/beat_01.mp3", b"audio"),
         ("videos/beats/ep001/beat_01.mp4", b"beat-video"),
+        ("videos/beats/ep001/beat_02.mp4", b"beat-video-2"),
         ("videos/episodes/ep001_final.mp4", b"final-video"),
         ("media/existing.mp4", b"media-video"),
         ("seedance2_uploads/ep001/beat_01/images/ref.png", _png_bytes()),

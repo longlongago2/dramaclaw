@@ -8,6 +8,7 @@ import { p } from "@/lib/api-path";
 import { queryKeys } from "@/lib/query-keys";
 import type { ErrorResponse, OkResponse, TaskResponse } from "@/types/api";
 import type { Beat } from "@/types/episode";
+import type { BeatAudioSources } from "@/lib/compose-audio";
 
 export const DEFAULT_VIDEO_BACKEND = "huimeng_seedance-1.0-pro-fast";
 
@@ -183,12 +184,13 @@ export function useComposeEpisode(project: string, episode: number) {
       add_subtitles?: boolean;
       add_bgm?: boolean;
       resolution?: string;
+      beat_audio_sources?: BeatAudioSources;
     }) =>
-      api
-        .post(p`api/v1/projects/${project}/episodes/${episode}/videos/compose`, {
+      jsonWithBackendError<TaskResponse>(
+        api.post(p`api/v1/projects/${project}/episodes/${episode}/videos/compose`, {
           json: params,
-        })
-        .json<TaskResponse>(),
+        }),
+      ),
   });
 }
 

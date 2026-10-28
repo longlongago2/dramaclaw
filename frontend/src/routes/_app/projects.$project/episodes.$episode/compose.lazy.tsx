@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { COMPOSE_AUDIO_SOURCES, type BeatAudioSources } from "@/lib/compose-audio";
 
 type Resolution = "720x1280" | "1080x1920" | "1280x720" | "1920x1080";
 type ResolutionTier = "720" | "1080";
@@ -116,13 +117,14 @@ function ComposeTabContent() {
   const { project, episode } = Route.useParams();
   const epNum = parseInt(episode, 10);
   const composeEpisode = useComposeEpisode(project, epNum);
-  const { counts } = useBeatStates(project, epNum);
+  const [audioSources, setAudioSources] = useState<BeatAudioSources>({});
+  const { counts, loading: statesLoading } = useBeatStates(project, epNum, audioSources);
   const beatsRes = useEpisodeBeats(project, epNum);
   const episodeRes = useEpisodeDetail(project, epNum);
   const projectConfigRes = useProject(project);
   const updateProject = useUpdateProject(project);
   const finalVideoRes = useFinalVideo(project, epNum);
-  const canCompose = counts.compose.ready;
+  const canCompose = counts.compose.ready && !statesLoading;
   const projectConfig = projectConfigRes.data?.data;
   const orientation = orientationForAspectRatio(projectConfig?.aspect_ratio) ?? "portrait";
 
@@ -130,6 +132,12 @@ function ComposeTabContent() {
   const [resolution, setResolution] = useState<Resolution>("720x1280");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [composeConfirm, setComposeConfirm] = useState(false);
+
+  useEffect(() => {
+    setAudioSources({});
+    setResultUrl(null);
+    setComposeConfirm(false);
+  }, [project, epNum]);
 
   useEffect(() => {
     setResolution(
@@ -169,8 +177,7 @@ function ComposeTabContent() {
   // The backend writes to this fixed path — display-only.
   const outputFilename = `ep${String(epNum).padStart(3, "0")}_final.mp4`;
 
-  // The compose gate requires audio + video per beat (matches BE actor
-  // pre-flight). `counts.video.total` is the canonical total beat count.
+  // Sound requirements follow each shot's selected source.
   const totalBeats = counts.video.total;
 
   const beats = beatsRes.data?.data ?? [];
@@ -228,16 +235,18 @@ function ComposeTabContent() {
   }, [hydratedUrl, isComposing, resultUrl]);
 
   const handleCompose = async () => {
+    if (!canCompose || isComposing) return;
     try {
       setResultUrl(null);
       await composeEpisode.mutateAsync({
         add_subtitles: addSubtitles,
         add_bgm: false,
         resolution,
+        beat_audio_sources: audioSources,
       });
       task.start();
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("common.error"));
     }
   };
 
@@ -296,6 +305,7 @@ function ComposeTabContent() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-sm text-muted-foreground">
               {t("episode.compose.composeDesc")}
+              {" "}{t("episode.compose.audioSourceHint")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid grid-cols-2 gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
@@ -337,6 +347,7 @@ function ComposeTabContent() {
               {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
+              disabled={!canCompose || isComposing}
               className="h-10 gap-1.5 rounded-lg bg-primary px-4 text-sm font-normal text-primary-foreground shadow-lg shadow-primary/15 hover:bg-primary/90"
               onClick={() => {
                 setComposeConfirm(false);
@@ -352,7 +363,7 @@ function ComposeTabContent() {
 
       {/* Main area */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-6 p-6 sm:p-8">
+        <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-6 p-6 sm:p-8">
           {/* Header: title + meta, actions on the right */}
           {!beatsEmpty && (
             <header className="flex flex-wrap items-center justify-between gap-3">
@@ -456,14 +467,16 @@ function ComposeTabContent() {
           {!beatsEmpty && <hr className="border-border/30" />}
 
           {/* Config row + warning: below divider */}
-          {!beatsEmpty && !resultUrl && !isComposing && (
+          {!beatsEmpty && !isComposing && (
             <div className="flex flex-col gap-5 pb-2 pt-1 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
               <div className="min-w-0 space-y-1.5">
-                <h2 className="text-base font-semibold text-amber-400">
-                  {t("episode.compose.blockerCount", { count: counts.compose.missing.length })}
+                <h2 className={cn("text-base font-semibold", canCompose ? "text-foreground" : "text-amber-400")}>
+                  {canCompose
+                    ? t("episode.health.allReady")
+                    : t("episode.compose.blockerCount", { count: counts.compose.missing.length })}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  {t("episode.compose.blockerSubtitle")}
+                  {canCompose ? t("episode.compose.readyToCompose") : t("episode.compose.blockerSubtitle")}
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-6">
@@ -495,14 +508,56 @@ function ComposeTabContent() {
             </div>
           )}
 
+          {!beatsEmpty && !isComposing && (
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium text-foreground">{t("episode.compose.audioSource")}</legend>
+              <p className="text-xs text-muted-foreground">{t("episode.compose.audioSourceHint")}</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {beats.map((beat) => (
+                  <div key={beat.beat_number} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+                    <label id={`sound-${beat.beat_number}`} className="text-xs text-foreground">
+                      {t("episode.compose.beatLabel")} {beat.beat_number}
+                    </label>
+                    <Select
+                      value={audioSources[beat.beat_number] ?? "auto"}
+                      onValueChange={(value) => {
+                        if (value && COMPOSE_AUDIO_SOURCES.includes(value)) {
+                          setAudioSources((prev) => ({ ...prev, [beat.beat_number]: value }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger aria-labelledby={`sound-${beat.beat_number}`} size="sm">
+                        <SelectValue>{(value) => t(`episode.compose.audioSources.${value}`)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMPOSE_AUDIO_SOURCES.map((source) => (
+                          <SelectItem key={source} value={source}>{t(`episode.compose.audioSources.${source}`)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {!beatsEmpty && !isComposing && counts.compose.missing.length > 0 && (
+            <BeatBlockerGrid
+              project={project}
+              episode={epNum}
+              missing={counts.compose.missing}
+              t={t}
+            />
+          )}
+
           {/* Content below divider */}
           {resultUrl ? (
             // Vertical (9:16) drama clips are taller than they are wide.
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <div className="flex min-h-80 flex-1 items-center justify-center overflow-hidden">
               <video
                 src={resultUrl}
                 controls
-                className="block max-h-full max-w-full rounded-lg"
+                className="block max-h-[70dvh] max-w-full rounded-lg"
               />
             </div>
           ) : beatsLoading ? (
@@ -525,19 +580,7 @@ function ComposeTabContent() {
               onStop={task.stop}
               stopping={task.stopping}
             />
-          ) : (
-            <>
-              {/* Beat grid — lightweight cards */}
-              {counts.compose.missing.length > 0 && (
-                <BeatBlockerGrid
-                  project={project}
-                  episode={epNum}
-                  missing={counts.compose.missing}
-                  t={t}
-                />
-              )}
-            </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
