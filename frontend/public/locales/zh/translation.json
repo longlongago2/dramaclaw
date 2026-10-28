@@ -4521,7 +4521,15 @@
       "blockerSubtitle": "以下镜头还缺少素材，补齐后才能合成",
       "missingItemSeparator": "、",
       "missingItems": "缺失：{{items}}",
-      "beatLabel": "镜头"
+      "beatLabel": "镜头",
+      "audioSource": "镜头声音",
+      "audioSourceHint": "自动模式优先使用已有配音，否则保留原声或使用静音；静音和动作镜头使用原声。原声模式忽略独立配音，无原声时静音。导出前请检查对白是否完整。",
+      "audioSources": {
+        "auto": "自动",
+        "embedded": "视频原声",
+        "external": "独立配音",
+        "silence": "静音"
+      }
     },
     "gate": {
       "scriptIdentitiesRequired": "此集尚未规划身份,请先在源材料中选择角色身份",

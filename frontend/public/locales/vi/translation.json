@@ -4407,7 +4407,15 @@
       "blockerSubtitle": "Các beat sau vẫn còn thiếu asset. Hãy hoàn thiện chúng trước khi dựng.",
       "missingItemSeparator": ", ",
       "missingItems": "Còn thiếu: {{items}}",
-      "beatLabel": "Beat"
+      "beatLabel": "Beat",
+      "audioSource": "Âm thanh cảnh",
+      "audioSourceHint": "Tự động ưu tiên lời đọc có sẵn, sau đó dùng âm thanh gốc hoặc im lặng. Cảnh im lặng/hành động dùng âm thanh gốc. Chế độ gốc bỏ qua lời đọc; không có âm thanh gốc thì im lặng. Kiểm tra hội thoại trước khi xuất.",
+      "audioSources": {
+        "auto": "Tự động",
+        "embedded": "Âm thanh gốc",
+        "external": "Lời đọc riêng",
+        "silence": "Tắt tiếng"
+      }
     },
     "gate": {
       "scriptIdentitiesRequired": "Tập này chưa lên kế hoạch tạo hình nào. Hãy chọn tạo hình nhân vật ở bảng nguồn trước.",

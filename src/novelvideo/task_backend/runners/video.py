@@ -489,6 +489,7 @@ def run_compose_episode(
     import subprocess
     import tempfile
 
+    from novelvideo.compose_audio import compose_asset_errors, use_external_audio
     from novelvideo.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
@@ -499,6 +500,12 @@ def run_compose_episode(
     add_subtitles = bool(payload.get("add_subtitles"))
     manager = get_task_manager()
     paths = PathResolver(output_dir, episode)
+    audio_sources = {
+        int(key): value for key, value in (payload.get("beat_audio_sources") or {}).items()
+    }
+    errors = compose_asset_errors(paths, beats, audio_sources)
+    if errors:
+        raise ValueError("; ".join(errors))
     final_dir = Path(output_dir) / "videos" / "episodes"
     final_dir.mkdir(parents=True, exist_ok=True)
     output_path = final_dir / f"ep{episode:03d}_final.mp4"
@@ -540,8 +547,8 @@ def run_compose_episode(
             beat_num = int(beat.get("beat_number") or index + 1)
             video_path = paths.video(beat_num)
             audio_path = paths.audio(beat_num)
-            if not video_path.exists():
-                continue
+            source = audio_sources.get(beat_num, "auto")
+            external_audio = use_external_audio(beat, source, audio_path)
             clip_path = tmp_dir / f"beat_{beat_num:04d}.mp4"
             manager.update_progress_for_project(
                 ctx,
@@ -552,7 +559,7 @@ def run_compose_episode(
             )
             cmd = ["ffmpeg", "-y", "-i", str(video_path)]
             has_embedded_audio = False
-            if audio_path.exists():
+            if external_audio:
                 cmd.extend(["-i", str(audio_path)])
                 cmd.extend(
                     [
@@ -581,7 +588,7 @@ def run_compose_episode(
                     episode,
                     logs=[f"Beat {beat_num} 使用独立音频: {audio_path.name}"],
                 )
-            else:
+            elif source != "silence":
                 has_embedded_audio = _video_has_audio_stream(
                     video_path,
                     timeout_seconds=subprocess_timeout(30),
@@ -615,7 +622,13 @@ def run_compose_episode(
                     episode,
                     logs=[f"Beat {beat_num} 使用视频内置音轨"],
                 )
-            elif not audio_path.exists():
+            elif not external_audio:
+                manager.update_progress_for_project(
+                    ctx,
+                    "compose_episode",
+                    episode,
+                    logs=[f"Beat {beat_num} 使用静音音轨"],
+                )
                 cmd.extend(
                     [
                         "-f",
@@ -647,12 +660,7 @@ def run_compose_episode(
             if result.returncode == 0:
                 video_clips.append(str(clip_path))
             else:
-                manager.update_progress_for_project(
-                    ctx,
-                    "compose_episode",
-                    episode,
-                    logs=[f"Beat {beat_num} 合成失败: {result.stderr[:500]}"],
-                )
+                raise RuntimeError(f"Beat {beat_num} 合成失败: {result.stderr[:500]}")
 
         if not video_clips:
             raise RuntimeError("没有可用的视频片段")

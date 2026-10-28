@@ -9,10 +9,7 @@ import type { StageId } from "@/lib/episode-stage-registry";
  * - ready: asset present (URL non-null)
  * - failed: task terminal=failed AND task.beat_num === n AND asset still absent
  *
- * Note: `skipped` was considered (for 1.5-model audio bundling) but dropped —
- * compose currently requires an audio file for every beat regardless of video
- * model. See `docs/superpowers/specs/2026-04-14-episode-workbench-design.md`
- * Part 1 for derivation rules.
+ * Composition only requires independent audio when explicitly selected.
  */
 export type BeatStageState = "missing" | "generating" | "ready" | "failed";
 

@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import threading
 import zipfile
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -10,6 +11,60 @@ from fastapi.testclient import TestClient
 
 
 pytestmark = pytest.mark.m09
+
+
+@pytest.mark.parametrize("source", ["auto", "embedded", "external", "silence"])
+def test_compose_validates_and_forwards_audio_choices(monkeypatch, tmp_path, source):
+    from novelvideo.api.routes import generation
+
+    client = _client(monkeypatch, tmp_path)
+    video_dir = tmp_path / "videos" / "beats" / "ep003"
+    video_dir.mkdir(parents=True)
+    (video_dir / "beat_01.mp4").write_bytes(b"clip")
+    queued_payloads = []
+
+    async def resolve(*args, **kwargs):
+        return SimpleNamespace(ctx=SimpleNamespace(project_id="p"), username="alice",
+                               project_name="demo", output_dir=str(tmp_path))
+
+    async def store(*args, **kwargs):
+        return _FakeStore()
+
+    async def enqueue(*args, **kwargs):
+        queued_payloads.append(kwargs["payload"])
+        return SimpleNamespace(task_state=SimpleNamespace(task_id="task1"), backend="local", queue="ffmpeg")
+
+    monkeypatch.setattr(generation, "_resolve_generation_project", resolve)
+    monkeypatch.setattr(generation, "make_sqlite_store_for_context", store)
+    monkeypatch.setattr(generation, "get_task_backend", lambda: SimpleNamespace(enqueue_project_task=enqueue))
+    response = client.post("/projects/demo/episodes/3/videos/compose", json={"beat_audio_sources": {"1": source}})
+    if source == "external":
+        assert response.status_code == 400
+        assert "missing external audio" in response.json()["detail"]
+        assert not queued_payloads
+        audio_dir = tmp_path / "audio" / "ep003"
+        audio_dir.mkdir(parents=True)
+        (audio_dir / "beat_01.mp3").write_bytes(b"voiceover")
+        response = client.post(
+            "/projects/demo/episodes/3/videos/compose",
+            json={"beat_audio_sources": {"1": "external"}},
+        )
+        assert response.status_code == 200
+        assert response.json()["ok"]
+        assert queued_payloads[0]["beat_audio_sources"] == {1: source}
+    else:
+        assert response.status_code == 200
+        assert response.json()["ok"]
+        assert queued_payloads[0]["beat_audio_sources"] == {1: source}
+
+    unknown = client.post("/projects/demo/episodes/3/videos/compose", json={"beat_audio_sources": {"99": "auto"}})
+    assert unknown.status_code == 400
+    invalid = client.post("/projects/demo/episodes/3/videos/compose", json={"beat_audio_sources": {"1": "unknown"}})
+    assert invalid.status_code == 422
+    (video_dir / "beat_01.mp4").unlink()
+    missing = client.post("/projects/demo/episodes/3/videos/compose", json={})
+    assert missing.status_code == 400
+    assert "missing video" in missing.json()["detail"]
 
 
 class _FakeStore:

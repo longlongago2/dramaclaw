@@ -4521,7 +4521,15 @@
       "blockerSubtitle": "The following beats are still missing assets. Complete them before composing.",
       "missingItemSeparator": ", ",
       "missingItems": "Missing: {{items}}",
-      "beatLabel": "Beat"
+      "beatLabel": "Beat",
+      "audioSource": "Shot audio",
+      "audioSourceHint": "Auto uses voiceover when available, otherwise original sound or silence. Silent/action shots use original sound. Original sound ignores voiceover; if absent, the shot is silent. Review dialogue before exporting.",
+      "audioSources": {
+        "auto": "Auto",
+        "embedded": "Original sound",
+        "external": "Voiceover",
+        "silence": "Mute"
+      }
     },
     "gate": {
       "scriptIdentitiesRequired": "This episode has no identities planned. Select character identities in the source panel first.",

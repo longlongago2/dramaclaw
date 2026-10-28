@@ -284,6 +284,9 @@ class VideoComposeRequest(BaseModel):
     add_subtitles: bool = True
     add_bgm: bool = False
     resolution: str = "720x1280"
+    beat_audio_sources: dict[int, Literal["auto", "embedded", "external", "silence"]] = Field(
+        default_factory=dict
+    )
 
 
 # ── TTS ───────────────────────────────────────────────────────────────────────

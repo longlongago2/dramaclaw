@@ -2034,10 +2034,20 @@ async def compose_video(
     if not beats:
         return {"ok": False, "error": f"No beats found for episode {episode_num}"}
 
+    from novelvideo.compose_audio import compose_asset_errors
+    from novelvideo.utils.path_resolver import PathResolver
+
+    errors = compose_asset_errors(
+        PathResolver(output_dir, episode_num), beats, body.beat_audio_sources
+    )
+    if errors:
+        raise HTTPException(status_code=400, detail="; ".join(errors))
+
     config = {
         "beats": beats,
         "add_subtitles": body.add_subtitles,
         "add_bgm": body.add_bgm,
+        "beat_audio_sources": body.beat_audio_sources,
     }
 
     if ctx is not None:
